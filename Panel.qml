@@ -300,6 +300,7 @@ Panel {
             playerColor: root.playerColor
             buttons: root.liveButtons
             axes: root.liveAxes
+            axisNames: root.sel && root.sel.axisNames ? root.sel.axisNames : []
             profile: root.sel && root.sel.profile ? root.sel.profile : null
             width: Style.space(282)
             height: Style.space(173)
@@ -340,6 +341,13 @@ Panel {
               value: root.sel ? GamepadModel.batteryLabel(root.sel.percent, root.sel.charging) : "—"
               sub: root.sel && root.sel.percent >= 0 ? (root.sel.percent <= root.lowBatteryThreshold ? "low — charge soon" : "healthy") : "no battery data"
               valueColor: root.sel ? GamepadModel.batteryText(root.barForeground, Color, root.sel.percent, root.lowBatteryThreshold) : root.barForeground
+              foreground: root.barForeground
+            }
+            Chip {
+              width: (parent.width - Style.space(8)) / 2
+              label: "Hardware"
+              value: root.sel ? root.sel.axisCount + " axes · " + root.sel.buttonCount + " buttons" : "—"
+              sub: root.sel ? GamepadModel.shapeLabel(root.sel.layout) : ""
               foreground: root.barForeground
             }
           }

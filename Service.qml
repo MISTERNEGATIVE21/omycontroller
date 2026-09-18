@@ -105,7 +105,8 @@ Item {
   }
 
   function classifyDevice(d) {
-    return GamepadModel.classify(d.name, d.driver, d.vendor, d.product)
+    return GamepadModel.classify(d.name, d.driver, d.vendor, d.product,
+                                 d.axisCount, d.buttonCount)
   }
 
   function connectionOf(d) {
@@ -193,6 +194,7 @@ Item {
       buttonCount: 0,
       axes: [],
       axisCount: 0,
+      axisNames: [],
       avgMs: -1,
       eps: 0,
       _lastTs: -1,
@@ -209,7 +211,8 @@ Item {
     state.phys = String(rec.phys || "")
     state.percent = (rec.percent === undefined || rec.percent === null) ? -1 : Number(rec.percent)
     state.charging = !!rec.charging
-    var cls = GamepadModel.classify(state.name, state.driver, state.vendor, state.product)
+    var cls = GamepadModel.classify(state.name, state.driver, state.vendor, state.product,
+                                    state.axisCount, state.buttonCount)
     state.layout = cls.layout
     state.modelLabel = cls.modelLabel
     state.protocol = cls.protocol
@@ -294,8 +297,12 @@ Item {
     if (_streams[id] && !_devices[id]) stopStream(id)
   }
 
-  readonly property var eventRe: /time\s+([0-9]+\.[0-9]+).*?type\s+(\d+).*?number\s+(\d+).*?value\s+(-?\d+)/
-  readonly property var headerRe: /has\s+(\d+)\s+axes.*?(\d+)\s+buttons/
+  // jstest prints either "code N" or "number N" depending on version;
+  // accept both so live input survives across distros. The header regex
+  // also captures the axis-name list ("X, Y, Throttle, Hat0X, Hat0Y") so
+  // joystick extras bind by name, not by guessed index.
+  readonly property var eventRe: /time\s+([0-9]+\.[0-9]+).*?type\s+(\d+).*?(?:code|number)\s+(\d+).*?value\s+(-?\d+)/
+  readonly property var headerRe: /has\s+(\d+)\s+axes\s*\(([^)]*)\)\s+and\s+(\d+)\s+buttons/
 
   function handleEventLine(id, line) {
     var d = device(id)
@@ -306,13 +313,28 @@ Item {
       var header = headerRe.exec(text)
       if (header) {
         d.axisCount = parseInt(header[1], 10)
-        d.buttonCount = parseInt(header[2], 10)
+        d.buttonCount = parseInt(header[3], 10)
+        d.axisNames = String(header[2] || "")
+          .split(",")
+          .map(function (s) { return s.trim() })
+          .filter(function (s) { return s.length > 0 })
         if (d.axes.length !== d.axisCount) {
           var fresh = []
           for (var i = 0; i < d.axisCount; i++) fresh.push(0)
           d.axes = fresh
         }
         d.live = true
+        // Shape facts just arrived — re-classify so plain joysticks switch
+        // from the generic gamepad silhouette to the dedicated one.
+        var cls = GamepadModel.classify(d.name, d.driver, d.vendor, d.product,
+                                        d.axisCount, d.buttonCount)
+        if (cls.layout !== d.layout || cls.protocol !== d.protocol ||
+            cls.modelLabel !== d.modelLabel) {
+          d.layout = cls.layout
+          d.modelLabel = cls.modelLabel
+          d.protocol = cls.protocol
+          d.maker = cls.maker
+        }
         _touch(id)
       }
       return

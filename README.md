@@ -4,7 +4,11 @@ A Quattro shell plugin (Quickshell-based, standard Omarchy plugin contract)
 that turns the Omarchy bar into a small gamepad control center: live
 controller view, battery, connection mode, input protocol, real input
 latency, rumble tests, DualSense adaptive triggers and per-pad deadzones —
-for up to four pads (P1–P4), as the name suggests.
+for up to four pads (P1–P4), as the name suggests. Every joypad *and*
+joystick is covered: gamepads render as their real silhouette (Xbox /
+PlayStation / Switch / generic), while flight sticks, arcade sticks and
+yokes get a dedicated single-stick view with a live hat switch and
+throttle lever.
 
 ```
 ┌ QUATRO ─────────────────────────── 1 pad ─┐
@@ -34,7 +38,8 @@ for up to four pads (P1–P4), as the name suggests.
 | Battery %     | kernel `power_supply` node bound to the pad's HID device              |
 | Connection    | Wired USB / USB Dongle / Bluetooth — from bus type + device topology  |
 | Mode/protocol | XInput, Switch Pro, DualSense, DInput, Steam Input… from driver+name  |
-| Model + art   | Xbox / DualSense / Switch Pro / generic layout, drawn live in QML     |
+| Model + art   | Xbox / DualSense / Switch Pro / joystick / generic layout, drawn live in QML |
+| Hardware      | axis + button count from the jstest header, silhouette label (gamepad vs joystick) |
 | Latency       | rolling average of evdev event intervals (ms) + effective poll rate   |
 | Deadzones     | per-pad profiles, persisted across replug, live preview rings         |
 | Rumble        | one-shot FF_RUMBLE via evdev (weak / strong / both)                   |
@@ -122,7 +127,8 @@ quatro.gamepad/
 │                        latency math, profiles, rumble/haptics dispatch
 ├── BarWidget.qml        bar pill + panel lifecycle (open/close/toggle)
 ├── Panel.qml            popout UI: menu, live art, chips, tuning controls
-├── ControllerArt.qml    theme-aware controller rendering, 4 layouts
+├── ControllerArt.qml    theme-aware controller rendering, 5 layouts
+│                        (Xbox / PS / Switch / joystick / generic)
 ├── GamepadModel.js      pure classification logic (driver→model/protocol)
 └── scripts/
     ├── scan.sh          sysfs walk → one JSON line per pad (no deps)

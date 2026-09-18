@@ -6,17 +6,20 @@ import "GamepadModel.js" as GamepadModel
 //
 // Theme-aware, model-accurate controller rendering built from QML
 // primitives (no SVG plugin, no external assets — hot-reloads cleanly and
-// repaints instantly at input rate). Four layouts:
+// repaints instantly at input rate). Five layouts:
 //
 //   xbox     A/B/X/Y, asymmetric sticks, view/menu/guide
 //   ps       ×/○/□/△, symmetric sticks, create/options, touchpad, PS logo
 //   switch   Nintendo glyph order (A right, B bottom), +/-, home, capture
+//   joystick single stick + hat + throttle (flight/arcade sticks, yokes)
 //   generic  neutral 1..4 diamond
 //
 // Live behavior:
 //   - face buttons / bumpers / dpad / center keys light up in playerColor
 //   - sticks draw raw dot (faint) + deadzone-corrected dot (solid)
 //   - triggers are vertical fill bars driven by their analog axis
+//   - joystick view: hat lights from ABS_HAT0X/Y, throttle bar from the
+//     extra analog axis, deadzone ring on the single stick
 //   - a dashed inner ring on each stick shows the stored deadzone
 //
 // Input tables follow the common kernel driver button order (xpad/xpadneo,
@@ -30,6 +33,7 @@ Item {
   property color playerColor: Color.accent
   property var buttons: ({})             // js button index -> bool
   property var axes: []                  // normalized -1..1
+  property var axisNames: []             // jstest header names ("X","Throttle"…)
   property var profile: ({})             // deadzone profile (stickL/stickR/...)
   property bool mini: false              // tiny silhouette for menu rows
   property bool showLabels: true
@@ -41,10 +45,14 @@ Item {
   readonly property bool isPs: layout === "ps"
   readonly property bool isSwitch: layout === "switch"
   readonly property bool isXbox: layout === "xbox"
+  readonly property bool isJoystick: layout === "joystick"
+
+  // Hat switch + throttle lever, only meaningful for the joystick layout.
+  readonly property var extras: isJoystick ? GamepadModel.joystickExtras(axes, axisNames) : null
 
   // ---------------------------------------------------------------- tables
   readonly property var tables: GamepadModel.buttonTables(layout)
-  readonly property var axisMap: GamepadModel.axesMap(layout, axes ? axes.length : 0)
+  readonly property var axisMap: GamepadModel.axesMap(layout, axes ? axes.length : 0, axisNames)
 
   function pressed(idx) { return !!(buttons && buttons[idx]) }
   function axisValue(idx, fallback) {
@@ -116,7 +124,7 @@ Item {
   // ------------------------------------------------------------- full view
   Item {
     id: art
-    visible: !root.mini
+    visible: !root.mini && !root.isJoystick
     width: 340
     height: 208
     scale: root.scale
@@ -263,6 +271,105 @@ Item {
     }
   }
 
+  // ------------------------------------------------- joystick full view
+  // Single-stick hardware: base plate, trigger pill, big stick with
+  // deadzone ring, hat switch (ABS_HAT0X/Y), base button cluster and the
+  // throttle lever bar. Every element is live-bound like the gamepad art.
+  Item {
+    id: jart
+    visible: !root.mini && root.isJoystick
+    width: 340
+    height: 208
+    scale: root.scale
+    transformOrigin: Item.TopLeft
+
+    readonly property var ex: {
+      if (root.extras) return root.extras
+      return { hatX: 0, hatY: 0, hasHat: false, throttle: -1, hasThrottle: false }
+    }
+
+    // Base plate
+    Rectangle {
+      x: 14; y: 40; width: 312; height: 140; radius: 34
+      color: root.bodyColor
+      border.color: root.bodyBorder
+      border.width: 1
+    }
+
+    // Stick well
+    Rectangle {
+      x: 78; y: 72; width: 80; height: 80; radius: 40
+      color: root.idleFill
+      border.color: root.bodyBorder
+      border.width: 1
+    }
+
+    // Trigger (button 0) pill
+    Rectangle {
+      x: 36; y: 52; width: 84; height: 22; radius: 11
+      color: root.pressed(root.tables.triggerL) ? root.playerColor : root.idleFill
+      border.color: root.pressed(root.tables.triggerL) ? root.playerColor : root.bodyBorder
+      border.width: 1
+      Behavior on color { ColorAnimation { duration: 50 } }
+      Text {
+        visible: root.showLabels
+        anchors.centerIn: parent
+        text: "TRIGGER"
+        color: root.pressed(root.tables.triggerL) ? Color.popups.background : root.dimGlyph
+        font.pixelSize: 8
+        font.bold: true
+        font.family: Style.font.family
+      }
+    }
+
+    // Main stick + deadzone preview ring
+    Stick {
+      cx: 118; cy: 112
+      rawX: root.stickX("l"); rawY: root.stickY("l")
+      dz: root.dzFor("l")
+      on: root.pressed(root.tables.stickL)
+      accent: root.playerColor
+    }
+
+    // Hat switch — driven by the HAT0 axis pair, not buttons
+    Dpad {
+      cx: 216; cy: 74
+      up: jart.ex.hatY < 0
+      down: jart.ex.hatY > 0
+      left: jart.ex.hatX < 0
+      right: jart.ex.hatX > 0
+      accent: root.playerColor
+    }
+
+    // Base button cluster 1..4
+    FaceButton { cx: 198; cy: 128; label: "1"; on: root.pressed(root.tables.faceBottom) }
+    FaceButton { cx: 224; cy: 128; label: "2"; on: root.pressed(root.tables.faceTop) }
+    FaceButton { cx: 198; cy: 154; label: "3"; on: root.pressed(root.tables.faceLeft) }
+    FaceButton { cx: 224; cy: 154; label: "4"; on: root.pressed(root.tables.faceRight) }
+
+    // Extra base buttons 5/6
+    CircleKey { cx: 258; cy: 128; r: 9; label: "5"; on: root.pressed(root.tables.bumperL); accent: root.playerColor; showLabel: root.showLabels }
+    CircleKey { cx: 258; cy: 154; r: 9; label: "6"; on: root.pressed(root.tables.bumperR); accent: root.playerColor; showLabel: root.showLabels }
+
+    // Spare keys 7/8
+    CircleKey { cx: 146; cy: 62; r: 8; label: "7"; on: root.pressed(root.tables.centerTop); accent: root.playerColor; showLabel: root.showLabels }
+    CircleKey { cx: 146; cy: 90; r: 8; label: "8"; on: root.pressed(root.tables.centerExtra); accent: root.playerColor; showLabel: root.showLabels }
+
+    // Throttle lever (extra analog axis; button fallback handled in triggerNorm)
+    TrigBar { x: 292; y: 76; side: "l"; labelOverride: "THR" }
+
+    Text {
+      visible: root.showLabels
+      text: jart.ex.hasHat ? "hat + throttle live" : "stick + buttons live"
+      anchors.bottom: parent.bottom
+      anchors.bottomMargin: 2
+      anchors.horizontalCenter: parent.horizontalCenter
+      color: root.dimGlyph
+      font.pixelSize: 8
+      font.family: Style.font.family
+    }
+  }
+
   function faceLabel(pos) {
     if (root.isPs) return { top: "△", bottom: "×", left: "□", right: "○" }[pos]
     if (root.isSwitch) return { top: "X", bottom: "A", left: "Y", right: "B" }[pos]
@@ -274,6 +381,7 @@ Item {
   component TrigBar : Item {
     id: trig
     property string side: "l"
+    property string labelOverride: ""
     readonly property real h: 34
     width: 18
     height: h + 16
@@ -302,7 +410,10 @@ Item {
       visible: root.showLabels
       anchors.horizontalCenter: parent.horizontalCenter
       y: 0
-      text: root.isPs ? (trig.side === "l" ? "L2" : "R2") : root.isSwitch ? (trig.side === "l" ? "ZL" : "ZR") : (trig.side === "l" ? "LT" : "RT")
+      text: trig.labelOverride !== "" ? trig.labelOverride
+           : root.isPs ? (trig.side === "l" ? "L2" : "R2")
+           : root.isSwitch ? (trig.side === "l" ? "ZL" : "ZR")
+           : (trig.side === "l" ? "LT" : "RT")
       color: root.dimGlyph
       font.pixelSize: 8
       font.family: Style.font.family

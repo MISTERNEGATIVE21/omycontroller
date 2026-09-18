@@ -44,16 +44,39 @@ function looksLikeDongle(name, phys) {
 // ---------------------------------------------------------------------------
 // Model + protocol classification
 //
+// Args:
+//   name/driver/vendor/product — sysfs facts
+//   axisCount/buttonCount      — optional shape facts (0 = unknown yet; they
+//                                arrive later from the jstest header, at
+//                                which point Service re-classifies)
+//
 // Returns:
 //   {
-//     layout:    "xbox" | "ps" | "switch" | "generic"   (drives the art)
+//     layout:    "xbox" | "ps" | "switch" | "joystick" | "generic" (drives art)
 //     modelLabel:          e.g. "DualSense", "Xbox pad", "Switch Pro pad"
 //     protocol:            e.g. "XInput", "Switch Pro", "DualSense"
 //     driverNote:          kernel driver actually bound, e.g. "xpadneo"
 //     maker:               vendor string when known
 //   }
 // ---------------------------------------------------------------------------
-function classify(name, driver, vendor, product) {
+// Names that describe single-stick hardware (flight/arcade sticks, yokes,
+// throttle quadrants). These get the dedicated joystick silhouette instead
+// of a full gamepad body.
+var JOYSTICK_WORDS = [
+  "joystick", "flight stick", "arcade stick", "fightstick", "fighting",
+  "yoke", "rudder", "throttle", "hotas", "t.flight", "x52", "x56",
+  "twist lock", "aviator", "qanba", "mayflash", "mad catz"
+]
+
+function looksLikeJoystick(name) {
+  var n = lower(name)
+  for (var i = 0; i < JOYSTICK_WORDS.length; i++) {
+    if (n.indexOf(JOYSTICK_WORDS[i]) !== -1) return true
+  }
+  return false
+}
+
+function classify(name, driver, vendor, product, axisCount, buttonCount) {
   var n = lower(name)
   var d = lower(driver)
   var v = lower(vendor)
@@ -65,14 +88,38 @@ function classify(name, driver, vendor, product) {
     maker: VENDORS[v] || ""
   }
 
+  // Plain joysticks -------------------------------------------------------
+  // Either the name says so, or the shape does (few axes, few buttons, and
+  // no gamepad-ish name). Shape facts only apply once the jstest header
+  // told us the real counts (axisCount > 0).
+  var ac = Number(axisCount) || 0
+  var bc = Number(buttonCount) || 0
+  var shapeSaysJoystick = ac > 0 && ac <= 4 && bc <= 8 &&
+                          n.indexOf("gamepad") === -1 &&
+                          n.indexOf("controller") === -1 &&
+                          n.indexOf("wireless controller") === -1
+  if (looksLikeJoystick(name) || shapeSaysJoystick) {
+    out.layout = "joystick"
+    out.protocol = "HID joystick"
+    if (n.indexOf("hotas") !== -1) out.modelLabel = "HOTAS stick"
+    else if (n.indexOf("arcade") !== -1 || n.indexOf("fight") !== -1) out.modelLabel = "Arcade stick"
+    else if (n.indexOf("flight") !== -1 || n.indexOf("yoke") !== -1) out.modelLabel = "Flight stick"
+    return out
+  }
+
   // Sony ---------------------------------------------------------------
   if (d === "hid-playstation" || n.indexOf("wiimote") === 0) {
-    // hid-playstation covers both DualShock 4 and DualSense.
-    if (n.indexOf("dualsense") !== -1 || n.indexOf("wireless controller") !== -1) {
+    // hid-playstation covers both DualShock 4 and DualSense — and both
+    // name themselves "Wireless Controller", so the product id decides:
+    //   0ce6 = DualSense (and Edge), 05c4/09cc = DualShock 4.
+    var p = String(product || "").toLowerCase()
+    var isDs = n.indexOf("dualsense") !== -1 || (v === "054c" && p === "0ce6")
+    var isDs4 = n.indexOf("dualshock") !== -1 || (v === "054c" && (p === "05c4" || p === "09cc"))
+    if (isDs) {
       out.layout = "ps"
       out.modelLabel = n.indexOf("edge") !== -1 ? "DualSense Edge" : "DualSense"
       out.protocol = "DualSense"
-    } else if (n.indexOf("wireless controller") !== -1 || n.indexOf("dualshock") !== -1) {
+    } else if (isDs4) {
       out.layout = "ps"
       out.modelLabel = "DualShock 4"
       out.protocol = "DualShock 4"
@@ -302,6 +349,20 @@ function buttonTables(layout) {
       known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
     }
   }
+  if (layout === "joystick") {
+    // Conventional single-stick ordering: trigger = button 0, then the
+    // base/grip cluster 1..6. The hat switch is NOT buttons — it reports
+    // as ABS_HAT0X/Y axes (indices 16/17), handled by joystickExtras().
+    return {
+      faceTop: 2, faceBottom: 1, faceLeft: 4, faceRight: 3,
+      bumperL: 5, bumperR: 6,
+      stickL: 9, stickR: -1,
+      dpadUp: -1, dpadDown: -1, dpadLeft: -1, dpadRight: -1,
+      centerTop: 7, centerLeft: -1, centerRight: -1, centerExtra: 8,
+      triggerL: 0, triggerR: -1,
+      known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    }
+  }
   // generic: 1..4 diamond, bumpers 4/5, sticks 9/10, center 6/7
   return {
     faceTop: 3, faceBottom: 0, faceLeft: 2, faceRight: 1,
@@ -316,10 +377,99 @@ function buttonTables(layout) {
 
 // Axis map — js axis index per art element, heuristics per driver family.
 // Most pads report LX, LY, RX, RY on axes 0..3 and analog triggers after.
-function axesMap(layout, axisCount) {
+// For joysticks the jstest header's axis-name list (when available) picks
+// the real Throttle axis; without names we fall back to index 2.
+function axesMap(layout, axisCount, axisNames) {
+  if (layout === "joystick") {
+    var thr = throttleIndex(axisNames)
+    if (thr === -1 && axisCount >= 3) thr = 2   // nameless fallback: first extra axis
+    return { lx: 0, ly: 1, rx: -1, ry: -1, lt: thr, rt: -1 }
+  }
   if (axisCount >= 6) return { lx: 0, ly: 1, rx: 2, ry: 3, lt: 4, rt: 5 }
   if (layout === "xbox" && axisCount >= 4) return { lx: 0, ly: 1, rx: -1, ry: -1, lt: 2, rt: 3 }
   return { lx: 0, ly: 1, rx: 2, ry: 3, lt: -1, rt: -1 }
+}
+
+// ---------------------------------------------------------------------------
+// Joystick axis-name helpers. jstest prints the header as
+//   "... has 6 axes (    X,     Y,  Throttle,   Rudder,   Hat0X,   Hat0Y) ..."
+// so Service can hand us the trimmed name list. Matching is lowercase.
+// ---------------------------------------------------------------------------
+function axisNameList(axisNames) {
+  if (!axisNames) return []
+  if (axisNames.join) return axisNames.map(function (s) { return lower(s) })
+  return []
+}
+
+// The lever: prefer a real "Throttle" axis, else the first non-hat extra
+// axis (twist/rudder — still a useful live lever bar).
+function throttleIndex(axisNames) {
+  var names = axisNameList(axisNames)
+  if (names.length === 0) return -1
+  var t = names.indexOf("throttle")
+  if (t !== -1) return t
+  for (var i = 2; i < names.length; i++) {
+    if (names[i].indexOf("hat") !== 0) return i
+  }
+  return -1
+}
+
+// HAT0 pair indices (any hat number) from the name list.
+function hatIndices(axisNames) {
+  var names = axisNameList(axisNames)
+  var out = { x: -1, y: -1 }
+  for (var i = 0; i < names.length; i++) {
+    if (/^hat\d*x$/.test(names[i])) out.x = i
+    else if (/^hat\d*y$/.test(names[i])) out.y = i
+  }
+  return out
+}
+
+// ---------------------------------------------------------------------------
+// Joystick extras — hat switch + throttle from the raw axis array.
+// With the header's axis names we bind exactly (Throttle / Hat0X / Hat0Y);
+// without names we fall back to evdev conventions (ABS_HAT0X/Y = indices
+// 16/17, first extra analog axis = lever).
+//   hatX/hatY : -1 | 0 | 1   (0 = centered)
+//   throttle  : 0..1         (-1 when the stick has no extra analog axis)
+// ---------------------------------------------------------------------------
+function joystickExtras(axes, axisNames) {
+  var out = { hatX: 0, hatY: 0, hasHat: false, throttle: -1, hasThrottle: false }
+  if (!axes) return out
+  var hat = hatIndices(axisNames)
+  var thrIdx = throttleIndex(axisNames)
+  for (var i = 0; i < axes.length; i++) {
+    var v = Number(axes[i])
+    if (!isFinite(v)) continue
+    if (hat.x === i || hat.y === i) {
+      if (hat.x === i) out.hatX = v
+      else out.hatY = v
+      out.hasHat = true
+    } else if (thrIdx === i) {
+      out.throttle = (v + 1) / 2
+      out.hasThrottle = true
+    } else if (thrIdx === -1 && hat.x === -1 && i >= 2 && i < 16) {
+      // No names available: evdev-convention fallback, first extra axis.
+      out.throttle = (v + 1) / 2
+      out.hasThrottle = true
+    }
+  }
+  // Hat by position when names were missing (HAT0X/Y = 16/17).
+  if (!out.hasHat && axes.length > 17) {
+    out.hatX = Number(axes[16]) || 0
+    out.hatY = Number(axes[17]) || 0
+    out.hasHat = true
+  }
+  return out
+}
+
+// Human word for a layout, shown in the Hardware chip + device menu.
+function shapeLabel(layout) {
+  if (layout === "xbox") return "gamepad · Xbox shape"
+  if (layout === "ps") return "gamepad · PlayStation shape"
+  if (layout === "switch") return "gamepad · Switch shape"
+  if (layout === "joystick") return "joystick · single stick"
+  return "gamepad · generic"
 }
 
 // Trigger axis conventions differ: xpad family idles at -1 (0..255 range),
@@ -327,6 +477,6 @@ function axesMap(layout, axisCount) {
 function triggerNorm(layout, raw) {
   var v = Number(raw)
   if (!isFinite(v)) return 0
-  if (layout === "ps" || layout === "switch") return Math.min(1, Math.max(0, v))
+  if (layout === "ps" || layout === "switch" || layout === "joystick") return Math.min(1, Math.max(0, v))
   return Math.min(1, Math.max(0, (v + 1) / 2))
 }
