@@ -8,34 +8,35 @@ import "GamepadModel.js" as GamepadModel
 // primitives (no SVG plugin, no external assets — hot-reloads cleanly and
 // repaints instantly at input rate). Five layouts:
 //
-//   xbox     A/B/X/Y, asymmetric sticks, view/menu/guide
-//   ps       ×/○/□/△, symmetric sticks, create/options, touchpad, PS logo
-//   switch   Nintendo glyph order (A right, B bottom), +/-, home, capture
+//   xbox     A/B/X/Y, asymmetric sticks, view/menu/guide/share
+//   ps       DualSense ×/○/□/△, symmetric sticks, touchpad + glowing lightbar,
+//            create/options, PS logo
+//   switch   Nintendo glyph order (A right, B bottom, X top, Y left), +/-, home, capture
 //   joystick single stick + hat + throttle (flight/arcade sticks, yokes)
 //   generic  neutral 1..4 diamond
 //
 // Live behavior:
-//   - face buttons / bumpers / dpad / center keys light up in playerColor
-//   - sticks draw raw dot (faint) + deadzone-corrected dot (solid)
-//   - triggers are vertical fill bars driven by their analog axis
-//   - joystick view: hat lights from ABS_HAT0X/Y, throttle bar from the
-//     extra analog axis, deadzone ring on the single stick
-//   - a dashed inner ring on each stick shows the stored deadzone
-//
-// Input tables follow the common kernel driver button order (xpad/xpadneo,
-// hid-playstation, hid-nintendo). Pads that deviate still light the body
-// outline when an unmapped index fires, so nothing ever looks frozen.
+//   - face buttons / bumpers / dpad / center keys illuminate with glowing
+//     drop-shadow / border highlights in playerColor
+//   - PlayStation DualSense lightbar LED glows continuously in playerColor,
+//     with active touchpad click halo and player indicator dot
+//   - sticks render vector displacement stems and glowing thumbstick caps
+//   - triggers are analog fill bars with active glow aura
+//   - joystick view: hat lights from ABS_HAT0X/Y, throttle bar from extra axis,
+//     trigger pill with glowing drop-shadow
+//   - dashed inner ring on each stick shows the stored deadzone
+//   - crisp responsive rendering in both mini mode (slot selector) and full mode (Overview)
 
 Item {
   id: root
 
-  property string layout: "generic"      // xbox | ps | switch | generic
+  property string layout: "generic"      // xbox | ps | switch | generic | joystick
   property color playerColor: Color.accent
   property var buttons: ({})             // js button index -> bool
   property var axes: []                  // normalized -1..1
   property var axisNames: []             // jstest header names ("X","Throttle"…)
   property var profile: ({})             // deadzone profile (stickL/stickR/...)
-  property bool mini: false              // tiny silhouette for menu rows
+  property bool mini: false              // tiny silhouette for menu rows / slot selector
   property bool showLabels: true
 
   implicitWidth: mini ? 34 : 340 * scale
@@ -85,39 +86,96 @@ Item {
     return false
   }
 
+  // Any button actively pressed
+  readonly property bool anyPress: {
+    if (!buttons) return false
+    for (var k in buttons) {
+      if (buttons[k]) return true
+    }
+    return false
+  }
+
   // -------------------------------------------------------------- palette
   readonly property color bodyColor: Color.popups.background
-  readonly property color bodyBorder: unknownPress
-    ? playerColor
+  readonly property color bodyBorder: (unknownPress || anyPress)
+    ? root.playerColor
     : Qt.rgba(Color.popups.text.r, Color.popups.text.g, Color.popups.text.b, 0.35)
   readonly property color glyphColor: Color.popups.text
   readonly property color dimGlyph: Qt.rgba(glyphColor.r, glyphColor.g, glyphColor.b, 0.55)
   readonly property color idleFill: Qt.rgba(glyphColor.r, glyphColor.g, glyphColor.b, 0.10)
 
   // ------------------------------------------------------------- geometry
-  // Per-layout element centers inside the 340x208 canvas. Xbox is
-  // asymmetric (left stick high, dpad low), PS/Switch follow their real
-  // silhouettes.
+  // Per-layout element centers inside the 340x208 canvas.
   readonly property var geo: {
     if (isXbox) return { stickL: [100, 112], stickR: [212, 140], dpad: [138, 128], face: [240, 108], bumpers: [42, 252] }
     if (isPs) return { stickL: [134, 134], stickR: [206, 134], dpad: [92, 108], face: [248, 108], bumpers: [42, 252] }
-    if (isSwitch) return { stickL: [104, 100], stickR: [246, 100], dpad: [98, 138], face: [218, 138], bumpers: [42, 252] }
+    if (isSwitch) return { stickL: [100, 112], stickR: [212, 140], dpad: [138, 128], face: [240, 108], bumpers: [42, 252] }
     return { stickL: [132, 136], stickR: [208, 136], dpad: [100, 108], face: [240, 108], bumpers: [42, 252] }
   }
 
   // ------------------------------------------------------------------ mini
+  // Silhouette mode for slot selector and bar widget rows. Layout-aware,
+  // vector-crisp, and reacts dynamically to live controller input.
   Loader {
     active: root.mini
     anchors.centerIn: parent
-    sourceComponent: Rectangle {
-      width: 30; height: 13; radius: 6
-      color: "transparent"
-      border.color: root.playerColor
-      border.width: 2
-      Rectangle { x: -3; y: 5; width: 10; height: 12; radius: 5; color: "transparent"; border.color: root.playerColor; border.width: 2; rotation: -18 }
-      Rectangle { x: 23; y: 5; width: 10; height: 12; radius: 5; color: "transparent"; border.color: root.playerColor; border.width: 2; rotation: 18 }
-      Rectangle { x: 3; y: 3.5; width: 5; height: 5; radius: 2.5; color: root.playerColor }
-      Rectangle { x: 21; y: 3.5; width: 5; height: 5; radius: 2.5; color: root.playerColor }
+    sourceComponent: Item {
+      width: 32
+      height: 18
+
+      // Main controller body silhouette
+      Rectangle {
+        anchors.centerIn: parent
+        width: 28
+        height: 14
+        radius: 6
+        color: root.anyPress ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22) : "transparent"
+        border.color: root.playerColor
+        border.width: 1.5
+
+        Behavior on color { ColorAnimation { duration: 60 } }
+
+        // Left grip
+        Rectangle {
+          x: -3; y: 4; width: 8; height: 11; radius: 4
+          color: root.anyPress ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22) : "transparent"
+          border.color: root.playerColor; border.width: 1.5; rotation: -18
+        }
+
+        // Right grip
+        Rectangle {
+          x: 23; y: 4; width: 8; height: 11; radius: 4
+          color: root.anyPress ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22) : "transparent"
+          border.color: root.playerColor; border.width: 1.5; rotation: 18
+        }
+
+        // PS DualSense mini lightbar accent
+        Rectangle {
+          visible: root.isPs
+          anchors.horizontalCenter: parent.horizontalCenter
+          y: 1
+          width: 10
+          height: 1.5
+          radius: 0.75
+          color: root.playerColor
+        }
+
+        // Left stick dot (symmetric for PS, asymmetric high for Xbox/Switch)
+        Rectangle {
+          x: root.isPs ? 8 : 4
+          y: (root.isXbox || root.isSwitch) ? 3 : 5
+          width: 4; height: 4; radius: 2
+          color: root.playerColor
+        }
+
+        // Right stick dot (symmetric for PS, asymmetric low for Xbox/Switch)
+        Rectangle {
+          x: root.isPs ? 16 : 18
+          y: (root.isXbox || root.isSwitch) ? 6 : 5
+          width: 4; height: 4; radius: 2
+          color: root.playerColor
+        }
+      }
     }
   }
 
@@ -131,8 +189,20 @@ Item {
     transformOrigin: Item.TopLeft
 
     // Grips (behind body)
-    Rectangle { x: 18; y: 92; width: 74; height: 104; radius: 34; rotation: -14; color: root.bodyColor; border.color: root.bodyBorder; border.width: 1 }
-    Rectangle { x: 248; y: 92; width: 74; height: 104; radius: 34; rotation: 14; color: root.bodyColor; border.color: root.bodyBorder; border.width: 1 }
+    Rectangle {
+      x: 18; y: 92; width: 74; height: 104; radius: 34; rotation: -14
+      color: root.bodyColor
+      border.color: root.bodyBorder
+      border.width: root.anyPress ? 1.5 : 1
+      Behavior on border.color { ColorAnimation { duration: 60 } }
+    }
+    Rectangle {
+      x: 248; y: 92; width: 74; height: 104; radius: 34; rotation: 14
+      color: root.bodyColor
+      border.color: root.bodyBorder
+      border.width: root.anyPress ? 1.5 : 1
+      Behavior on border.color { ColorAnimation { duration: 60 } }
+    }
 
     // Body
     Rectangle {
@@ -140,7 +210,8 @@ Item {
       x: 16; y: 44; width: 308; height: 112; radius: 44
       color: root.bodyColor
       border.color: root.bodyBorder
-      border.width: 1
+      border.width: root.anyPress ? 1.5 : 1
+      Behavior on border.color { ColorAnimation { duration: 60 } }
     }
 
     // Player badge
@@ -149,13 +220,22 @@ Item {
       color: root.playerColor
       border.color: root.bodyBorder
       border.width: 1
+
+      // Glowing aura around player badge
+      Rectangle {
+        anchors.centerIn: parent
+        width: 18; height: 18; radius: 9
+        color: "transparent"
+        border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.4)
+        border.width: 1.5
+      }
     }
 
     // ---------------- triggers (analog fill bars) + bumpers --------------
-    TrigBar { x: root.geo.bumpers[0] + 6;  side: "l" }
+    TrigBar { x: root.geo.bumpers[0] + 6; side: "l" }
     TrigBar { x: root.geo.bumpers[1] + 6; side: "r" }
 
-    Bumper { x: root.geo.bumpers[0];  label: root.isPs ? "L1" : root.isSwitch ? "L" : "LB"; on: root.pressed(root.tables.bumperL) }
+    Bumper { x: root.geo.bumpers[0]; label: root.isPs ? "L1" : root.isSwitch ? "L" : "LB"; on: root.pressed(root.tables.bumperL) }
     Bumper { x: root.geo.bumpers[1]; label: root.isPs ? "R1" : root.isSwitch ? "R" : "RB"; on: root.pressed(root.tables.bumperR) }
 
     // ---------------- left stick ----------------------------------------
@@ -198,58 +278,116 @@ Item {
     // ---------------- center cluster ------------------------------------
     Item {
       anchors.horizontalCenter: parent.horizontalCenter
-      y: 62
-      width: 120
-      height: 74
+      y: 60
+      width: 124
+      height: 76
 
-      // Touchpad (PS)
-      Rectangle {
+      // PlayStation DualSense Touchpad & Lightbar
+      Item {
         visible: root.isPs
         anchors.horizontalCenter: parent.horizontalCenter
-        width: 74; height: 30; radius: 8; y: 0
-        color: root.idleFill
-        border.color: root.bodyBorder
+        y: 0
+        width: 82
+        height: 38
+
+        // DualSense Lightbar halo glow
         Rectangle {
-          width: 10; height: 10; radius: 5
           anchors.centerIn: parent
-          color: root.pressed(root.tables.centerExtra) ? root.playerColor : "transparent"
-          border.color: root.dimGlyph
-          border.width: 1
+          width: parent.width + 4
+          height: parent.height + 4
+          radius: 10
+          color: "transparent"
+          border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.45)
+          border.width: 3
+          opacity: 0.85
+        }
+
+        // DualSense Lightbar crisp core
+        Rectangle {
+          anchors.centerIn: parent
+          width: parent.width
+          height: parent.height
+          radius: 9
+          color: "transparent"
+          border.color: root.playerColor
+          border.width: 1.5
+        }
+
+        // DualSense Touchpad surface
+        Rectangle {
+          id: psTouchpad
+          anchors.centerIn: parent
+          width: 76
+          height: 32
+          radius: 7
+          color: root.pressed(root.tables.centerExtra)
+            ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.3)
+            : root.idleFill
+          border.color: root.pressed(root.tables.centerExtra) ? root.playerColor : root.bodyBorder
+          border.width: root.pressed(root.tables.centerExtra) ? 2 : 1
+          Behavior on color { ColorAnimation { duration: 50 } }
+
+          // Touchpad click indicator / glowing center dot
+          Rectangle {
+            width: 10; height: 10; radius: 5
+            anchors.centerIn: parent
+            color: root.pressed(root.tables.centerExtra) ? root.playerColor : "transparent"
+            border.color: root.pressed(root.tables.centerExtra) ? root.playerColor : root.dimGlyph
+            border.width: 1
+          }
+        }
+
+        // DualSense player indicator dot below touchpad
+        Rectangle {
+          anchors.horizontalCenter: parent.horizontalCenter
+          anchors.top: psTouchpad.bottom
+          anchors.topMargin: 3
+          width: 5
+          height: 3
+          radius: 1.5
+          color: root.playerColor
         }
       }
 
+      // Center Guide / Home / PS Key
       CircleKey {
         cx: parent.width * 0.5
-        cy: root.isPs ? 48 : 34
-        r: root.isPs ? 13 : 11
+        cy: root.isPs ? 54 : 34
+        r: root.isPs ? 12 : 11
         label: root.isPs ? "PS" : root.isSwitch ? "HOME" : "XBOX"
         labelSize: 6
         on: root.pressed(root.tables.centerTop)
         accent: root.playerColor
         showLabel: root.showLabels
       }
+
+      // Left Center Key (View / Minus / Create)
       CircleKey {
-        cx: parent.width * 0.5 - (root.isSwitch ? 34 : 26)
-        cy: root.isPs ? 52 : 40
+        cx: parent.width * 0.5 - (root.isSwitch ? 34 : root.isPs ? 38 : 26)
+        cy: root.isPs ? 36 : 40
         r: 7
-        label: root.isSwitch ? "–" : "⧉"
+        label: root.isSwitch ? "–" : root.isPs ? "⧉" : "⧉"
         on: root.pressed(root.tables.centerLeft)
         accent: root.playerColor
         showLabel: root.showLabels
       }
+
+      // Right Center Key (Menu / Plus / Options)
       CircleKey {
-        cx: parent.width * 0.5 + (root.isSwitch ? 34 : 26)
-        cy: root.isPs ? 52 : 40
+        cx: parent.width * 0.5 + (root.isSwitch ? 34 : root.isPs ? 38 : 26)
+        cy: root.isPs ? 36 : 40
         r: 7
-        label: root.isSwitch ? "+" : "☰"
+        label: root.isSwitch ? "+" : root.isPs ? "☰" : "☰"
         on: root.pressed(root.tables.centerRight)
         accent: root.playerColor
         showLabel: root.showLabels
       }
+
+      // Extra Center Key (Switch Capture / Xbox Share)
       CircleKey {
-        visible: root.isSwitch
-        cx: parent.width * 0.5 + 34
-        cy: 56
+        visible: root.isSwitch || root.isXbox
+        cx: parent.width * 0.5
+        cy: root.isXbox ? 54 : 56
         r: 6
         label: "▣"
         on: root.pressed(root.tables.centerExtra)
@@ -272,9 +410,9 @@ Item {
   }
 
   // ------------------------------------------------- joystick full view
-  // Single-stick hardware: base plate, trigger pill, big stick with
-  // deadzone ring, hat switch (ABS_HAT0X/Y), base button cluster and the
-  // throttle lever bar. Every element is live-bound like the gamepad art.
+  // Single-stick flight/arcade layout: base plate, trigger pill with glow,
+  // big stick with vector displacement stem, hat switch (ABS_HAT0X/Y),
+  // base button cluster and throttle lever bar.
   Item {
     id: jart
     visible: !root.mini && root.isJoystick
@@ -293,7 +431,8 @@ Item {
       x: 14; y: 40; width: 312; height: 140; radius: 34
       color: root.bodyColor
       border.color: root.bodyBorder
-      border.width: 1
+      border.width: root.anyPress ? 1.5 : 1
+      Behavior on border.color { ColorAnimation { duration: 60 } }
     }
 
     // Stick well
@@ -304,13 +443,30 @@ Item {
       border.width: 1
     }
 
-    // Trigger (button 0) pill
+    // Trigger (button 0) pill with glowing highlight
     Rectangle {
       x: 36; y: 52; width: 84; height: 22; radius: 11
       color: root.pressed(root.tables.triggerL) ? root.playerColor : root.idleFill
       border.color: root.pressed(root.tables.triggerL) ? root.playerColor : root.bodyBorder
-      border.width: 1
+      border.width: root.pressed(root.tables.triggerL) ? 2 : 1
+      scale: root.pressed(root.tables.triggerL) ? 1.04 : 1.0
       Behavior on color { ColorAnimation { duration: 50 } }
+      Behavior on scale { NumberAnimation { duration: 50 } }
+
+      // Trigger glow halo
+      Rectangle {
+        anchors.centerIn: parent
+        width: parent.width + 8
+        height: parent.height + 8
+        radius: 13
+        color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, root.pressed(root.tables.triggerL) ? 0.25 : 0)
+        border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, root.pressed(root.tables.triggerL) ? 0.6 : 0)
+        border.width: 2
+        opacity: root.pressed(root.tables.triggerL) ? 1.0 : 0.0
+        z: -1
+        Behavior on opacity { NumberAnimation { duration: 60 } }
+      }
+
       Text {
         visible: root.showLabels
         anchors.centerIn: parent
@@ -322,7 +478,7 @@ Item {
       }
     }
 
-    // Main stick + deadzone preview ring
+    // Main flight stick + deadzone preview ring
     Stick {
       cx: 118; cy: 112
       rawX: root.stickX("l"); rawY: root.stickY("l")
@@ -331,7 +487,7 @@ Item {
       accent: root.playerColor
     }
 
-    // Hat switch — driven by the HAT0 axis pair, not buttons
+    // Hat switch — driven by the HAT0 axis pair
     Dpad {
       cx: 216; cy: 74
       up: jart.ex.hatY < 0
@@ -355,7 +511,7 @@ Item {
     CircleKey { cx: 146; cy: 62; r: 8; label: "7"; on: root.pressed(root.tables.centerTop); accent: root.playerColor; showLabel: root.showLabels }
     CircleKey { cx: 146; cy: 90; r: 8; label: "8"; on: root.pressed(root.tables.centerExtra); accent: root.playerColor; showLabel: root.showLabels }
 
-    // Throttle lever (extra analog axis; button fallback handled in triggerNorm)
+    // Throttle lever bar
     TrigBar { x: 292; y: 76; side: "l"; labelOverride: "THR" }
 
     Text {
@@ -372,12 +528,14 @@ Item {
 
   function faceLabel(pos) {
     if (root.isPs) return { top: "△", bottom: "×", left: "□", right: "○" }[pos]
-    if (root.isSwitch) return { top: "X", bottom: "A", left: "Y", right: "B" }[pos]
+    if (root.isSwitch) return { top: "X", bottom: "B", left: "Y", right: "A" }[pos]
     if (root.isXbox) return { top: "Y", bottom: "A", left: "X", right: "B" }[pos]
     return { top: "4", bottom: "1", left: "3", right: "2" }[pos]
   }
 
   // ============================================================ components
+
+  // ------------------------------------------------------------- TrigBar
   component TrigBar : Item {
     id: trig
     property string side: "l"
@@ -392,9 +550,21 @@ Item {
     Rectangle {
       x: 2; y: 16; width: 14; height: trig.h; radius: 7
       color: root.idleFill
-      border.color: root.bodyBorder
+      border.color: trig.fillH > 0 ? root.playerColor : root.bodyBorder
       border.width: 1
     }
+
+    // Glow halo aura around active trigger fill
+    Rectangle {
+      x: 0; y: 14; width: 18; height: trig.h + 4; radius: 9
+      color: "transparent"
+      border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, trig.fillH > 0 ? 0.45 * (trig.fillH / trig.h) : 0)
+      border.width: 2
+      opacity: trig.fillH > 0 ? 1.0 : 0.0
+      Behavior on opacity { NumberAnimation { duration: 40 } }
+    }
+
+    // Trigger fill bar
     Rectangle {
       x: 2
       y: 16 + (trig.h - trig.fillH)
@@ -406,6 +576,7 @@ Item {
       Behavior on y { NumberAnimation { duration: 40 } }
       Behavior on height { NumberAnimation { duration: 40 } }
     }
+
     Text {
       visible: root.showLabels
       anchors.horizontalCenter: parent.horizontalCenter
@@ -414,12 +585,13 @@ Item {
            : root.isPs ? (trig.side === "l" ? "L2" : "R2")
            : root.isSwitch ? (trig.side === "l" ? "ZL" : "ZR")
            : (trig.side === "l" ? "LT" : "RT")
-      color: root.dimGlyph
+      color: trig.fillH > 0 ? root.playerColor : root.dimGlyph
       font.pixelSize: 8
       font.family: Style.font.family
     }
   }
 
+  // -------------------------------------------------------------- Bumper
   component Bumper : Rectangle {
     id: bump
     property bool on: false
@@ -430,8 +602,25 @@ Item {
     radius: 9
     color: on ? root.playerColor : root.idleFill
     border.color: on ? root.playerColor : root.bodyBorder
-    border.width: 1
+    border.width: on ? 2 : 1
+    scale: on ? 1.04 : 1.0
     Behavior on color { ColorAnimation { duration: 60 } }
+    Behavior on scale { NumberAnimation { duration: 60 } }
+
+    // Glow halo drop-shadow
+    Rectangle {
+      anchors.centerIn: parent
+      width: parent.width + 8
+      height: parent.height + 8
+      radius: 12
+      color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, bump.on ? 0.22 : 0)
+      border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, bump.on ? 0.6 : 0)
+      border.width: 2
+      opacity: bump.on ? 1.0 : 0.0
+      z: -1
+      Behavior on opacity { NumberAnimation { duration: 60 } }
+    }
+
     Text {
       visible: root.showLabels
       anchors.centerIn: parent
@@ -443,6 +632,9 @@ Item {
     }
   }
 
+  // --------------------------------------------------------------- Stick
+  // Stick component with deadzone preview, vector displacement stem line,
+  // and glowing thumbstick cap.
   component Stick : Item {
     id: st
     property real cx: 0
@@ -459,16 +651,32 @@ Item {
     height: 50
 
     readonly property var corrected: GamepadModel.applyStickDeadzone(rawX, rawY, dz)
+    readonly property real dispDist: Math.sqrt(corrected.x * corrected.x + corrected.y * corrected.y) * 18
+    readonly property real dispAngle: Math.atan2(corrected.y, corrected.x) * 180 / Math.PI
 
-    // base ring
+    // Base ring
     Rectangle {
       anchors.centerIn: parent
       width: 44; height: 44; radius: 22
       color: root.idleFill
-      border.color: st.on ? st.accent : root.bodyBorder
+      border.color: st.on ? st.accent : (st.dispDist > 1 ? Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.4) : root.bodyBorder)
       border.width: st.on ? 2 : 1
+
+      // Glow halo when L3/R3 clicked
+      Rectangle {
+        anchors.centerIn: parent
+        width: parent.width + 10
+        height: parent.height + 10
+        radius: width / 2
+        color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.25 : 0)
+        border.color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.6 : 0)
+        border.width: 2
+        opacity: st.on ? 1.0 : 0.0
+        Behavior on opacity { NumberAnimation { duration: 50 } }
+      }
     }
-    // deadzone ring (dashed look via alpha)
+
+    // Deadzone guide ring
     Rectangle {
       anchors.centerIn: parent
       width: 44 * Math.max(0.05, st.dz) * 2 * 0.5 + 4
@@ -478,25 +686,77 @@ Item {
       border.color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.5)
       border.width: 1
     }
-    // raw dot
+
+    // Vector displacement stem line
     Rectangle {
-      width: 8; height: 8; radius: 4
-      x: 22 - 4 + st.rawX * 18
-      y: 22 - 4 + st.rawY * 18
-      color: root.dimGlyph
-      opacity: 0.5
+      x: 25
+      y: 24
+      width: st.dispDist
+      height: 2
+      radius: 1
+      color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.5)
+      transformOrigin: Item.Left
+      rotation: st.dispAngle
+      visible: st.dispDist > 1.5
+      antialiasing: true
     }
-    // corrected dot
+
+    // Raw input ghost dot
     Rectangle {
-      width: 12; height: 12; radius: 6
-      x: 22 - 6 + st.corrected.x * 18
-      y: 22 - 6 + st.corrected.y * 18
-      color: st.accent
-      Behavior on x { NumberAnimation { duration: 30 } }
-      Behavior on y { NumberAnimation { duration: 30 } }
+      width: 6; height: 6; radius: 3
+      x: 25 - 3 + st.rawX * 18
+      y: 25 - 3 + st.rawY * 18
+      color: root.dimGlyph
+      opacity: 0.4
+    }
+
+    // Corrected vector stick cap with glowing aura
+    Item {
+      id: stickCap
+      x: 25 - 8 + st.corrected.x * 18
+      y: 25 - 8 + st.corrected.y * 18
+      width: 16
+      height: 16
+
+      Behavior on x { NumberAnimation { duration: 25 } }
+      Behavior on y { NumberAnimation { duration: 25 } }
+
+      // Outer glow aura when deflected or clicked
+      Rectangle {
+        anchors.centerIn: parent
+        width: 24
+        height: 24
+        radius: 12
+        color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.35 : (st.dispDist > 2 ? 0.20 : 0))
+        border.color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.7 : (st.dispDist > 2 ? 0.45 : 0))
+        border.width: 1.5
+        opacity: (st.on || st.dispDist > 2) ? 1.0 : 0.0
+        Behavior on opacity { NumberAnimation { duration: 50 } }
+      }
+
+      // Stick cap outer ring
+      Rectangle {
+        anchors.centerIn: parent
+        width: st.on ? 14 : 16
+        height: width
+        radius: width / 2
+        color: st.accent
+        border.color: Color.popups.background
+        border.width: 1.5
+        Behavior on width { NumberAnimation { duration: 40 } }
+
+        // Inner concave dot
+        Rectangle {
+          anchors.centerIn: parent
+          width: 6; height: 6; radius: 3
+          color: Color.popups.background
+          opacity: 0.7
+        }
+      }
     }
   }
 
+  // ---------------------------------------------------------------- Dpad
   component Dpad : Item {
     id: dp
     property real cx: 0
@@ -529,11 +789,28 @@ Item {
       rotation: 0
       color: on ? dp.accent : root.idleFill
       border.color: on ? dp.accent : root.bodyBorder
-      border.width: 1
+      border.width: on ? 2 : 1
+      scale: on ? 1.05 : 1.0
       Behavior on color { ColorAnimation { duration: 60 } }
+      Behavior on scale { NumberAnimation { duration: 60 } }
+
+      // Glow halo
+      Rectangle {
+        anchors.centerIn: parent
+        width: parent.width + 8
+        height: parent.height + 8
+        radius: 6
+        color: Qt.rgba(dp.accent.r, dp.accent.g, dp.accent.b, arm.on ? 0.25 : 0)
+        border.color: Qt.rgba(dp.accent.r, dp.accent.g, dp.accent.b, arm.on ? 0.6 : 0)
+        border.width: 2
+        opacity: arm.on ? 1.0 : 0.0
+        z: -1
+        Behavior on opacity { NumberAnimation { duration: 60 } }
+      }
     }
   }
 
+  // ---------------------------------------------------------- FaceButton
   component FaceButton : Rectangle {
     id: fb
     property real cx: 0
@@ -548,8 +825,25 @@ Item {
     radius: 12
     color: on ? root.playerColor : root.idleFill
     border.color: on ? root.playerColor : root.bodyBorder
-    border.width: 1
+    border.width: on ? 2 : 1
+    scale: on ? 1.06 : 1.0
     Behavior on color { ColorAnimation { duration: 50 } }
+    Behavior on scale { NumberAnimation { duration: 50 } }
+
+    // Glow halo drop-shadow aura
+    Rectangle {
+      anchors.centerIn: parent
+      width: parent.width + 10
+      height: parent.height + 10
+      radius: width / 2
+      color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, fb.on ? 0.25 : 0)
+      border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, fb.on ? 0.6 : 0)
+      border.width: 2
+      opacity: fb.on ? 1.0 : 0.0
+      z: -1
+      Behavior on opacity { NumberAnimation { duration: 60 } }
+    }
+
     Text {
       visible: root.showLabels
       anchors.centerIn: parent
@@ -561,6 +855,7 @@ Item {
     }
   }
 
+  // ----------------------------------------------------------- CircleKey
   component CircleKey : Rectangle {
     id: ck
     property real cx: 0
@@ -579,8 +874,25 @@ Item {
     radius: r
     color: on ? accent : root.idleFill
     border.color: on ? accent : root.bodyBorder
-    border.width: 1
+    border.width: on ? 2 : 1
+    scale: on ? 1.08 : 1.0
     Behavior on color { ColorAnimation { duration: 50 } }
+    Behavior on scale { NumberAnimation { duration: 50 } }
+
+    // Glow halo
+    Rectangle {
+      anchors.centerIn: parent
+      width: parent.width + 8
+      height: parent.height + 8
+      radius: width / 2
+      color: Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, ck.on ? 0.25 : 0)
+      border.color: Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, ck.on ? 0.6 : 0)
+      border.width: 2
+      opacity: ck.on ? 1.0 : 0.0
+      z: -1
+      Behavior on opacity { NumberAnimation { duration: 50 } }
+    }
+
     Text {
       visible: ck.showLabel
       anchors.centerIn: parent
