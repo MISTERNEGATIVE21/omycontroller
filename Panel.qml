@@ -651,8 +651,7 @@ Panel {
                       // Photo frame, letterboxed (whole controller visible)
                       Rectangle {
                         width: Style.space(128)
-                        anchors.top: parent.top
-                        anchors.bottom: parent.bottom
+                        height: parent.height
                         radius: Math.max(3, Style.cornerRadius - 1)
                         clip: true
                         color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.08)
