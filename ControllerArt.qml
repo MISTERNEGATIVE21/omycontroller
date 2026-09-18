@@ -112,9 +112,9 @@ Item {
   // ------------------------------------------------------------- geometry
   // Per-layout element centers inside the 340x208 canvas.
   readonly property var geo: {
-    if (isXbox || isSwitch) return { stickL: [100, 112], stickR: [212, 140], dpad: [138, 128], face: [240, 108], bumpers: [42, 252] }
-    if (isPs) return { stickL: [134, 134], stickR: [206, 134], dpad: [92, 108], face: [248, 108], bumpers: [42, 252] }
-    return { stickL: [132, 136], stickR: [208, 136], dpad: [100, 108], face: [240, 108], bumpers: [42, 252] }
+    if (isXbox || isSwitch) return { stickL: [88, 106], stickR: [198, 140], dpad: [144, 136], face: [254, 106], bumpers: [38, 246] }
+    if (isPs) return { stickL: [134, 140], stickR: [206, 140], dpad: [80, 106], face: [260, 106], bumpers: [38, 246] }
+    return { stickL: [134, 140], stickR: [206, 140], dpad: [80, 106], face: [260, 106], bumpers: [38, 246] }
   }
 
   // ------------------------------------------------------------------ mini
@@ -694,8 +694,8 @@ Item {
       // Glow halo when L3/R3 clicked
       Rectangle {
         anchors.centerIn: parent
-        width: parent.width + 10
-        height: parent.height + 10
+        width: parent.width + 6
+        height: parent.height + 6
         radius: width / 2
         color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.25 : 0)
         border.color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.6 : 0)
@@ -798,14 +798,14 @@ Item {
     property alias dpadDown: dp.down
     property color accent: root.playerColor
 
-    x: cx - 36
-    y: cy - 36
-    width: 72
-    height: 72
+    x: cx - 28
+    y: cy - 28
+    width: 56
+    height: 56
 
     // Center pivot plate
     Rectangle {
-      x: 24; y: 24; width: 24; height: 24
+      x: 18; y: 18; width: 20; height: 20
       radius: 4
       color: root.idleFill
       border.color: root.bodyBorder
@@ -825,10 +825,10 @@ Item {
     property bool on: false
     property color accent: root.playerColor
     width: 18
-    height: 24
+    height: 18
     radius: 4
-    x: arm === "left" ? 0 : arm === "right" ? 54 : 27
-    y: arm === "up" ? 0 : arm === "down" ? 48 : 24
+    x: arm === "left" ? 0 : arm === "right" ? 38 : 19
+    y: arm === "up" ? 0 : arm === "down" ? 38 : 19
     rotation: 0
     color: on ? arm.accent : root.idleFill
     border.color: on ? arm.accent : root.bodyBorder
@@ -840,8 +840,8 @@ Item {
     // Glow halo
     Rectangle {
       anchors.centerIn: parent
-      width: parent.width + 8
-      height: parent.height + 8
+      width: parent.width + 6
+      height: parent.height + 6
       radius: 6
       color: Qt.rgba(arm.accent.r, arm.accent.g, arm.accent.b, arm.on ? 0.30 : 0)
       border.color: Qt.rgba(arm.accent.r, arm.accent.g, arm.accent.b, arm.on ? 0.70 : 0)
@@ -909,8 +909,8 @@ Item {
     // Glow halo drop-shadow aura
     Rectangle {
       anchors.centerIn: parent
-      width: parent.width + 10
-      height: parent.height + 10
+      width: parent.width + 6
+      height: parent.height + 6
       radius: width / 2
       color: Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, fb.on ? 0.35 : 0)
       border.color: Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, fb.on ? 0.75 : 0)

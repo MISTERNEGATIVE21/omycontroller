@@ -1167,7 +1167,7 @@ Panel {
                   // Live Button Remapper & Input Inspector Grid
                   Rectangle {
                     width: parent.width
-                    height: Style.space(118)
+                    height: remapCol.implicitHeight + Style.space(16)
                     radius: Math.max(4, Style.cornerRadius)
                     color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.03)
                     border.color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.10)
@@ -1175,9 +1175,11 @@ Panel {
                     clip: true
 
                     Column {
-                      anchors.fill: parent
-                      anchors.margins: Style.space(8)
-                      spacing: Style.space(5)
+                      id: remapCol
+                      width: parent.width - Style.space(16)
+                      x: Style.space(8)
+                      y: Style.space(8)
+                      spacing: Style.space(6)
 
                       Text {
                         text: "Live Button Map (Active Physical Press Highlight)"
@@ -1396,48 +1398,94 @@ Panel {
                     font.family: root.bar ? root.bar.fontFamily : Style.font.family
                   }
 
-                  Row {
+                  // Trigger mode selector (clean 2-row grid with legible font)
+                  Column {
                     width: parent.width
                     spacing: Style.space(4)
 
-                    readonly property var trigModes: ["Off", "Rigid", "Pulse", "Bow", "Machine Gun"]
+                    Row {
+                      width: parent.width
+                      spacing: Style.space(4)
+                      readonly property var rowModes: ["Off", "Rigid", "Pulse"]
 
-                    Repeater {
-                      model: parent.trigModes
+                      Repeater {
+                        model: parent.rowModes
+                        delegate: Rectangle {
+                          id: tmBtn1
+                          required property string modelData
+                          readonly property bool isSelected: root.selectedTriggerMode === tmBtn1.modelData
+                          width: (parent.width - 2 * Style.space(4)) / 3
+                          height: Style.space(28)
+                          radius: Math.max(4, Style.cornerRadius)
+                          color: isSelected
+                            ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22)
+                            : tmMouse1.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08)
+                            : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04)
+                          border.color: isSelected ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                          border.width: isSelected ? 1.5 : 1
 
-                      delegate: Rectangle {
-                        id: tmBtn
-                        required property string modelData
-                        required property int index
+                          Text {
+                            anchors.centerIn: parent
+                            text: tmBtn1.modelData
+                            color: tmBtn1.isSelected ? root.playerColor : root.barForeground
+                            font.family: Style.font.family
+                            font.pixelSize: Style.font.caption
+                            font.bold: tmBtn1.isSelected
+                          }
 
-                        readonly property bool isSelected: root.selectedTriggerMode === tmBtn.modelData
-                        width: (parent.width - 4 * Style.space(4)) / 5
-                        height: Style.space(26)
-                        radius: Math.max(4, Style.cornerRadius)
-                        color: isSelected
-                          ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22)
-                          : tmMouse.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08)
-                          : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04)
-                        border.color: isSelected ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
-                        border.width: isSelected ? 1.5 : 1
-
-                        Text {
-                          anchors.centerIn: parent
-                          text: tmBtn.modelData
-                          color: tmBtn.isSelected ? root.playerColor : root.barForeground
-                          font.family: Style.font.family
-                          font.pixelSize: 8
-                          font.bold: tmBtn.isSelected
+                          MouseArea {
+                            id: tmMouse1
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                              root.selectedTriggerMode = tmBtn1.modelData
+                              root.applyTriggerEffect(root.triggerStartPos, root.triggerForce)
+                            }
+                          }
                         }
+                      }
+                    }
 
-                        MouseArea {
-                          id: tmMouse
-                          anchors.fill: parent
-                          hoverEnabled: true
-                          cursorShape: Qt.PointingHandCursor
-                          onClicked: {
-                            root.selectedTriggerMode = tmBtn.modelData
-                            root.applyTriggerEffect(root.triggerStartPos, root.triggerForce)
+                    Row {
+                      width: parent.width
+                      spacing: Style.space(4)
+                      readonly property var rowModes2: ["Bow", "Machine Gun"]
+
+                      Repeater {
+                        model: parent.rowModes2
+                        delegate: Rectangle {
+                          id: tmBtn2
+                          required property string modelData
+                          readonly property bool isSelected: root.selectedTriggerMode === tmBtn2.modelData
+                          width: (parent.width - Style.space(4)) / 2
+                          height: Style.space(28)
+                          radius: Math.max(4, Style.cornerRadius)
+                          color: isSelected
+                            ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22)
+                            : tmMouse2.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08)
+                            : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04)
+                          border.color: isSelected ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                          border.width: isSelected ? 1.5 : 1
+
+                          Text {
+                            anchors.centerIn: parent
+                            text: tmBtn2.modelData
+                            color: tmBtn2.isSelected ? root.playerColor : root.barForeground
+                            font.family: Style.font.family
+                            font.pixelSize: Style.font.caption
+                            font.bold: tmBtn2.isSelected
+                          }
+
+                          MouseArea {
+                            id: tmMouse2
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                              root.selectedTriggerMode = tmBtn2.modelData
+                              root.applyTriggerEffect(root.triggerStartPos, root.triggerForce)
+                            }
                           }
                         }
                       }
@@ -1846,13 +1894,15 @@ Panel {
             Rectangle {
               id: scrollIndicator
               anchors.right: parent.right
-              anchors.rightMargin: 1
+              anchors.rightMargin: Style.space(2)
               y: tabFlick.visibleArea.yPosition * parent.height
-              width: 3
-              height: Math.max(16, tabFlick.visibleArea.heightRatio * parent.height)
-              radius: 1.5
-              color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.25)
+              width: Style.space(3)
+              height: Math.max(Style.space(20), tabFlick.visibleArea.heightRatio * parent.height)
+              radius: width / 2
+              color: root.playerColor
               visible: tabFlick.visibleArea.heightRatio < 1.0
+              opacity: (tabFlick.moving || tabFlick.flicking) ? 0.9 : 0.35
+              Behavior on opacity { NumberAnimation { duration: 150 } }
             }
           }
         }
@@ -2004,7 +2054,7 @@ Panel {
     property color accent: root.playerColor
     property color foreground: root.barForeground
 
-    height: Style.space(38)
+    height: Style.space(40)
     radius: Math.max(3, Style.cornerRadius - 1)
     color: active ? Qt.rgba(accent.r, accent.g, accent.b, 0.28) : Qt.rgba(foreground.r, foreground.g, foreground.b, 0.04)
     border.color: active ? accent : Qt.rgba(foreground.r, foreground.g, foreground.b, 0.12)
