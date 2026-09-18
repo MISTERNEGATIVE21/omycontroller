@@ -60,13 +60,16 @@ Panel {
   // service mutates its state in place for performance).
   property var liveButtons: ({})
   property var liveAxes: []
+  property var liveGyro: null
 
   function refreshLive() {
-    if (!sel) { liveButtons = ({}); liveAxes = []; return }
+    if (!sel) { liveButtons = ({}); liveAxes = []; liveGyro = null; return }
     var b = {}
     for (var k in sel.buttons) b[k] = sel.buttons[k]
     liveButtons = b
     liveAxes = (sel.axes || []).slice()
+    var g = sel.gyro
+    liveGyro = g ? { ax: g.ax, ay: g.ay, az: g.az, gx: g.gx, gy: g.gy, gz: g.gz, afs: g.afs, gfs: g.gfs } : null
   }
 
   function select(id) {
@@ -346,7 +349,7 @@ Panel {
             Chip {
               width: (parent.width - Style.space(8)) / 2
               label: "Hardware"
-              value: root.sel ? root.sel.axisCount + " axes · " + root.sel.buttonCount + " buttons" : "—"
+              value: root.sel ? root.sel.axisCount + " axes · " + root.sel.buttonCount + " buttons" + (root.sel.motionNode ? " · gyro" : "") : "—"
               sub: root.sel ? GamepadModel.shapeLabel(root.sel.layout) : ""
               foreground: root.barForeground
             }
@@ -386,6 +389,16 @@ Panel {
                 onClicked: root.svc.rumble(root.sel.id, modelData.w, modelData.s, 500)
               }
             }
+          }
+
+          DeadzoneSlider {
+            width: parent.width
+            labelText: "Rumble power"
+            maxValue: 1
+            value: root.sel && root.sel.profile && isFinite(Number(root.sel.profile.rumble)) ? Number(root.sel.profile.rumble) : 1
+            foreground: root.barForeground
+            accent: root.playerColor
+            onMoved: function (v) { if (root.svc && root.sel) root.svc.setRumble(root.sel.id, Math.round(v * 100) / 100) }
           }
 
           Text {
@@ -489,6 +502,84 @@ Panel {
           }
         }
 
+        // ---------------------------------------------------- motion (gyro)
+        Column {
+          visible: root.sel !== null && root.sel.motionNode !== undefined && root.sel.motionNode !== ""
+          width: parent.width
+          spacing: Style.space(6)
+
+          PanelSectionHeader {
+            text: "Motion — gyro & accelerometer"
+            foreground: root.barForeground
+            font.family: root.bar ? root.bar.fontFamily : Style.font.family
+          }
+
+          Row {
+            spacing: Style.space(10)
+
+            GyroView {
+              width: Style.space(118)
+              height: Style.space(118)
+              gyro: root.liveGyro
+              bias: root.sel && root.sel.profile && root.sel.profile.gyroBias ? root.sel.profile.gyroBias : null
+              accent: root.playerColor
+              foreground: root.barForeground
+            }
+
+            Column {
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: Style.space(5)
+
+              Text {
+                width: Style.space(190)
+                elide: Text.ElideRight
+                text: root.liveGyro
+                      ? "gyro " + Math.round((root.liveGyro.gx || 0) * 100) + "% · " + Math.round((root.liveGyro.gy || 0) * 100) + "%"
+                      : "gyro idle"
+                color: root.barForeground
+                font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                font.pixelSize: Style.font.bodySmall
+                font.bold: true
+              }
+              Text {
+                width: Style.space(190)
+                elide: Text.ElideRight
+                text: root.sel && root.sel.profile && root.sel.profile.gyroBias
+                      ? "drift offset stored"
+                      : "drift: uncalibrated"
+                color: Qt.darker(root.barForeground, 1.4)
+                font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                font.pixelSize: Style.font.caption
+              }
+              Text {
+                width: Style.space(190)
+                elide: Text.ElideRight
+                text: root.liveGyro ? "accel z " + Math.round((root.liveGyro.az || 0) * 100) + "%" : "shake the pad — dots move"
+                color: Qt.darker(root.barForeground, 1.4)
+                font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                font.pixelSize: Style.font.caption
+              }
+              Button {
+                text: "Calibrate (hold still)"
+                focusable: true
+                enabled: root.svc && root.sel
+                foreground: root.barForeground
+                accent: root.playerColor
+                onClicked: root.svc.calibrateGyro(root.sel.id)
+              }
+            }
+          }
+
+          Text {
+            width: parent.width
+            text: "Motion is read straight from the pad's sensor node — DualSense, DualShock 4, Switch Pro and Joy-Cons expose gyro. No extra package needed."
+            color: Qt.darker(root.barForeground, 1.4)
+            font.family: root.bar ? root.bar.fontFamily : Style.font.family
+            font.pixelSize: Style.font.caption
+            wrapMode: Text.WordWrap
+          }
+        }
+
         // ---------------------------------------------------- footer
         Text {
           width: parent.width
@@ -570,6 +661,7 @@ Panel {
     id: dzRow
     property string labelText: ""
     property real value: 0
+    property real maxValue: 0.5
     property color foreground: Color.foreground
     property color accent: Color.accent
     signal moved(real v)
@@ -590,7 +682,7 @@ Panel {
       width: parent.width - Style.space(96)
       anchors.verticalCenter: parent.verticalCenter
       minimum: 0
-      maximum: 0.5
+      maximum: dzRow.maxValue
       step: 0.01
       value: dzRow.value
       fillColor: dzRow.accent
@@ -607,6 +699,92 @@ Panel {
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
       horizontalAlignment: Text.AlignRight
+    }
+  }
+
+  // Live motion gauge: accent bubble = gyro rotation rate (drift-corrected
+  // when a bias has been stored), faint dot = accelerometer tilt vector.
+  component GyroView : Rectangle {
+    id: gv
+    property var gyro: null
+    property var bias: null
+    property color accent: Color.accent
+    property color foreground: Color.foreground
+
+    function cv(v) {
+      var n = Number(v)
+      return isFinite(n) ? Math.max(-1, Math.min(1, n)) : 0
+    }
+
+    readonly property real r: (Math.min(width, height) - Style.space(26)) / 2
+    readonly property real gxd: cv(gyro ? (gyro.gx || 0) - (bias ? bias.x : 0) : 0)
+    readonly property real gyd: cv(gyro ? (gyro.gy || 0) - (bias ? bias.y : 0) : 0)
+    readonly property real axd: cv(gyro ? gyro.ax || 0 : 0)
+    readonly property real ayd: cv(gyro ? gyro.ay || 0 : 0)
+
+    radius: Math.max(4, Style.cornerRadius)
+    color: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.06)
+    border.color: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.12)
+    border.width: 1
+
+    Text {
+      visible: !gv.gyro
+      anchors.centerIn: parent
+      text: "waiting for\nmotion data…"
+      horizontalAlignment: Text.AlignHCenter
+      color: Qt.darker(gv.foreground, 1.5)
+      font.family: Style.font.family
+      font.pixelSize: Style.font.caption
+    }
+
+    Rectangle {
+      visible: gv.gyro !== null
+      anchors.centerIn: parent
+      width: gv.r * 2; height: width; radius: gv.r
+      color: "transparent"
+      border.color: Qt.rgba(gv.foreground.r, gv.foreground.g, gv.foreground.b, 0.18)
+      border.width: 1
+    }
+    Rectangle {
+      visible: gv.gyro !== null
+      anchors.centerIn: parent
+      width: gv.r; height: width; radius: gv.r / 2
+      color: "transparent"
+      border.color: Qt.rgba(gv.foreground.r, gv.foreground.g, gv.foreground.b, 0.10)
+      border.width: 1
+    }
+
+    // accelerometer tilt dot (faint)
+    Rectangle {
+      visible: gv.gyro !== null
+      width: 8; height: 8; radius: 4
+      x: gv.width / 2 + gv.axd * gv.r * 0.8 - 4
+      y: gv.height / 2 + gv.ayd * gv.r * 0.8 - 4
+      color: Qt.rgba(gv.foreground.r, gv.foreground.g, gv.foreground.b, 0.35)
+      Behavior on x { NumberAnimation { duration: 60 } }
+      Behavior on y { NumberAnimation { duration: 60 } }
+    }
+
+    // gyro rate bubble (accent)
+    Rectangle {
+      visible: gv.gyro !== null
+      width: 12; height: 12; radius: 6
+      x: gv.width / 2 + gv.gxd * gv.r - 6
+      y: gv.height / 2 + gv.gyd * gv.r - 6
+      color: gv.accent
+      Behavior on x { NumberAnimation { duration: 60 } }
+      Behavior on y { NumberAnimation { duration: 60 } }
+    }
+
+    Text {
+      visible: gv.gyro !== null
+      anchors.horizontalCenter: parent.horizontalCenter
+      anchors.bottom: parent.bottom
+      anchors.bottomMargin: Style.space(3)
+      text: gv.gyro && gv.gyro.gfs ? "gyro full scale ±" + gv.gyro.gfs : "gyro"
+      color: Qt.darker(gv.foreground, 1.5)
+      font.family: Style.font.family
+      font.pixelSize: Style.font.caption
     }
   }
 }

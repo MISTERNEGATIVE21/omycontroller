@@ -12,10 +12,13 @@ import "GamepadModel.js" as GamepadModel
 //
 // Responsibilities:
 //   - poll sysfs via scripts/scan.sh every scanIntervalMs (devices, battery,
-//     driver, bustype, evdev node)
+//     driver, bustype, evdev node, motion-sensor node)
 //   - keep one `jstest --event` stream per connected pad for live button /
 //     axis state and real input latency (evdev event-interval average)
-//   - persist per-pad deadzone profiles (PersistentProperties)
+//   - keep one scripts/gyro.py stream per pad that has a motion sensor
+//     (accelerometer + gyro snapshots, stdlib-only reader)
+//   - persist per-pad deadzone profiles, gyro drift offsets and rumble
+//     strength (PersistentProperties)
 //   - best-effort hardware actions: rumble test (python-evdev) and DualSense
 //     adaptive-trigger modes (hidraw)
 //
@@ -48,6 +51,7 @@ Item {
   readonly property string scanScript: root.localPath("scripts/scan.sh")
   readonly property string rumbleScript: root.localPath("scripts/rumble.py")
   readonly property string triggersScript: root.localPath("scripts/triggers.py")
+  readonly property string gyroScript: root.localPath("scripts/gyro.py")
 
   function localPath(rel) {
     var url = Qt.resolvedUrl(rel).toString()
@@ -60,6 +64,7 @@ Item {
   readonly property var devices: _devices
   property var _devices: ({})
   property var _streams: ({})          // jsN -> jstest Process
+  property var _gyroStreams: ({})      // jsN -> gyro.py Process
   property var slotById: ({})          // jsN -> 1..4, stable per session
 
   readonly property var deviceList: {
@@ -116,25 +121,78 @@ Item {
   function profileFor(id) {
     var d = device(id)
     var key = d ? GamepadModel.profileKey(d.vendor, d.product, d.name) : ""
-    var p = key && persisted.profiles ? persisted.profiles[key] : null
-    return GamepadModel.normalizeProfile(p)
+    var raw = key && persisted.profiles ? persisted.profiles[key] : null
+    var p = GamepadModel.normalizeProfile(raw)
+    if (raw) {
+      if (raw.gyroBias && typeof raw.gyroBias === "object") {
+        p.gyroBias = {
+          x: isFinite(Number(raw.gyroBias.x)) ? Number(raw.gyroBias.x) : 0,
+          y: isFinite(Number(raw.gyroBias.y)) ? Number(raw.gyroBias.y) : 0,
+          z: isFinite(Number(raw.gyroBias.z)) ? Number(raw.gyroBias.z) : 0
+        }
+      }
+      var r = Number(raw.rumble)
+      p.rumble = isFinite(r) ? Math.min(1, Math.max(0.1, r)) : 1
+    } else {
+      p.rumble = 1
+    }
+    return p
+  }
+
+  // Store deadzone values plus any extras (gyroBias, rumble) without ever
+  // dropping fields the previous write had saved.
+  function storeProfile(d, values) {
+    var pk = GamepadModel.profileKey(d.vendor, d.product, d.name)
+    var all = {}
+    for (var k in persisted.profiles) all[k] = persisted.profiles[k]
+    var prev = all[pk] || {}
+    var p = GamepadModel.normalizeProfile(prev)
+    var r = Number(prev.rumble)
+    p.rumble = isFinite(r) ? Math.min(1, Math.max(0.1, r)) : 1
+    if (prev.gyroBias && typeof prev.gyroBias === "object") p.gyroBias = prev.gyroBias
+    for (var e in values) p[e] = values[e]
+    all[pk] = p
+    persisted.profiles = all
+    d.profile = p
+    _touch(d.id)
   }
 
   function setDeadzone(id, key, value) {
     var d = device(id)
     if (!d) return false
-    var pk = GamepadModel.profileKey(d.vendor, d.product, d.name)
-    var all = {}
-    for (var k in persisted.profiles) all[k] = persisted.profiles[k]
-    var p = GamepadModel.normalizeProfile(all[pk])
     var n = Number(value)
     if (!isFinite(n)) return false
-    p[key] = Math.min(0.5, Math.max(0, n))
-    all[pk] = p
-    persisted.profiles = all
-    d.profile = p
-    _touch(id)
-    tryXpadneoApply(d, p)
+    storeProfile(d, (function () { var v = {}; v[key] = Math.min(0.5, Math.max(0, n)); return v })())
+    tryXpadneoApply(d, d.profile)
+    return true
+  }
+
+  // Per-pad rumble power for the test buttons (0.1..1, persisted).
+  function setRumble(id, value) {
+    var d = device(id)
+    if (!d) return false
+    var n = Number(value)
+    if (!isFinite(n)) return false
+    storeProfile(d, { rumble: Math.min(1, Math.max(0.1, n)) })
+    root.actionResult("Rumble power stored for " + d.modelLabel)
+    return true
+  }
+
+  // Gyro drift calibration: average ~0.8s of stationary samples and store
+  // the offsets per pad. The panel subtracts them from the live gauge.
+  function calibrateGyro(id) {
+    var d = device(id)
+    if (!d) return false
+    if (!d.motionNode || d.motionNode === "") {
+      root.actionResult("No motion sensor on " + d.modelLabel)
+      return false
+    }
+    if (!_gyroStreams[id]) {
+      root.actionResult("Gyro stream not running yet — try again in a second")
+      return false
+    }
+    d._gyroCal = []
+    root.actionResult("Calibrating gyro — keep the pad still…")
     return true
   }
 
@@ -211,6 +269,7 @@ Item {
     state.phys = String(rec.phys || "")
     state.percent = (rec.percent === undefined || rec.percent === null) ? -1 : Number(rec.percent)
     state.charging = !!rec.charging
+    state.motionNode = String(rec.motion || "")
     var cls = GamepadModel.classify(state.name, state.driver, state.vendor, state.product,
                                     state.axisCount, state.buttonCount)
     state.layout = cls.layout
@@ -228,7 +287,8 @@ Item {
       _devices = next
       devicesChanged()
       root.startStream(id)
-    } else if (existing.percent !== state.percent || existing.charging !== state.charging) {
+    } else if (existing.percent !== state.percent || existing.charging !== state.charging ||
+               existing.motionNode !== state.motionNode) {
       _touch(id)
     }
   }
@@ -285,9 +345,16 @@ Item {
   }
 
   function reconcileStreams() {
-    for (var id in _devices) root.startStream(id)
+    for (var id in _devices) {
+      root.startStream(id)
+      root.startGyroStream(id)
+    }
     for (var sid in _streams) {
       if (!_devices[sid]) root.stopStream(sid)
+    }
+    for (var gid in _gyroStreams) {
+      var d = _devices[gid]
+      if (!d || d.motionNode !== _gyroStreams[gid].node) root.stopGyroStream(gid)
     }
   }
 
@@ -295,6 +362,79 @@ Item {
     // Device unplugged (or jstest vanished). The next scan sweep cleans the
     // state; drop the process handle immediately.
     if (_streams[id] && !_devices[id]) stopStream(id)
+  }
+
+  // ------------------------------------------------------- gyro/motion streams
+  Component {
+    id: gyroComp
+    Process {
+      property string targetId: ""
+      property string node: ""
+      stdout: SplitParser {
+        onRead: function (line) { root.handleGyroLine(targetId, line) }
+      }
+      stderr: StdioCollector { }
+      onExited: root.gyroDied(targetId)
+    }
+  }
+
+  function startGyroStream(id) {
+    var d = device(id)
+    if (!d || !d.motionNode || d.motionNode === "") return
+    if (_gyroStreams[id]) return
+    var proc = gyroComp.createObject(root, { targetId: id, node: d.motionNode })
+    if (!proc) return
+    proc.command = ["python3", root.gyroScript, "/dev/input/" + d.motionNode]
+    proc.running = true
+    var next = ({})
+    for (var k in _gyroStreams) next[k] = _gyroStreams[k]
+    next[id] = proc
+    _gyroStreams = next
+  }
+
+  function stopGyroStream(id) {
+    var proc = _gyroStreams[id]
+    if (!proc) return
+    var next = ({})
+    for (var k in _gyroStreams) if (k !== id) next[k] = _gyroStreams[k]
+    _gyroStreams = next
+    if (proc.running) proc.running = false
+    proc.destroy()
+  }
+
+  function gyroDied(id) {
+    var d = _devices[id]
+    if (_gyroStreams[id] && (!d || !d.motionNode || d.motionNode === "")) stopGyroStream(id)
+  }
+
+  function handleGyroLine(id, line) {
+    var d = device(id)
+    if (!d) return
+    var rec
+    try { rec = JSON.parse(String(line || "")) } catch (e) { return }
+    if (!rec) return
+    d.gyro = {
+      ax: Number(rec.ax) || 0, ay: Number(rec.ay) || 0, az: Number(rec.az) || 0,
+      gx: Number(rec.gx) || 0, gy: Number(rec.gy) || 0, gz: Number(rec.gz) || 0,
+      afs: Number(rec.afs) || 32767, gfs: Number(rec.gfs) || 32767
+    }
+    // Drift calibration collection: ~0.8s of stationary samples.
+    if (d._gyroCal) {
+      d._gyroCal.push([d.gyro.gx, d.gyro.gy, d.gyro.gz])
+      if (d._gyroCal.length >= 20) {
+        var sx = 0, sy = 0, sz = 0
+        for (var i = 0; i < d._gyroCal.length; i++) {
+          sx += d._gyroCal[i][0]
+          sy += d._gyroCal[i][1]
+          sz += d._gyroCal[i][2]
+        }
+        var n = d._gyroCal.length
+        storeProfile(d, { gyroBias: { x: sx / n, y: sy / n, z: sz / n } })
+        d._gyroCal = null
+        root.actionResult("Gyro calibrated for " + d.modelLabel + " — drift offset stored")
+      }
+    }
+    liveUpdated(id)
   }
 
   // jstest prints either "code N" or "number N" depending on version;
@@ -402,7 +542,8 @@ Item {
     return true
   }
 
-  // Rumble test: weak/strong magnitudes in 0..1, duration in ms.
+  // Rumble test: weak/strong magnitudes in 0..1, duration in ms. The
+  // per-pad stored power profile scales both motors.
   function rumble(id, weak, strong, ms) {
     var d = device(id)
     if (!d || !d.event) {
@@ -413,8 +554,10 @@ Item {
       root.actionResult("python-evdev missing — sudo pacman -S --needed python-evdev")
       return false
     }
-    var w = Math.round(Math.min(1, Math.max(0, weak)) * 65535)
-    var s = Math.round(Math.min(1, Math.max(0, strong)) * 65535)
+    var strength = d.profile && isFinite(Number(d.profile.rumble))
+        ? Math.min(1, Math.max(0.1, Number(d.profile.rumble))) : 1
+    var w = Math.round(Math.min(1, Math.max(0, weak)) * strength * 65535)
+    var s = Math.round(Math.min(1, Math.max(0, strong)) * strength * 65535)
     return runAction(
       ["python3", root.rumbleScript, "/dev/input/" + d.event,
        String(w), String(s), String(Math.max(30, ms))],
@@ -453,5 +596,6 @@ Item {
   Component.onCompleted: envProc.running = true
   Component.onDestruction: {
     for (var id in _streams) stopStream(id)
+    for (var gid in _gyroStreams) stopGyroStream(gid)
   }
 }

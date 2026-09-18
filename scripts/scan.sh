@@ -6,18 +6,25 @@
 #
 #   {"id":"js0","input":"input5","event":"event22","name":"...","driver":"...",
 #    "bus":"0005","vendor":"045e","product":"0b12","phys":"...",
-#    "battery":{"percent":87,"status":"Discharging"}}
+#    "battery":{"percent":87,"status":"Discharging"},"motion":"event23"}
+#
+# "motion" is the companion motion-sensor evdev node (accelerometer + gyro)
+# that hid-playstation / hid-sony / hid-nintendo expose as a sibling input
+# device ("... Motion Sensors" / "... IMU"); empty when the pad has none.
 #
 # Pure sysfs walking — no required external tools. Lines are consumed by
 # Service.qml with a SplitParser, so output must be newline-safe JSON only.
 # Battery is best-effort: pads without a power_supply node report -1.
+# QUATRO_SYSFS overrides the sysfs root (used by the test suite).
 
 set -u
 
+SYS="${QUATRO_SYSFS:-/sys}"
+
 emit_json() {
   # Minimal key:value string emitter; values are pre-escaped.
-  printf '{"id":"%s","input":"%s","event":"%s","name":"%s","driver":"%s","bus":"%s","vendor":"%s","product":"%s","phys":"%s","percent":%s,"charging":%s}\n' \
-    "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}"
+  printf '{"id":"%s","input":"%s","event":"%s","name":"%s","driver":"%s","bus":"%s","vendor":"%s","product":"%s","phys":"%s","percent":%s,"charging":%s,"motion":"%s"}\n' \
+    "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}"
 }
 
 json_escape() {
@@ -53,7 +60,7 @@ battery_for_input() {
 
 shopt -s nullglob
 
-for js in /sys/class/input/js*; do
+for js in "$SYS"/class/input/js*; do
   id="$(basename "$js")"
   dev_dir="$js/device"                 # .../inputX  (joystick char dev)
   parent="$dev_dir/device"             # .../inputX/device (hardware node)
@@ -82,6 +89,25 @@ for js in /sys/class/input/js*; do
     break
   done
 
+  # Companion motion-sensor node (gyro + accelerometer), paired by HID
+  # parent: hid-playstation/hid-sony/hid-nintendo expose it as a sibling
+  # input device named "... Motion Sensors" / "... IMU".
+  motion=""
+  for sib in "$parent"/input/input*; do
+    [ -d "$sib" ] || continue
+    sib_name="$(cat "$sib/name" 2>/dev/null || printf '')"
+    case "$(printf '%s' "$sib_name" | tr '[:upper:]' '[:lower:]')" in
+      *motion*|*imu*|*gyro*|*accelerometer*|*accel*) ;;
+      *) continue ;;
+    esac
+    for ev in "$sib"/event*; do
+      [ -d "$ev" ] || continue
+      motion="$(basename "$ev")"
+      break
+    done
+    [ -n "$motion" ] && break
+  done
+
   IFS='|' read -r percent status <<<"$(battery_for_input "$(readlink -f "$dev_dir")")"
   [ -n "$percent" ] || percent=-1
   charging="false"
@@ -100,7 +126,8 @@ for js in /sys/class/input/js*; do
     "$(json_escape "$product")" \
     "$(json_escape "$phys")" \
     "$percent" \
-    "$charging"
+    "$charging" \
+    "$(json_escape "$motion")"
 done
 
 exit 0

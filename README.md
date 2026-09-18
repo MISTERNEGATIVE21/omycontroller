@@ -8,7 +8,9 @@ for up to four pads (P1–P4), as the name suggests. Every joypad *and*
 joystick is covered: gamepads render as their real silhouette (Xbox /
 PlayStation / Switch / generic), while flight sticks, arcade sticks and
 yokes get a dedicated single-stick view with a live hat switch and
-throttle lever.
+throttle lever. Pads with a motion sensor (DualSense, DualShock 4,
+Switch Pro, Joy-Cons) also get a live gyro/accelerometer gauge with
+per-pad drift calibration.
 
 ```
 ┌ QUATRO ─────────────────────────── 1 pad ─┐
@@ -22,12 +24,15 @@ throttle lever.
 │ │ 1.4 ms · 710 Hz    │ │ 87%  healthy   │ │
 │ └────────────────────┘ └────────────────┘ │
 │ RUMBLE TEST   [Weak] [Strong] [Both 0.5s] │
+│ RUMBLE POWER  ─────●──────────  80%       │
 │ ADAPTIVE TRIGGERS   L2 [Medium] R2 [Off]  │
 │ DEADZONES                                 │
 │  Left stick   ────●──────      12%        │
 │  Right stick  ───●───────      10%        │
 │  Left trigger ──●────────       5%        │
 │  Right trigger ─●────────       5%        │
+│ MOTION — GYRO & ACCELEROMETER             │
+│   ◎ gyro bubble drifts live    [Calibrate]│
 └───────────────────────────────────────────┘
 ```
 
@@ -42,7 +47,8 @@ throttle lever.
 | Hardware      | axis + button count from the jstest header, silhouette label (gamepad vs joystick) |
 | Latency       | rolling average of evdev event intervals (ms) + effective poll rate   |
 | Deadzones     | per-pad profiles, persisted across replug, live preview rings         |
-| Rumble        | one-shot FF_RUMBLE via evdev (weak / strong / both)                   |
+| Motion        | gyro + accelerometer gauge from the pad's sensor evdev node, drift calibration per pad |
+| Rumble        | one-shot FF_RUMBLE via evdev (weak / strong / both) + per-pad power   |
 | Haptics       | DualSense adaptive-trigger modes via hidraw (wired)                   |
 
 ## Install
@@ -131,7 +137,9 @@ quatro.gamepad/
 │                        (Xbox / PS / Switch / joystick / generic)
 ├── GamepadModel.js      pure classification logic (driver→model/protocol)
 └── scripts/
-    ├── scan.sh          sysfs walk → one JSON line per pad (no deps)
+    ├── scan.sh          sysfs walk → one JSON line per pad (no deps),
+    │                    pairs companion motion-sensor nodes
+    ├── gyro.py          gyro/accelerometer JSON stream (stdlib only)
     ├── rumble.py        FF_RUMBLE one-shot (python-evdev)
     └── triggers.py      DualSense adaptive-trigger hidraw writer (stdlib)
 ```
@@ -152,6 +160,10 @@ Design notes:
 - **Honest latency.** The ms figure is the real average evdev event
   interval observed on this pad right now — not a made-up "1 ms" badge.
   Idle pads report `idle` until events flow.
+- **Honest motion.** Gyro/accel values are normalized against each axis's
+  real full scale, read from the kernel with `EVIOCGABS` — different
+  drivers (hid-playstation vs hid-nintendo) use different ranges and the
+  gauge stays truthful on all of them.
 
 ## Validate / develop
 
@@ -176,6 +188,9 @@ Clone-and-edit workflow works as with any Omarchy plugin:
   `sudo usermod -aG input $USER` (re-login), and install `python-evdev`.
 - **Panel does not open from fuzzel** — ensure `omarchy-shell` is on PATH
   (it ships with Omarchy in `$OMARCHY_PATH/bin`).
+- **No Motion section** — your pad has no gyro (Xbox pads don't) or the
+  sensor node was not paired; check `ls /sys/class/input/` for a sibling
+  input device named "… Motion Sensors" / "… IMU" next to the pad.
 
 ## License
 
