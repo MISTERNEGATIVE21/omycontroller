@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Quatro — scripts/scan.sh
+# omycontroller — scripts/scan.sh
 #
 # Enumerates every joystick device the kernel exposes (/dev/input/js*) and
 # prints one JSON object per device on its own line:
@@ -15,11 +15,11 @@
 # Pure sysfs walking — no required external tools. Lines are consumed by
 # Service.qml with a SplitParser, so output must be newline-safe JSON only.
 # Battery is best-effort: pads without a power_supply node report -1.
-# QUATRO_SYSFS overrides the sysfs root (used by the test suite).
+# OMYCONTROLLER_SYSFS or QUATRO_SYSFS overrides the sysfs root (used by tests).
 
 set -u
 
-SYS="${QUATRO_SYSFS:-/sys}"
+SYS="${OMYCONTROLLER_SYSFS:-${QUATRO_SYSFS:-/sys}}"
 
 emit_json() {
   # Minimal key:value string emitter; values are pre-escaped.
@@ -69,7 +69,7 @@ for js in "$SYS"/class/input/js*; do
   [ -n "$name" ] || name="$(cat "$parent/name" 2>/dev/null || printf '%s' "$id")"
 
   driver="?"
-  if [ -L "$parent/driver" ]; then
+  if [ -L "$parent/driver" ] || [ -d "$parent/driver" ]; then
     driver="$(basename "$(readlink -f "$parent/driver")")"
   fi
 
