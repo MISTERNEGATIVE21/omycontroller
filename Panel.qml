@@ -107,6 +107,13 @@ Panel {
   }
 
   onSelChanged: root.refreshLive()
+  onOpenedChanged: {
+    if (!opened) {
+      rhythmTimer.stop()
+      rhythmSteps = []
+      rhythmStepIdx = 0
+    }
+  }
 
   Component.onCompleted: {
     if (pads.length > 0) selectedId = pads[0].id
@@ -183,14 +190,17 @@ Panel {
     root.svc.rumble(root.sel.id, w, s, ms)
   }
 
-  function applyTriggerEffect() {
+  function applyTriggerEffect(start, force) {
     if (!root.svc || !root.sel) return
+    var s = (start !== undefined && isFinite(Number(start))) ? Number(start) : root.triggerStartPos
+    var f = (force !== undefined && isFinite(Number(force))) ? Number(force) : root.triggerForce
     var mode = root.selectedTriggerMode.toLowerCase()
     if (root.sel.id === "sim0") {
-      root.actionMsg = "DualSense trigger effect [" + root.selectedTriggerMode + "] simulated on " + root.sel.modelLabel
+      root.actionMsg = "DualSense trigger effect [" + root.selectedTriggerMode + "] (start " + Math.round(s * 100) + "%, force " + Math.round(f * 100) + "%) simulated on " + root.sel.modelLabel
       return
     }
     root.svc.setTriggers(root.sel.id, mode, mode)
+    root.actionMsg = "DualSense trigger effect [" + root.selectedTriggerMode + "] applied (start " + Math.round(s * 100) + "%, force " + Math.round(f * 100) + "%)"
   }
 
   function setDz(key, value) {
@@ -532,7 +542,10 @@ Panel {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.currentTab = tabItem.index
+                    onClicked: {
+                      root.currentTab = tabItem.index
+                      tabFlick.contentY = 0
+                    }
                   }
                 }
               }
@@ -553,6 +566,13 @@ Panel {
               contentHeight: tabFlickCol.implicitHeight
               clip: true
               boundsBehavior: Flickable.StopAtBounds
+
+              Connections {
+                target: root
+                function onCurrentTabChanged() {
+                  tabFlick.contentY = 0
+                }
+              }
 
               Column {
                 id: tabFlickCol
@@ -993,7 +1013,8 @@ Panel {
 
                     Button {
                       width: (parent.width - 3 * Style.space(6)) / 4
-                      text: "Burst"
+                      text: "Heavy Burst"
+                      fontSize: Style.font.caption
                       focusable: true
                       foreground: root.barForeground
                       accent: root.playerColor
@@ -1049,7 +1070,7 @@ Panel {
                           cursorShape: Qt.PointingHandCursor
                           onClicked: {
                             root.selectedTriggerMode = tmBtn.modelData
-                            root.applyTriggerEffect()
+                            root.applyTriggerEffect(root.triggerStartPos, root.triggerForce)
                           }
                         }
                       }
@@ -1064,7 +1085,10 @@ Panel {
                     value: root.triggerStartPos
                     foreground: root.barForeground
                     accent: root.playerColor
-                    onMoved: function (v) { root.triggerStartPos = v }
+                    onMoved: function (v) {
+                      root.triggerStartPos = v
+                      root.applyTriggerEffect(v, root.triggerForce)
+                    }
                   }
 
                   DeadzoneSlider {
@@ -1075,7 +1099,10 @@ Panel {
                     value: root.triggerForce
                     foreground: root.barForeground
                     accent: root.playerColor
-                    onMoved: function (v) { root.triggerForce = v }
+                    onMoved: function (v) {
+                      root.triggerForce = v
+                      root.applyTriggerEffect(root.triggerStartPos, v)
+                    }
                   }
 
                   Text {
@@ -1270,7 +1297,7 @@ Panel {
                   SpecRow {
                     label: "Polling Rate & Latency"
                     value: root.sel
-                      ? ((root.sel.pollingRate || root.stats.hz) + " Hz · Avg: " + (root.sel.avgMs > 0 ? root.sel.avgMs.toFixed(2) : root.stats.avgMs.toFixed(2)) + " ms (±" + (root.sel.jitter !== undefined ? root.sel.jitter.toFixed(2) : root.stats.jitter.toFixed(2)) + " ms jitter)")
+                      ? ((root.sel.pollingRate || root.stats.hz) + " Hz · Avg: " + (root.sel.avgMs > 0 ? root.sel.avgMs.toFixed(2) : root.stats.avgMs.toFixed(2)) + " ms (Min: " + (root.sel.minMs > 0 ? root.sel.minMs.toFixed(2) : (root.stats.minMs > 0 ? root.stats.minMs.toFixed(2) : "0.00")) + " ms, Max: " + (root.sel.maxMs > 0 ? root.sel.maxMs.toFixed(2) : (root.stats.maxMs > 0 ? root.stats.maxMs.toFixed(2) : "0.00")) + " ms · ±" + (root.sel.jitter !== undefined ? root.sel.jitter.toFixed(2) : root.stats.jitter.toFixed(2)) + " ms jitter)")
                       : "—"
                     foreground: root.barForeground
                   }
@@ -1843,7 +1870,7 @@ Panel {
         text: sr.value
         color: sr.foreground
         font.family: Style.font.family
-        font.pixelSize: Style.font.bodySmall
+        font.pixelSize: sr.value.length > 50 ? 8 : Style.font.bodySmall
         font.bold: true
         elide: Text.ElideRight
       }
