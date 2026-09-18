@@ -480,3 +480,262 @@ function triggerNorm(layout, raw) {
   if (layout === "ps" || layout === "switch" || layout === "joystick") return Math.min(1, Math.max(0, v))
   return Math.min(1, Math.max(0, (v + 1) / 2))
 }
+
+// ---------------------------------------------------------------------------
+// Connection Icon Resolver
+// Resolves hardware bus/phys or connection name into Gamepadla SVG assets
+// ---------------------------------------------------------------------------
+function connectionIcon(busType, phys) {
+  var bt = lower(busType)
+  var ph = lower(phys)
+  var hay = bt + " " + ph
+
+  // Check dongles / wireless adapters first
+  if (bt === "usb dongle" || looksLikeDongle(busType, phys) || looksLikeDongle(phys, busType)) {
+    return "assets/icon_dongle.svg"
+  }
+  for (var i = 0; i < KNOWN_DONGLES.length; i++) {
+    if (hay.indexOf(KNOWN_DONGLES[i]) !== -1) return "assets/icon_dongle.svg"
+  }
+
+  // Check Bluetooth
+  if (bt === "0005" || bt === "5" || bt === "bluetooth" || bt.indexOf("bt") !== -1 ||
+      ph.indexOf("bluetooth") !== -1 || (phys && /^[0-9a-f]{2}(:[0-9a-f]{2}){5}/i.test(phys))) {
+    return "assets/icon_bt.svg"
+  }
+
+  // Wired USB / default
+  return "assets/icon_cable.svg"
+}
+
+// ---------------------------------------------------------------------------
+// Response Curves & Deadzone Tuning
+// Supports scalar axis values and {x, y} coordinate vectors.
+// Presets: linear, dynamic (exponential cubic blend), smooth (sinusoidal S-curve),
+// and aggressive (concave quick ramp).
+// ---------------------------------------------------------------------------
+function applyCurve(value, curveType, deadzone, outerDeadzone) {
+  if (value !== null && typeof value === "object" && ("x" in value || "y" in value)) {
+    var vx = Number(value.x) || 0
+    var vy = Number(value.y) || 0
+    var r = Math.sqrt(vx * vx + vy * vy)
+    if (r === 0) return { x: 0, y: 0 }
+    var curvedR = applyCurveScalar(r, curveType, deadzone, outerDeadzone)
+    var factor = curvedR / r
+    return { x: vx * factor, y: vy * factor }
+  }
+  return applyCurveScalar(value, curveType, deadzone, outerDeadzone)
+}
+
+function applyCurveScalar(value, curveType, deadzone, outerDeadzone) {
+  var val = Number(value) || 0
+  var sign = val < 0 ? -1 : 1
+  var abs = Math.abs(val)
+  var innerDz = Number(deadzone) || 0
+  var outerDz = (outerDeadzone !== undefined && outerDeadzone !== null && isFinite(Number(outerDeadzone)))
+    ? Number(outerDeadzone) : 1.0
+  if (outerDz <= innerDz) outerDz = 1.0
+
+  if (abs <= innerDz) return 0
+  if (abs >= outerDz) return sign * 1.0
+
+  var u = (abs - innerDz) / (outerDz - innerDz)
+  u = Math.min(1.0, Math.max(0.0, u))
+
+  var c = String(curveType || "linear").toLowerCase()
+  var out = u
+  if (c === "dynamic") {
+    // Exponential cubic blend for precision center + fast outer
+    out = 0.35 * u + 0.65 * Math.pow(u, 3)
+  } else if (c === "smooth") {
+    // Sinusoidal S-curve
+    out = 0.5 * (1 - Math.cos(Math.PI * u))
+  } else if (c === "aggressive") {
+    // Aggressive curve: quick activation near center
+    out = 0.5 * u + 0.5 * Math.sqrt(u)
+  } else {
+    // Linear
+    out = u
+  }
+
+  return sign * out
+}
+
+// ---------------------------------------------------------------------------
+// Gamepadla Circularity Radar & Drift Diagnostics
+// Computes radial magnitude r, center resting drift %, and tracks perimeter
+// bounds to measure deviation from the ideal unit circle (r = 1.0).
+// ---------------------------------------------------------------------------
+function circularityMetrics(x, y, history) {
+  var nx = Number(x) || 0
+  var ny = Number(y) || 0
+  var r = Math.sqrt(nx * nx + ny * ny)
+
+  var pts = []
+  if (Array.isArray(history)) {
+    pts = history.slice()
+  } else if (history && Array.isArray(history.history)) {
+    pts = history.history.slice()
+  } else if (history && Array.isArray(history.points)) {
+    pts = history.points.slice()
+  }
+
+  var currentPt = { x: nx, y: ny, r: r }
+  if (pts.length >= 500) {
+    pts.shift()
+  }
+  pts.push(currentPt)
+
+  // 32-sector perimeter tracking
+  var sectorMax = {}
+  for (var i = 0; i < pts.length; i++) {
+    var p = pts[i]
+    var pr = p.r !== undefined ? p.r : Math.sqrt(p.x * p.x + p.y * p.y)
+    if (pr > 0.5) {
+      var angle = Math.atan2(p.y, p.x)
+      var normAngle = angle < 0 ? angle + 2 * Math.PI : angle
+      var sector = Math.floor((normAngle / (2 * Math.PI)) * 32) % 32
+      sectorMax[sector] = Math.max(sectorMax[sector] || 0, pr)
+    }
+  }
+
+  var sectors = Object.keys(sectorMax)
+  var error = 0
+  if (sectors.length > 0) {
+    var totalDev = 0
+    for (var s = 0; s < sectors.length; s++) {
+      totalDev += Math.abs(sectorMax[sectors[s]] - 1.0)
+    }
+    error = (totalDev / sectors.length) * 100
+  } else if (r > 0.5) {
+    error = Math.abs(r - 1.0) * 100
+  }
+
+  var centerDrift = Math.round(r * 1000) / 10
+  var circError = Math.round(error * 10) / 10
+
+  return {
+    x: nx,
+    y: ny,
+    r: r,
+    magnitude: r,
+    centerDrift: centerDrift,
+    centerDriftPercent: centerDrift,
+    circularityError: circError,
+    error: circError,
+    history: pts
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Polling Rate & Latency Benchmark Calculations
+// ---------------------------------------------------------------------------
+function formatHz(ms) {
+  var n = Number(ms)
+  if (!isFinite(n) || n <= 0) return "0 Hz"
+  var hz = Math.round(1000 / n)
+  return hz + " Hz"
+}
+
+function latencyMetrics(eventIntervals) {
+  if (!eventIntervals || !eventIntervals.length) {
+    return {
+      avg: 0,
+      min: 0,
+      max: 0,
+      jitter: 0,
+      hz: 0,
+      pollingRate: 0,
+      formattedHz: "0 Hz",
+      label: "idle"
+    }
+  }
+
+  var count = 0
+  var sum = 0
+  var min = Infinity
+  var max = -Infinity
+  for (var i = 0; i < eventIntervals.length; i++) {
+    var v = Number(eventIntervals[i])
+    if (!isFinite(v) || v <= 0) continue
+    sum += v
+    count++
+    if (v < min) min = v
+    if (v > max) max = v
+  }
+
+  if (count === 0) {
+    return {
+      avg: 0,
+      min: 0,
+      max: 0,
+      jitter: 0,
+      hz: 0,
+      pollingRate: 0,
+      formattedHz: "0 Hz",
+      label: "idle"
+    }
+  }
+
+  var avg = sum / count
+  var varianceSum = 0
+  for (var j = 0; j < eventIntervals.length; j++) {
+    var val = Number(eventIntervals[j])
+    if (!isFinite(val) || val <= 0) continue
+    var diff = val - avg
+    varianceSum += diff * diff
+  }
+  var jitter = Math.sqrt(varianceSum / count)
+  var hz = avg > 0 ? Math.round(1000 / avg) : 0
+
+  return {
+    avg: avg,
+    min: min,
+    max: max,
+    jitter: jitter,
+    hz: hz,
+    pollingRate: hz,
+    formattedHz: formatHz(avg),
+    label: latencyLabel(avg, hz)
+  }
+}
+
+// ---------------------------------------------------------------------------
+// CommonJS exports for Node.js test runner while preserving QML compatibility
+// ---------------------------------------------------------------------------
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = {
+    KNOWN_DONGLES: KNOWN_DONGLES,
+    VENDORS: VENDORS,
+    JOYSTICK_WORDS: JOYSTICK_WORDS,
+    DEFAULT_PROFILE: DEFAULT_PROFILE,
+    lower: lower,
+    looksLikeDongle: looksLikeDongle,
+    looksLikeJoystick: looksLikeJoystick,
+    classify: classify,
+    connection: connection,
+    connectionShort: connectionShort,
+    connectionIcon: connectionIcon,
+    batteryBucket: batteryBucket,
+    batteryText: batteryText,
+    playerColor: playerColor,
+    batteryLabel: batteryLabel,
+    latencyLabel: latencyLabel,
+    formatHz: formatHz,
+    latencyMetrics: latencyMetrics,
+    profileKey: profileKey,
+    normalizeProfile: normalizeProfile,
+    applyStickDeadzone: applyStickDeadzone,
+    applyCurve: applyCurve,
+    circularityMetrics: circularityMetrics,
+    buttonTables: buttonTables,
+    axesMap: axesMap,
+    axisNameList: axisNameList,
+    throttleIndex: throttleIndex,
+    hatIndices: hatIndices,
+    joystickExtras: joystickExtras,
+    shapeLabel: shapeLabel,
+    triggerNorm: triggerNorm
+  }
+}
+
