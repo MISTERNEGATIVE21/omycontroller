@@ -1,12 +1,15 @@
 import QtQuick
+import QtQuick.Effects
 import qs.Commons
 import "GamepadModel.js" as GamepadModel
 
 // Quatro — ControllerArt.qml
 //
 // Theme-aware, model-accurate controller rendering built from QML
-// primitives (no SVG plugin, no external assets — hot-reloads cleanly and
-// repaints instantly at input rate). Five layouts:
+// primitives (no SVG plugin — hot-reloads cleanly and repaints instantly at
+// input rate) layered with ControllerImage button-cap art (assets/input) and,
+// when a gamepadla catalog entry matches the pad, the controller's photo as
+// the deck surface. Five layouts:
 //
 //   xbox     A/B/X/Y, asymmetric sticks, view/menu/guide/share
 //   ps       DualSense ×/○/□/△, symmetric sticks, touchpad + glowing lightbar,
@@ -39,10 +42,12 @@ Item {
   property bool mini: false              // tiny silhouette for menu rows / slot selector
   property bool showLabels: true
 
+  property real scale: 1.0
+  readonly property real effScale: mini ? 1.0 : (width > 0 ? width / 340 : scale)
+
   implicitWidth: mini ? 34 : 340 * scale
   implicitHeight: mini ? 20 : 208 * scale
 
-  property real scale: 1.0
   readonly property bool isPs: layout === "ps"
   readonly property bool isSwitch: layout === "switch"
   readonly property bool isXbox: layout === "xbox"
@@ -52,7 +57,7 @@ Item {
   readonly property var extras: isJoystick ? GamepadModel.joystickExtras(axes, axisNames) : null
 
   // ---------------------------------------------------------------- tables
-  readonly property var tables: GamepadModel.buttonTables(layout)
+  readonly property var tables: GamepadModel.buttonTables(layout, profile)
   readonly property var axisMap: GamepadModel.axesMap(layout, axes ? axes.length : 0, axisNames)
 
   function pressed(idx) { return !!(buttons && buttons[idx]) }
@@ -107,9 +112,8 @@ Item {
   // ------------------------------------------------------------- geometry
   // Per-layout element centers inside the 340x208 canvas.
   readonly property var geo: {
-    if (isXbox) return { stickL: [100, 112], stickR: [212, 140], dpad: [138, 128], face: [240, 108], bumpers: [42, 252] }
+    if (isXbox || isSwitch) return { stickL: [100, 112], stickR: [212, 140], dpad: [138, 128], face: [240, 108], bumpers: [42, 252] }
     if (isPs) return { stickL: [134, 134], stickR: [206, 134], dpad: [92, 108], face: [248, 108], bumpers: [42, 252] }
-    if (isSwitch) return { stickL: [100, 112], stickR: [212, 140], dpad: [138, 128], face: [240, 108], bumpers: [42, 252] }
     return { stickL: [132, 136], stickR: [208, 136], dpad: [100, 108], face: [240, 108], bumpers: [42, 252] }
   }
 
@@ -185,8 +189,10 @@ Item {
     visible: !root.mini && !root.isJoystick
     width: 340
     height: 208
-    scale: root.scale
+    scale: root.effScale
     transformOrigin: Item.TopLeft
+    x: (root.width - 340 * root.effScale) / 2
+    y: (root.height - 208 * root.effScale) / 2
 
     // Grips (behind body)
     Rectangle {
@@ -235,8 +241,8 @@ Item {
     TrigBar { x: root.geo.bumpers[0] + 6; side: "l" }
     TrigBar { x: root.geo.bumpers[1] + 6; side: "r" }
 
-    Bumper { x: root.geo.bumpers[0]; label: root.isPs ? "L1" : root.isSwitch ? "L" : "LB"; on: root.pressed(root.tables.bumperL) }
-    Bumper { x: root.geo.bumpers[1]; label: root.isPs ? "R1" : root.isSwitch ? "R" : "RB"; on: root.pressed(root.tables.bumperR) }
+    Bumper { x: root.geo.bumpers[0]; label: root.isPs ? "L1" : root.isSwitch ? "L" : "LB"; on: root.pressed(root.tables.bumperL); artSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "l")) }
+    Bumper { x: root.geo.bumpers[1]; label: root.isPs ? "R1" : root.isSwitch ? "R" : "RB"; on: root.pressed(root.tables.bumperR); artSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "r")) }
 
     // ---------------- left stick ----------------------------------------
     Stick {
@@ -264,16 +270,16 @@ Item {
       cy: root.geo.dpad[1]
       up: root.pressed(root.tables.dpadUp)
       down: root.pressed(root.tables.dpadDown)
-      left: root.pressed(root.tables.dpadLeft)
-      right: root.pressed(root.tables.dpadRight)
+      dpadLeft: root.pressed(root.tables.dpadLeft)
+      dpadRight: root.pressed(root.tables.dpadRight)
       accent: root.playerColor
     }
 
     // ---------------- face buttons --------------------------------------
-    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] - 20; label: root.faceLabel("top");    on: root.pressed(root.tables.faceTop) }
-    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] + 20; label: root.faceLabel("bottom"); on: root.pressed(root.tables.faceBottom) }
-    FaceButton { cx: root.geo.face[0] - 20; cy: root.geo.face[1];      label: root.faceLabel("left");   on: root.pressed(root.tables.faceLeft) }
-    FaceButton { cx: root.geo.face[0] + 20; cy: root.geo.face[1];      label: root.faceLabel("right");  on: root.pressed(root.tables.faceRight) }
+    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] - 20; label: root.faceLabel("top");    pos: "top";    on: root.pressed(root.tables.faceTop);    artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "top")) }
+    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] + 20; label: root.faceLabel("bottom"); pos: "bottom"; on: root.pressed(root.tables.faceBottom); artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "bottom")) }
+    FaceButton { cx: root.geo.face[0] - 20; cy: root.geo.face[1];      label: root.faceLabel("left");   pos: "left";   on: root.pressed(root.tables.faceLeft);   artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "left")) }
+    FaceButton { cx: root.geo.face[0] + 20; cy: root.geo.face[1];      label: root.faceLabel("right");  pos: "right";  on: root.pressed(root.tables.faceRight);  artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "right")) }
 
     // ---------------- center cluster ------------------------------------
     Item {
@@ -366,7 +372,8 @@ Item {
         cx: parent.width * 0.5 - (root.isSwitch ? 34 : root.isPs ? 38 : 26)
         cy: root.isPs ? 36 : 40
         r: 7
-        label: root.isSwitch ? "–" : root.isPs ? "⧉" : "⧉"
+        label: root.isSwitch ? "–" : "⧉"
+        artSource: Qt.resolvedUrl(GamepadModel.centerArt(root.layout, "left"))
         on: root.pressed(root.tables.centerLeft)
         accent: root.playerColor
         showLabel: root.showLabels
@@ -377,7 +384,8 @@ Item {
         cx: parent.width * 0.5 + (root.isSwitch ? 34 : root.isPs ? 38 : 26)
         cy: root.isPs ? 36 : 40
         r: 7
-        label: root.isSwitch ? "+" : root.isPs ? "☰" : "☰"
+        label: root.isSwitch ? "+" : "☰"
+        artSource: Qt.resolvedUrl(GamepadModel.centerArt(root.layout, "right"))
         on: root.pressed(root.tables.centerRight)
         accent: root.playerColor
         showLabel: root.showLabels
@@ -418,8 +426,10 @@ Item {
     visible: !root.mini && root.isJoystick
     width: 340
     height: 208
-    scale: root.scale
+    scale: root.effScale
     transformOrigin: Item.TopLeft
+    x: (root.width - 340 * root.effScale) / 2
+    y: (root.height - 208 * root.effScale) / 2
 
     readonly property var ex: {
       if (root.extras) return root.extras
@@ -492,8 +502,8 @@ Item {
       cx: 216; cy: 74
       up: jart.ex.hatY < 0
       down: jart.ex.hatY > 0
-      left: jart.ex.hatX < 0
-      right: jart.ex.hatX > 0
+      dpadLeft: jart.ex.hatX < 0
+      dpadRight: jart.ex.hatX > 0
       accent: root.playerColor
     }
 
@@ -540,10 +550,12 @@ Item {
     id: trig
     property string side: "l"
     property string labelOverride: ""
-    readonly property real h: 34
+    // 26px analog range floats fully ABOVE the bumper shelf (Bumper y:44),
+    // so a fully depressed trigger never slides behind the shoulder button.
+    readonly property real h: 26
     width: 18
     height: h + 16
-    y: 4
+    y: 0
 
     readonly property real fillH: Math.max(0, Math.min(1, root.triggerNorm(side))) * h
 
@@ -580,7 +592,7 @@ Item {
     Text {
       visible: root.showLabels
       anchors.horizontalCenter: parent.horizontalCenter
-      y: 0
+      y: 1
       text: trig.labelOverride !== "" ? trig.labelOverride
            : root.isPs ? (trig.side === "l" ? "L2" : "R2")
            : root.isSwitch ? (trig.side === "l" ? "ZL" : "ZR")
@@ -596,10 +608,12 @@ Item {
     id: bump
     property bool on: false
     property string label: ""
-    y: 30
+    property string artSource: ""        // kenney shoulder-cap URL ("" = text)
+    // Sits on the body's top shelf; triggers float above it (no overlap).
+    y: 44
     width: 66
-    height: 18
-    radius: 9
+    height: 16
+    radius: 8
     color: on ? root.playerColor : root.idleFill
     border.color: on ? root.playerColor : root.bodyBorder
     border.width: on ? 2 : 1
@@ -612,7 +626,7 @@ Item {
       anchors.centerIn: parent
       width: parent.width + 8
       height: parent.height + 8
-      radius: 12
+      radius: 10
       color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, bump.on ? 0.22 : 0)
       border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, bump.on ? 0.6 : 0)
       border.width: 2
@@ -621,8 +635,23 @@ Item {
       Behavior on opacity { NumberAnimation { duration: 60 } }
     }
 
+    // Kenney shoulder-cap art (tinted; press swaps to the contrast color).
+    Image {
+      visible: bump.artSource !== ""
+      anchors.fill: parent
+      anchors.margins: 2
+      source: bump.artSource
+      fillMode: Image.PreserveAspectFit
+      mipmap: true
+      layer.enabled: visible
+      layer.effect: MultiEffect {
+        colorization: 1.0
+        colorizationColor: bump.on ? root.playerColor : root.glyphColor
+      }
+    }
+
     Text {
-      visible: root.showLabels
+      visible: root.showLabels && bump.artSource === ""
       anchors.centerIn: parent
       text: bump.label
       color: bump.on ? Color.popups.background : root.dimGlyph
@@ -763,8 +792,10 @@ Item {
     property real cy: 0
     property bool up: false
     property bool down: false
-    property bool left: false
-    property bool right: false
+    property bool dpadLeft: false
+    property bool dpadRight: false
+    property alias dpadUp: dp.up
+    property alias dpadDown: dp.down
     property color accent: root.playerColor
 
     x: cx - 36
@@ -772,63 +803,108 @@ Item {
     width: 72
     height: 72
 
-    DpadArm { arm: "up";    on: dp.up }
-    DpadArm { arm: "down";  on: dp.down }
-    DpadArm { arm: "left";  on: dp.left }
-    DpadArm { arm: "right"; on: dp.right }
-
-    component DpadArm : Rectangle {
-      id: arm
-      property string arm: "up"
-      property bool on: false
-      width: 18
-      height: 24
+    // Center pivot plate
+    Rectangle {
+      x: 24; y: 24; width: 24; height: 24
       radius: 4
-      x: arm === "left" ? 0 : arm === "right" ? 54 : 27
-      y: arm === "up" ? 0 : arm === "down" ? 48 : 24
-      rotation: 0
-      color: on ? dp.accent : root.idleFill
-      border.color: on ? dp.accent : root.bodyBorder
-      border.width: on ? 2 : 1
-      scale: on ? 1.05 : 1.0
-      Behavior on color { ColorAnimation { duration: 60 } }
-      Behavior on scale { NumberAnimation { duration: 60 } }
+      color: root.idleFill
+      border.color: root.bodyBorder
+      border.width: 1
+    }
 
-      // Glow halo
-      Rectangle {
-        anchors.centerIn: parent
-        width: parent.width + 8
-        height: parent.height + 8
-        radius: 6
-        color: Qt.rgba(dp.accent.r, dp.accent.g, dp.accent.b, arm.on ? 0.25 : 0)
-        border.color: Qt.rgba(dp.accent.r, dp.accent.g, dp.accent.b, arm.on ? 0.6 : 0)
-        border.width: 2
-        opacity: arm.on ? 1.0 : 0.0
-        z: -1
-        Behavior on opacity { NumberAnimation { duration: 60 } }
-      }
+    DpadArm { arm: "up";    on: dp.up;        accent: dp.accent }
+    DpadArm { arm: "down";  on: dp.down;      accent: dp.accent }
+    DpadArm { arm: "left";  on: dp.dpadLeft;  accent: dp.accent }
+    DpadArm { arm: "right"; on: dp.dpadRight; accent: dp.accent }
+  }
+
+  // ------------------------------------------------------------- DpadArm
+  component DpadArm : Rectangle {
+    id: arm
+    property string arm: "up"
+    property bool on: false
+    property color accent: root.playerColor
+    width: 18
+    height: 24
+    radius: 4
+    x: arm === "left" ? 0 : arm === "right" ? 54 : 27
+    y: arm === "up" ? 0 : arm === "down" ? 48 : 24
+    rotation: 0
+    color: on ? arm.accent : root.idleFill
+    border.color: on ? arm.accent : root.bodyBorder
+    border.width: on ? 2 : 1
+    scale: on ? 1.08 : 1.0
+    Behavior on color { ColorAnimation { duration: 60 } }
+    Behavior on scale { NumberAnimation { duration: 60 } }
+
+    // Glow halo
+    Rectangle {
+      anchors.centerIn: parent
+      width: parent.width + 8
+      height: parent.height + 8
+      radius: 6
+      color: Qt.rgba(arm.accent.r, arm.accent.g, arm.accent.b, arm.on ? 0.30 : 0)
+      border.color: Qt.rgba(arm.accent.r, arm.accent.g, arm.accent.b, arm.on ? 0.70 : 0)
+      border.width: 2
+      opacity: arm.on ? 1.0 : 0.0
+      z: -1
+      Behavior on opacity { NumberAnimation { duration: 60 } }
+    }
+
+    // Directional chevron indicator
+    Text {
+      anchors.centerIn: parent
+      text: arm.arm === "up" ? "▲" : arm.arm === "down" ? "▼" : arm.arm === "left" ? "◀" : "▶"
+      color: arm.on ? Color.popups.background : root.dimGlyph
+      font.pixelSize: 8
+      font.bold: true
+      font.family: Style.font.family
     }
   }
 
   // ---------------------------------------------------------- FaceButton
-  component FaceButton : Rectangle {
+  // Pressable face key. When kenney cap art is supplied (artSource) the SVG
+  // cap is drawn with authentic console coloring and glowing aura on press.
+  component FaceButton : Item {
     id: fb
     property real cx: 0
     property real cy: 0
     property string label: ""
+    property string pos: "bottom"
+    property string artSource: ""
     property bool on: false
+
+    // Canonical button colors for Xbox:
+    // Y=yellow (#F1C40F), A=green (#2ECC71), X=blue (#3498DB), B=red (#E74C3C)
+    readonly property color buttonAccent: {
+      if (root.isXbox) {
+        if (fb.pos === "top") return "#F1C40F"
+        if (fb.pos === "bottom") return "#2ECC71"
+        if (fb.pos === "left") return "#3498DB"
+        if (fb.pos === "right") return "#E74C3C"
+      }
+      return root.playerColor
+    }
 
     x: cx - 12
     y: cy - 12
     width: 24
     height: 24
-    radius: 12
-    color: on ? root.playerColor : root.idleFill
-    border.color: on ? root.playerColor : root.bodyBorder
-    border.width: on ? 2 : 1
-    scale: on ? 1.06 : 1.0
-    Behavior on color { ColorAnimation { duration: 50 } }
+    scale: on ? 1.15 : 1.0
     Behavior on scale { NumberAnimation { duration: 50 } }
+
+    // Soft base plate behind the cap
+    Rectangle {
+      anchors.fill: parent
+      radius: 12
+      color: fb.on
+        ? Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.35)
+        : (root.isXbox ? Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.12) : root.idleFill)
+      border.color: fb.on ? fb.buttonAccent : (root.isXbox ? Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.4) : "transparent")
+      border.width: fb.on ? 2 : 1
+      Behavior on color { ColorAnimation { duration: 50 } }
+      Behavior on border.color { ColorAnimation { duration: 50 } }
+    }
 
     // Glow halo drop-shadow aura
     Rectangle {
@@ -836,19 +912,39 @@ Item {
       width: parent.width + 10
       height: parent.height + 10
       radius: width / 2
-      color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, fb.on ? 0.25 : 0)
-      border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, fb.on ? 0.6 : 0)
+      color: Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, fb.on ? 0.35 : 0)
+      border.color: Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, fb.on ? 0.75 : 0)
       border.width: 2
       opacity: fb.on ? 1.0 : 0.0
       z: -1
       Behavior on opacity { NumberAnimation { duration: 60 } }
     }
 
+    // Kenney cap art (64x64 SVG).
+    // For PS: native SVG has multi-color fills (#40E2A0 Triangle, #7C66E8 Cross, #FF69F8 Square, #F34545 Circle).
+    // When idle, preserve native colors without flat colorization!
+    // For Xbox: colorize with canonical button colors.
+    Image {
+      id: capImg
+      visible: fb.artSource !== ""
+      anchors.fill: parent
+      anchors.margins: 1
+      source: fb.artSource
+      fillMode: Image.PreserveAspectFit
+      mipmap: true
+      layer.enabled: visible && (root.isXbox || fb.on)
+      layer.effect: MultiEffect {
+        colorization: 1.0
+        colorizationColor: fb.on ? fb.buttonAccent : (root.isXbox ? fb.buttonAccent : root.glyphColor)
+      }
+    }
+
+    // Fallback label text (Switch / generic)
     Text {
-      visible: root.showLabels
+      visible: fb.artSource === "" && root.showLabels
       anchors.centerIn: parent
       text: fb.label
-      color: fb.on ? Color.popups.background : root.dimGlyph
+      color: fb.on ? Color.popups.background : root.glyphColor
       font.pixelSize: 11
       font.bold: true
       font.family: Style.font.family
@@ -862,6 +958,7 @@ Item {
     property real cy: 0
     property real r: 8
     property string label: ""
+    property string artSource: ""
     property bool on: false
     property color accent: root.playerColor
     property bool showLabel: true
@@ -893,11 +990,26 @@ Item {
       Behavior on opacity { NumberAnimation { duration: 50 } }
     }
 
+    // Kenney cap art (start/back for the Create/Options keys)
+    Image {
+      visible: ck.artSource !== ""
+      anchors.fill: parent
+      anchors.margins: ck.r >= 7 ? 0 : 1
+      source: ck.artSource
+      fillMode: Image.PreserveAspectFit
+      mipmap: true
+      layer.enabled: visible
+      layer.effect: MultiEffect {
+        colorization: 1.0
+        colorizationColor: ck.on ? root.playerColor : root.glyphColor
+      }
+    }
+
     Text {
-      visible: ck.showLabel
+      visible: ck.artSource === "" && ck.showLabel
       anchors.centerIn: parent
       text: ck.label
-      color: ck.on ? Color.popups.background : root.dimGlyph
+      color: ck.on ? Color.popups.background : root.glyphColor
       font.pixelSize: ck.labelSize
       font.bold: true
       font.family: Style.font.family

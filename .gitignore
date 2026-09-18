@@ -1,2 +1,4 @@
 __pycache__/
 *.pyc
+
+# Generated catalog is committed; regenerate with scripts/build_catalog.js

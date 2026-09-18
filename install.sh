@@ -61,7 +61,14 @@ else
   command -v hyprctl >/dev/null 2>&1 && hyprctl reload >/dev/null 2>&1 || true
 fi
 
-# --- 3. Desktop entry ------------------------------------------------------
+# --- 3. Desktop entry and Icon ---------------------------------------------
+ICONS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps"
+mkdir -p "$ICONS_DIR"
+if [ -f "$REPO_DIR/assets/icon.svg" ]; then
+  cp -f "$REPO_DIR/assets/icon.svg" "$ICONS_DIR/omycontroller.svg"
+  info "icon installed: $ICONS_DIR/omycontroller.svg"
+fi
+
 APPS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 mkdir -p "$APPS_DIR"
 cat > "$APPS_DIR/omycontroller.desktop" <<EOF
@@ -74,7 +81,7 @@ Exec=omarchy-shell shell toggle $PLUGIN_ID '{}'
 Terminal=false
 Categories=Game;Utility;Settings;
 Keywords=gamepad;controller;omycontroller;gamepadla;rumble;deadzone;
-Icon=applications-games
+Icon=omycontroller
 NoDisplay=false
 EOF
 info "desktop entry installed: $APPS_DIR/omycontroller.desktop"

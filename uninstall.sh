@@ -30,7 +30,7 @@ if [ -f "$BINDINGS" ]; then
   fi
 fi
 
-# --- 3. Desktop entry ------------------------------------------------------
+# --- 3. Desktop entry and Icon ---------------------------------------------
 APPS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 if [ -f "$APPS_DIR/omycontroller.desktop" ]; then
   rm -f "$APPS_DIR/omycontroller.desktop"
@@ -38,6 +38,12 @@ if [ -f "$APPS_DIR/omycontroller.desktop" ]; then
 fi
 if [ -f "$APPS_DIR/quatro-gamepads.desktop" ]; then
   rm -f "$APPS_DIR/quatro-gamepads.desktop"
+fi
+
+ICONS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps"
+if [ -f "$ICONS_DIR/omycontroller.svg" ]; then
+  rm -f "$ICONS_DIR/omycontroller.svg"
+  info "icon removed: $ICONS_DIR/omycontroller.svg"
 fi
 
 # --- 4. Plugin folder / symlink --------------------------------------------

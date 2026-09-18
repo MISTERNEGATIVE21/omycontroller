@@ -194,7 +194,7 @@ function classify(name, driver, vendor, product, axisCount, buttonCount) {
 // ---------------------------------------------------------------------------
 function connection(bustype, name, phys) {
   var bt = String(bustype || "").toLowerCase()
-  if (bt === "0005" || bt === "bluetooth" || bt === "0005 ") return "Bluetooth"
+  if (bt === "0005" || bt === "bluetooth") return "Bluetooth"
   var n = lower(name)
   if (n.indexOf("bluetooth") !== -1 || n.indexOf(" bt ") !== -1 || n.indexOf(" wireless") !== -1) {
     // Wireless pads that ride a vendor dongle name themselves "wireless";
@@ -309,11 +309,12 @@ function applyStickDeadzone(x, y, dz) {
 // A -1 means "no analog axis" or "no button" for that element; the art
 // degrades gracefully (body outline flashes for unmapped indices).
 // ---------------------------------------------------------------------------
-function buttonTables(layout) {
+function buttonTables(layout, profile) {
+  var t;
   if (layout === "xbox") {
     // xpad / xpadneo: A0 B1 X2 Y3, LB4 RB5, back6 start7 guide8,
     // TL9 TR10, dpad 11..14
-    return {
+    t = {
       faceTop: 3, faceBottom: 0, faceLeft: 2, faceRight: 1,
       bumperL: 4, bumperR: 5,
       stickL: 9, stickR: 10,
@@ -321,12 +322,11 @@ function buttonTables(layout) {
       centerTop: 8, centerLeft: 6, centerRight: 7, centerExtra: -1,
       triggerL: -1, triggerR: -1,
       known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    }
-  }
-  if (layout === "ps") {
+    };
+  } else if (layout === "ps") {
     // hid-playstation: ×0 ○1 □2 △3, create4 options5 PS6 touchpad7,
     // L3 8, R3 9, L1 10, R1 11
-    return {
+    t = {
       faceTop: 3, faceBottom: 0, faceLeft: 2, faceRight: 1,
       bumperL: 10, bumperR: 11,
       stickL: 8, stickR: 9,
@@ -334,12 +334,11 @@ function buttonTables(layout) {
       centerTop: 6, centerLeft: 4, centerRight: 5, centerExtra: 7,
       triggerL: -1, triggerR: -1,
       known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
-    }
-  }
-  if (layout === "switch") {
+    };
+  } else if (layout === "switch") {
     // hid-nintendo pro: B0 A1 Y2 X3, L4 R5, ZL6 ZR7, -8 +9,
     // stick presses 10/11, home12 capture13
-    return {
+    t = {
       faceTop: 3, faceBottom: 0, faceLeft: 2, faceRight: 1,
       bumperL: 4, bumperR: 5,
       stickL: 10, stickR: 11,
@@ -347,13 +346,12 @@ function buttonTables(layout) {
       centerTop: 12, centerLeft: 8, centerRight: 9, centerExtra: 13,
       triggerL: 6, triggerR: 7,
       known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
-    }
-  }
-  if (layout === "joystick") {
+    };
+  } else if (layout === "joystick") {
     // Conventional single-stick ordering: trigger = button 0, then the
     // base/grip cluster 1..6. The hat switch is NOT buttons — it reports
     // as ABS_HAT0X/Y axes (indices 16/17), handled by joystickExtras().
-    return {
+    t = {
       faceTop: 2, faceBottom: 1, faceLeft: 4, faceRight: 3,
       bumperL: 5, bumperR: 6,
       stickL: 9, stickR: -1,
@@ -361,18 +359,40 @@ function buttonTables(layout) {
       centerTop: 7, centerLeft: -1, centerRight: -1, centerExtra: 8,
       triggerL: 0, triggerR: -1,
       known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
+    };
+  } else {
+    // generic: 1..4 diamond, bumpers 4/5, sticks 9/10, center 6/7
+    t = {
+      faceTop: 3, faceBottom: 0, faceLeft: 2, faceRight: 1,
+      bumperL: 4, bumperR: 5,
+      stickL: 9, stickR: 10,
+      dpadUp: 11, dpadDown: 12, dpadLeft: 13, dpadRight: 14,
+      centerTop: 8, centerLeft: 6, centerRight: 7, centerExtra: -1,
+      triggerL: -1, triggerR: -1,
+      known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+    };
+  }
+
+  // Profile-based button remapping
+  if (profile) {
+    if (profile.remapPreset === "nintendo_swap" || profile.swapFace) {
+      var tmpBottom = t.faceBottom;
+      t.faceBottom = t.faceRight;
+      t.faceRight = tmpBottom;
+      var tmpTop = t.faceTop;
+      t.faceTop = t.faceLeft;
+      t.faceLeft = tmpTop;
+    }
+    if (profile.buttonMap && typeof profile.buttonMap === "object") {
+      for (var k in profile.buttonMap) {
+        if (t.hasOwnProperty(k) && typeof profile.buttonMap[k] === "number") {
+          t[k] = profile.buttonMap[k];
+        }
+      }
     }
   }
-  // generic: 1..4 diamond, bumpers 4/5, sticks 9/10, center 6/7
-  return {
-    faceTop: 3, faceBottom: 0, faceLeft: 2, faceRight: 1,
-    bumperL: 4, bumperR: 5,
-    stickL: 9, stickR: 10,
-    dpadUp: 11, dpadDown: 12, dpadLeft: 13, dpadRight: 14,
-    centerTop: 8, centerLeft: 6, centerRight: 7, centerExtra: -1,
-    triggerL: -1, triggerR: -1,
-    known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-  }
+
+  return t;
 }
 
 // Axis map — js axis index per art element, heuristics per driver family.
@@ -463,6 +483,51 @@ function joystickExtras(axes, axisNames) {
   return out
 }
 
+// ---------------------------------------------------------------------------
+// ControllerImage (Kenney, CC0) button-cap art resolution.
+//
+// The vendored sets live in assets/input/<set>/ and mirror ControllerImage's
+// SDL3 physical-button naming: n/s/w/e = top/bottom/left/right face positions
+// (Y/A/X/B letters on the Xbox caps, △/×/□/○ glyphs on the PS3 set). Paths are
+// returned relative to the plugin root; callers pass them through
+// Qt.resolvedUrl so the panel/bar can load them from any component.
+// ---------------------------------------------------------------------------
+function artSet(layout) {
+  if (layout === "xbox") return "xbox360"
+  if (layout === "ps") return "ps3"
+  if (layout === "switch") return "switchpro"
+  return ""
+}
+
+function artPath(set, name) {
+  return set ? "assets/input/" + set + "/" + name + ".svg" : ""
+}
+
+// Face cap for a diamond position ("top"/"bottom"/"left"/"right").
+function faceArt(layout, pos) {
+  if (layout !== "xbox" && layout !== "ps") return ""
+  var map = { top: "n", bottom: "s", left: "w", right: "e" }
+  return artPath(artSet(layout), map[pos])
+}
+
+// Shoulder (bumper) cap for a side, empty for sets without shoulder art.
+function bumperArt(layout, side) {
+  if (layout !== "xbox" && layout !== "ps") return ""
+  return artPath(artSet(layout), (side === "l" ? "left" : "right") + "shoulder")
+}
+
+// Analog trigger cap for a side, empty for sets without trigger art.
+function triggerArt(layout, side) {
+  if (layout !== "xbox" && layout !== "ps") return ""
+  return artPath(artSet(layout), (side === "l" ? "left" : "right") + "trigger")
+}
+
+// Center key cap: "left" = back/create/share, "right" = start/options/menu.
+function centerArt(layout, side) {
+  if (layout !== "xbox" && layout !== "ps") return ""
+  return artPath(artSet(layout), side === "left" ? "back" : "start")
+}
+
 // Human word for a layout, shown in the Hardware chip + device menu.
 function shapeLabel(layout) {
   if (layout === "xbox") return "gamepad · Xbox shape"
@@ -488,14 +553,11 @@ function triggerNorm(layout, raw) {
 function connectionIcon(busType, phys) {
   var bt = lower(busType)
   var ph = lower(phys)
-  var hay = bt + " " + ph
 
-  // Check dongles / wireless adapters first
-  if (bt === "usb dongle" || looksLikeDongle(busType, phys) || looksLikeDongle(phys, busType)) {
+  // Check dongles / wireless adapters first — looksLikeDongle folds both
+  // fields against KNOWN_DONGLES, so a single call covers every wording.
+  if (looksLikeDongle(busType, phys)) {
     return "assets/icon_dongle.svg"
-  }
-  for (var i = 0; i < KNOWN_DONGLES.length; i++) {
-    if (hay.indexOf(KNOWN_DONGLES[i]) !== -1) return "assets/icon_dongle.svg"
   }
 
   // Check Bluetooth
@@ -607,8 +669,6 @@ function circularityMetrics(x, y, history) {
       totalDev += Math.abs(sectorMax[sectors[s]] - 1.0)
     }
     error = (totalDev / sectors.length) * 100
-  } else if (r > 0.5) {
-    error = Math.abs(r - 1.0) * 100
   }
 
   var centerDrift = Math.round(r * 1000) / 10
@@ -735,6 +795,12 @@ if (typeof module !== "undefined" && module.exports) {
     hatIndices: hatIndices,
     joystickExtras: joystickExtras,
     shapeLabel: shapeLabel,
+    artSet: artSet,
+    artPath: artPath,
+    faceArt: faceArt,
+    bumperArt: bumperArt,
+    triggerArt: triggerArt,
+    centerArt: centerArt,
     triggerNorm: triggerNorm
   }
 }

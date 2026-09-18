@@ -3,6 +3,7 @@ import Quickshell
 import qs.Commons
 import qs.Ui
 import "GamepadModel.js" as GamepadModel
+import "GamepadlaCatalog.js" as GamepadlaCatalog
 import "."
 
 // omycontroller — Panel.qml
@@ -72,6 +73,28 @@ Panel {
   }
   readonly property color playerColor: sel ? GamepadModel.playerColor(sel.slot, Color) : Color.accent
 
+  // ------------------------------------------------- gamepadla catalog match
+  // Best gamepadla.com entry for the selected pad (by classified model +
+  // maker), driving the deck photo surface and the benchmark sheet rows.
+  // null → generic fallback rendering.
+  readonly property var matched: sel ? GamepadlaCatalog.find(sel.modelLabel || sel.name, sel.maker) : null
+  readonly property string matchedImage: matched ? Qt.resolvedUrl(GamepadlaCatalog.imagePath(matched.entry)) : ""
+
+  readonly property string matchTitle: matched
+    ? (matched.entry.n + (matched.entry.b ? " · " + matched.entry.b : "")) : ""
+  readonly property string matchVerdict: matched
+    ? ("gamepadla reviewed" + (matched.entry.plats && matched.entry.plats.length
+        ? " for " + matched.entry.plats.slice(0, 3).join(" · ") : "") +
+      " · " + Math.round(matched.score * 100) + "% match")
+    : ""
+  readonly property string matchMetrics: matched
+    ? (GamepadlaCatalog.bestLatency(matched.entry)
+        ? "best " + GamepadlaCatalog.bestLatency(matched.entry).mode +
+          " " + GamepadlaCatalog.bestLatency(matched.entry).ms.toFixed(2) + " ms" : "") +
+      (matched.entry.avg ? " · avg " + matched.entry.avg + " ms" : "") +
+      (matched.entry.poll ? " · poll " + matched.entry.poll + " Hz" : "")
+    : ""
+
   // Live state mirrors (copied on every event for instant re-render)
   property var liveButtons: ({})
   property var liveAxes: []
@@ -90,6 +113,10 @@ Panel {
   function select(id) {
     selectedId = String(id || "")
     refreshLive()
+  }
+
+  function toggleDemo() {
+    if (root.svc) root.svc.toggleDemo()
   }
 
   Connections {
@@ -199,7 +226,7 @@ Panel {
       root.actionMsg = "DualSense trigger effect [" + root.selectedTriggerMode + "] (start " + Math.round(s * 100) + "%, force " + Math.round(f * 100) + "%) simulated on " + root.sel.modelLabel
       return
     }
-    root.svc.setTriggers(root.sel.id, mode, mode)
+    root.svc.setTriggers(root.sel.id, mode, mode, s, f)
     root.actionMsg = "DualSense trigger effect [" + root.selectedTriggerMode + "] applied (start " + Math.round(s * 100) + "%, force " + Math.round(f * 100) + "%)"
   }
 
@@ -239,7 +266,12 @@ Panel {
     var idx = side === "l" ? axisMap.ly : axisMap.ry
     if (idx === -1 || !axes || idx >= axes.length) return 0
     var v = Number(axes[idx])
-    return isFinite(v) ? v : 0
+    if (!isFinite(v)) return 0
+    var p = root.sel && root.sel.profile ? root.sel.profile : null
+    if (p && ((side === "l" && p.invertLY) || (side === "r" && p.invertRY))) {
+      v = -v
+    }
+    return v
   }
 
   function dzFor(side) {
@@ -556,7 +588,7 @@ Panel {
           Item {
             id: tabContainer
             width: parent.width
-            height: Math.min(Style.space(430), tabFlickCol.implicitHeight)
+            height: Math.min(Style.space(500), tabFlickCol.implicitHeight)
             clip: true
 
             Flickable {
@@ -585,7 +617,8 @@ Panel {
                   width: parent.width
                   spacing: Style.space(8)
 
-                  // Interactive Vector Controller Art
+                  // Interactive Vector Controller Art (kenney-cap enhanced;
+                  // the live deck stays vector so overlays always align)
                   ControllerArt {
                     anchors.horizontalCenter: parent.horizontalCenter
                     layout: root.sel ? root.sel.layout : "generic"
@@ -594,9 +627,89 @@ Panel {
                     axes: root.liveAxes
                     axisNames: root.sel && root.sel.axisNames ? root.sel.axisNames : []
                     profile: root.sel && root.sel.profile ? root.sel.profile : null
-                    width: Style.space(290)
-                    height: Style.space(175)
-                    scale: 290 / 340
+                    width: Style.space(310)
+                    height: Style.space(190)
+                  }
+
+                  // Matched gamepadla database entry card — photo shown fully
+                  // (AspectFit) in its own frame so nothing is cut on the sides.
+                  Rectangle {
+                    visible: root.matched !== null
+                    width: parent.width
+                    height: Style.space(78)
+                    radius: Math.max(4, Style.cornerRadius)
+                    color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.07)
+                    border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.25)
+                    border.width: 1
+                    clip: true
+
+                    Row {
+                      anchors.fill: parent
+                      anchors.margins: Style.space(10)
+                      spacing: Style.space(10)
+
+                      // Photo frame, letterboxed (whole controller visible)
+                      Rectangle {
+                        width: Style.space(128)
+                        anchors.top: parent.top
+                        anchors.bottom: parent.bottom
+                        radius: Math.max(3, Style.cornerRadius - 1)
+                        clip: true
+                        color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.08)
+                        border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22)
+                        border.width: 1
+
+                        Image {
+                          anchors.centerIn: parent
+                          width: parent.width - Style.space(8)
+                          height: parent.height - Style.space(8)
+                          source: root.matchedImage
+                          fillMode: Image.PreserveAspectFit
+                          asynchronous: true
+                          mipmap: true
+                          smooth: true
+                          visible: root.matchedImage !== ""
+                        }
+                      }
+
+                      Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width - Style.space(128) - Style.space(10)
+                        spacing: Style.space(3)
+                        clip: true
+
+                        Text {
+                          width: parent.width
+                          elide: Text.ElideRight
+                          text: root.matchTitle
+                          color: root.playerColor
+                          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                          font.pixelSize: Style.font.caption
+                          font.bold: true
+                        }
+
+                        Text {
+                          width: parent.width
+                          elide: Text.ElideRight
+                          text: root.matchVerdict
+                          color: Qt.darker(root.barForeground, 1.4)
+                          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                          font.pixelSize: 9
+                          textFormat: Text.PlainText
+                        }
+
+                        Text {
+                          width: parent.width
+                          elide: Text.ElideRight
+                          text: root.matchMetrics
+                          color: Qt.darker(root.barForeground, 1.2)
+                          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                          font.pixelSize: 8
+                          font.bold: true
+                          textFormat: Text.PlainText
+                        }
+                      }
+                    }
                   }
 
                   // Overview Status Chips (2 columns)
@@ -914,6 +1027,261 @@ Panel {
                     foreground: root.barForeground
                     accent: root.playerColor
                     onMoved: function (v) { root.setDz("trigR", v) }
+                  }
+
+                  // Button Remapping & Controller GUI
+                  PanelSectionHeader {
+                    text: "Button Remapping & Input Inspector"
+                    foreground: root.barForeground
+                    font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                  }
+
+                  // Layout Preset Selection
+                  Row {
+                    width: parent.width
+                    spacing: Style.space(6)
+
+                    readonly property string activeRemap: (root.sel && root.sel.profile && root.sel.profile.remapPreset) ? root.sel.profile.remapPreset : "standard"
+
+                    Rectangle {
+                      width: (parent.width - Style.space(6)) * 0.48
+                      height: Style.space(28)
+                      radius: Math.max(4, Style.cornerRadius)
+                      color: parent.activeRemap === "standard"
+                        ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22)
+                        : stdMouse.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08)
+                        : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04)
+                      border.color: parent.activeRemap === "standard" ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                      border.width: parent.activeRemap === "standard" ? 1.5 : 1
+
+                      Text {
+                        anchors.centerIn: parent
+                        text: "Standard (A·B·X·Y)"
+                        color: parent.parent.activeRemap === "standard" ? root.playerColor : root.barForeground
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.caption
+                        font.bold: parent.parent.activeRemap === "standard"
+                      }
+
+                      MouseArea {
+                        id: stdMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.setProfileVal("remapPreset", "standard")
+                      }
+                    }
+
+                    Rectangle {
+                      width: (parent.width - Style.space(6)) * 0.52
+                      height: Style.space(28)
+                      radius: Math.max(4, Style.cornerRadius)
+                      color: parent.activeRemap === "nintendo_swap"
+                        ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22)
+                        : swapMouse.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08)
+                        : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04)
+                      border.color: parent.activeRemap === "nintendo_swap" ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                      border.width: parent.activeRemap === "nintendo_swap" ? 1.5 : 1
+
+                      Text {
+                        anchors.centerIn: parent
+                        text: "Nintendo Swap (B·A·Y·X)"
+                        color: parent.parent.activeRemap === "nintendo_swap" ? root.playerColor : root.barForeground
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.caption
+                        font.bold: parent.parent.activeRemap === "nintendo_swap"
+                      }
+
+                      MouseArea {
+                        id: swapMouse
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.setProfileVal("remapPreset", "nintendo_swap")
+                      }
+                    }
+                  }
+
+                  // Stick Inversion Toggles
+                  Row {
+                    width: parent.width
+                    spacing: Style.space(6)
+
+                    readonly property bool invL: !!(root.sel && root.sel.profile && root.sel.profile.invertLY)
+                    readonly property bool invR: !!(root.sel && root.sel.profile && root.sel.profile.invertRY)
+
+                    Rectangle {
+                      width: (parent.width - Style.space(6)) / 2
+                      height: Style.space(26)
+                      radius: Math.max(4, Style.cornerRadius)
+                      color: parent.invL
+                        ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.20)
+                        : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04)
+                      border.color: parent.invL ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                      border.width: 1
+
+                      Text {
+                        anchors.centerIn: parent
+                        text: (parent.parent.invL ? "✓ " : "") + "Invert Left Stick Y"
+                        color: parent.parent.invL ? root.playerColor : root.barForeground
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.caption
+                        font.bold: parent.parent.invL
+                      }
+
+                      MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.setProfileVal("invertLY", !parent.parent.invL)
+                      }
+                    }
+
+                    Rectangle {
+                      width: (parent.width - Style.space(6)) / 2
+                      height: Style.space(26)
+                      radius: Math.max(4, Style.cornerRadius)
+                      color: parent.invR
+                        ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.20)
+                        : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04)
+                      border.color: parent.invR ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                      border.width: 1
+
+                      Text {
+                        anchors.centerIn: parent
+                        text: (parent.parent.invR ? "✓ " : "") + "Invert Right Stick Y"
+                        color: parent.parent.invR ? root.playerColor : root.barForeground
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.caption
+                        font.bold: parent.parent.invR
+                      }
+
+                      MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: root.setProfileVal("invertRY", !parent.parent.invR)
+                      }
+                    }
+                  }
+
+                  // Live Button Remapper & Input Inspector Grid
+                  Rectangle {
+                    width: parent.width
+                    height: Style.space(118)
+                    radius: Math.max(4, Style.cornerRadius)
+                    color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.03)
+                    border.color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.10)
+                    border.width: 1
+                    clip: true
+
+                    Column {
+                      anchors.fill: parent
+                      anchors.margins: Style.space(8)
+                      spacing: Style.space(5)
+
+                      Text {
+                        text: "Live Button Map (Active Physical Press Highlight)"
+                        color: Qt.darker(root.barForeground, 1.4)
+                        font.family: Style.font.family
+                        font.pixelSize: 8
+                        font.bold: true
+                      }
+
+                      // 4 face buttons
+                      Row {
+                        width: parent.width
+                        spacing: Style.space(6)
+                        readonly property var t: GamepadModel.buttonTables(root.sel ? root.sel.layout : "generic", root.sel ? root.sel.profile : null)
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          role: "South / Bottom"
+                          label: root.sel && root.sel.layout === "ps" ? "×" : (root.sel && root.sel.profile && root.sel.profile.remapPreset === "nintendo_swap" ? "B" : "A")
+                          btnIdx: parent.t.faceBottom
+                          active: root.liveButtons && !!root.liveButtons[parent.t.faceBottom]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                        }
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          role: "East / Right"
+                          label: root.sel && root.sel.layout === "ps" ? "○" : (root.sel && root.sel.profile && root.sel.profile.remapPreset === "nintendo_swap" ? "A" : "B")
+                          btnIdx: parent.t.faceRight
+                          active: root.liveButtons && !!root.liveButtons[parent.t.faceRight]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                        }
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          role: "West / Left"
+                          label: root.sel && root.sel.layout === "ps" ? "□" : (root.sel && root.sel.profile && root.sel.profile.remapPreset === "nintendo_swap" ? "Y" : "X")
+                          btnIdx: parent.t.faceLeft
+                          active: root.liveButtons && !!root.liveButtons[parent.t.faceLeft]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                        }
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          role: "North / Top"
+                          label: root.sel && root.sel.layout === "ps" ? "△" : (root.sel && root.sel.profile && root.sel.profile.remapPreset === "nintendo_swap" ? "X" : "Y")
+                          btnIdx: parent.t.faceTop
+                          active: root.liveButtons && !!root.liveButtons[parent.t.faceTop]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                        }
+                      }
+
+                      // Shoulder and stick click buttons
+                      Row {
+                        width: parent.width
+                        spacing: Style.space(6)
+                        readonly property var t: GamepadModel.buttonTables(root.sel ? root.sel.layout : "generic", root.sel ? root.sel.profile : null)
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          role: "Left Shoulder"
+                          label: root.sel && root.sel.layout === "ps" ? "L1" : "LB"
+                          btnIdx: parent.t.bumperL
+                          active: root.liveButtons && !!root.liveButtons[parent.t.bumperL]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                        }
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          role: "Right Shoulder"
+                          label: root.sel && root.sel.layout === "ps" ? "R1" : "RB"
+                          btnIdx: parent.t.bumperR
+                          active: root.liveButtons && !!root.liveButtons[parent.t.bumperR]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                        }
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          role: "Left Stick Click"
+                          label: "L3 / LS"
+                          btnIdx: parent.t.stickL
+                          active: root.liveButtons && !!root.liveButtons[parent.t.stickL]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                        }
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          role: "Right Stick Click"
+                          label: "R3 / RS"
+                          btnIdx: parent.t.stickR
+                          active: root.liveButtons && !!root.liveButtons[parent.t.stickR]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                        }
+                      }
+                    }
                   }
                 }
 
@@ -1258,6 +1626,42 @@ Panel {
                   }
 
                   SpecRow {
+                    label: "Gamepadla Database"
+                    value: root.matched
+                      ? (root.matched.entry.n + (root.matched.entry.b ? " · " + root.matched.entry.b : "") + " (" + Math.round(root.matched.score * 100) + "% match)")
+                      : "no catalog entry — generic rendering"
+                    foreground: root.barForeground
+                  }
+
+                  SpecRow {
+                    label: "Gamepadla Benchmark"
+                    value: root.matched ? GamepadlaCatalog.benchmarkLabel(root.matched.entry) : "not benchmarked"
+                    foreground: root.barForeground
+                  }
+
+                  SpecRow {
+                    label: "Best Link Latency"
+                    value: (root.matched && GamepadlaCatalog.bestLatency(root.matched.entry))
+                      ? GamepadlaCatalog.bestLatency(root.matched.entry).mode + ": " + GamepadlaCatalog.bestLatency(root.matched.entry).ms.toFixed(2) + " ms"
+                      : "—"
+                    foreground: root.barForeground
+                  }
+
+                  SpecRow {
+                    label: "Interfaces & Platforms"
+                    value: root.matched
+                      ? (root.matched.entry.ifc && root.matched.entry.ifc.length ? root.matched.entry.ifc.join(", ") : "—") + " · " + (root.matched.entry.plats && root.matched.entry.plats.length ? root.matched.entry.plats.join(", ") : "—")
+                      : "—"
+                    foreground: root.barForeground
+                  }
+
+                  SpecRow {
+                    label: "Retail Price"
+                    value: root.matched && root.matched.entry.pr ? root.matched.entry.pr : "—"
+                    foreground: root.barForeground
+                  }
+
+                  SpecRow {
                     label: "Vendor & Product ID"
                     value: root.sel ? (root.sel.vendor + ":" + root.sel.product + (root.sel.maker ? " (" + root.sel.maker + ")" : "")) : "—"
                     foreground: root.barForeground
@@ -1485,11 +1889,12 @@ Panel {
     property color valueColor: chip.foreground
     property color foreground: Color.foreground
 
-    height: chipCol.implicitHeight + Style.space(12)
+    height: Math.max(Style.space(56), chipCol.implicitHeight + Style.space(12))
     radius: Math.max(4, Style.cornerRadius)
     color: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.05)
     border.color: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.12)
     border.width: 1
+    clip: true
 
     Column {
       id: chipCol
@@ -1503,6 +1908,7 @@ Panel {
         color: Qt.darker(chip.foreground, 1.5)
         font.family: Style.font.family
         font.pixelSize: Style.font.caption
+        elide: Text.ElideRight
       }
 
       Row {
@@ -1566,7 +1972,7 @@ Panel {
 
     PanelSlider {
       id: slider
-      width: parent.width - Style.space(145)
+      width: Math.max(Style.space(60), parent.width - Style.space(153))
       anchors.verticalCenter: parent.verticalCenter
       minimum: dzRow.minValue
       maximum: dzRow.maxValue
@@ -1586,6 +1992,48 @@ Panel {
       font.family: Style.font.family
       font.pixelSize: Style.font.bodySmall
       horizontalAlignment: Text.AlignRight
+    }
+  }
+
+  // ------------------------------------------------------------- RemapPill
+  component RemapPill : Rectangle {
+    id: rp
+    property string role: ""
+    property string label: ""
+    property int btnIdx: -1
+    property bool active: false
+    property color accent: root.playerColor
+    property color foreground: root.barForeground
+
+    height: Style.space(38)
+    radius: Math.max(3, Style.cornerRadius - 1)
+    color: active ? Qt.rgba(accent.r, accent.g, accent.b, 0.28) : Qt.rgba(foreground.r, foreground.g, foreground.b, 0.04)
+    border.color: active ? accent : Qt.rgba(foreground.r, foreground.g, foreground.b, 0.12)
+    border.width: active ? 1.5 : 1
+    clip: true
+
+    Behavior on color { ColorAnimation { duration: 40 } }
+
+    Column {
+      anchors.centerIn: parent
+      spacing: 1
+
+      Text {
+        anchors.horizontalCenter: parent.horizontalCenter
+        text: rp.label
+        color: rp.active ? rp.accent : rp.foreground
+        font.family: Style.font.family
+        font.pixelSize: Style.font.caption
+        font.bold: true
+      }
+
+      Text {
+        anchors.horizontalCenter: parent.horizontalCenter
+        text: rp.btnIdx >= 0 ? ("Btn " + rp.btnIdx) : "Axis"
+        color: rp.active ? rp.accent : Qt.darker(rp.foreground, 1.6)
+        font.family: Style.font.family
+        font.pixelSize: 8
+      }
     }
   }
 
@@ -1768,6 +2216,7 @@ Panel {
     property string unit: ""
     property color accent: root.playerColor
     property color foreground: root.barForeground
+    readonly property real normVal: Math.max(-1, Math.min(1, bb.val / Math.max(0.1, bb.maxAbs)))
 
     height: Style.space(18)
     width: parent.width
@@ -1788,7 +2237,7 @@ Panel {
 
       Rectangle {
         id: track
-        width: parent.width - Style.space(90)
+        width: Math.max(Style.space(40), parent.width - Style.space(89))
         height: Style.space(7)
         anchors.verticalCenter: parent.verticalCenter
         radius: 3.5
@@ -1802,12 +2251,11 @@ Panel {
         }
 
         // Dynamic fill from center
-        readonly property real normVal: Math.max(-1, Math.min(1, bb.val / Math.max(0.1, bb.maxAbs)))
         Rectangle {
           height: parent.height
           radius: 3.5
-          x: normVal >= 0 ? parent.width / 2 : parent.width / 2 + normVal * (parent.width / 2)
-          width: Math.abs(normVal) * (parent.width / 2)
+          x: bb.normVal >= 0 ? parent.width / 2 : parent.width / 2 + bb.normVal * (parent.width / 2)
+          width: Math.abs(bb.normVal) * (parent.width / 2)
           color: bb.accent
         }
       }
@@ -1833,30 +2281,35 @@ Panel {
     property color foreground: root.barForeground
 
     width: parent.width
-    height: Math.max(Style.space(26), srContent.implicitHeight + Style.space(8))
+    height: Style.space(28)
     radius: Math.max(4, Style.cornerRadius)
     color: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.04)
     border.color: Qt.rgba(foreground.r, foreground.g, foreground.b, 0.10)
     border.width: 1
+    clip: true
 
-    Row {
-      id: srContent
+    Item {
       anchors.fill: parent
       anchors.leftMargin: Style.space(8)
       anchors.rightMargin: Style.space(8)
-      spacing: Style.space(6)
 
       Image {
+        id: srIcon
         visible: sr.iconSource !== ""
+        anchors.left: parent.left
         anchors.verticalCenter: parent.verticalCenter
         source: sr.iconSource
-        width: 16; height: 16
+        width: visible ? 16 : 0
+        height: 16
         fillMode: Image.PreserveAspectFit
       }
 
       Text {
-        width: Style.space(130)
+        id: srLabel
+        anchors.left: srIcon.visible ? srIcon.right : parent.left
+        anchors.leftMargin: srIcon.visible ? Style.space(6) : 0
         anchors.verticalCenter: parent.verticalCenter
+        width: Style.space(135)
         text: sr.label
         color: Qt.darker(sr.foreground, 1.4)
         font.family: Style.font.family
@@ -1865,7 +2318,9 @@ Panel {
       }
 
       Text {
-        width: parent.width - (sr.iconSource !== "" ? Style.space(16 + 6) : 0) - Style.space(130 + 6)
+        anchors.left: srLabel.right
+        anchors.leftMargin: Style.space(6)
+        anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         text: sr.value
         color: sr.foreground

@@ -516,18 +516,50 @@ Item {
     onTriggered: root.runScan()
   }
 
+  // Set of device ids present in the most recent scan sweep. Used by
+  // pruneDevices() to drop pads that vanished on replug/hot-unplug so
+  // stale slots and bar figures clear out promptly.
+  property var _seenThisScan: ({})
+
   Process {
     id: scanProc
     stdout: SplitParser {
       onRead: function (line) { root.ingestScanLine(line) }
     }
-    onExited: root.reconcileStreams()
+    onExited: {
+      root.reconcileStreams()
+      root.pruneDevices()
+    }
   }
 
   function runScan() {
     if (scanProc.running) return
+    root._seenThisScan = {}
     scanProc.command = ["bash", root.scanScript]
     scanProc.running = true
+  }
+
+  // Remove devices the last sweep no longer reported, releasing their
+  // player slot and tearing down any still-running jstest/gyro streams.
+  // sim0 (simulator bench) is deliberately left alone.
+  function pruneDevices() {
+    var next = {}
+    var changed = false
+    for (var id in _devices) {
+      if (id === "sim0" || root._seenThisScan[String(id)]) {
+        next[id] = _devices[id]
+      } else {
+        root.stopStream(id)
+        root.stopGyroStream(id)
+        root.releaseSlot(id)
+        changed = true
+      }
+    }
+    if (changed) {
+      _devices = next
+      root.stats = computeStats()
+      devicesChanged()
+    }
   }
 
   function ingestScanLine(line) {
@@ -537,6 +569,7 @@ Item {
     try { rec = JSON.parse(raw) } catch (e) { return }
     if (!rec || !rec.id) return
     var id = String(rec.id)
+    root._seenThisScan[id] = true
     var existing = _devices[id]
 
     var state = existing || {
@@ -867,16 +900,18 @@ Item {
   }
 
   // DualSense adaptive triggers: left/right in
-  // off|weak|medium|strong|rigid|pulse.
-  function setTriggers(id, leftMode, rightMode) {
+  // off|weak|medium|strong|rigid|pulse|bow|machine gun.
+  function setTriggers(id, leftMode, rightMode, startPos, force) {
     var d = device(id)
     if (!d || d.layout !== "ps") {
       root.actionResult("Adaptive triggers need a DualSense pad")
       return false
     }
-    return runAction(
-      ["python3", root.triggersScript, "auto", leftMode, rightMode],
-      "triggers")
+    var args = ["python3", root.triggersScript, "auto", leftMode, rightMode]
+    if (startPos !== undefined && force !== undefined) {
+      args.push(String(startPos), String(force))
+    }
+    return runAction(args, "triggers")
   }
 
   // ------------------------------------------------------------ env probing

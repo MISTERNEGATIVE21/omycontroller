@@ -28,12 +28,11 @@ Rectangle {
   property bool showLabels: true
   property bool showMetrics: true
   property bool cardBackground: true
-  property real radarSize: 180
 
   implicitWidth: Style.space(220)
   implicitHeight: Style.space(260)
 
-  radius: Style.radius(8)
+  radius: Math.max(8, Style.cornerRadius)
   color: cardBackground ? Color.popups.background : "transparent"
   border.color: cardBackground ? Qt.rgba(Color.popups.text.r, Color.popups.text.g, Color.popups.text.b, 0.18) : "transparent"
   border.width: cardBackground ? 1 : 0
@@ -76,7 +75,11 @@ Rectangle {
     var ny = Number(rawY) || 0
     var r = Math.sqrt(nx * nx + ny * ny)
     currentR = r
-    centerDriftPercent = Math.round(r * 1000) / 10
+    if (r <= 0.20) {
+      centerDriftPercent = Math.round(r * 1000) / 10
+    } else {
+      centerDriftPercent = 0.0
+    }
     radarCanvas.requestPaint()
   }
 
@@ -107,7 +110,7 @@ Rectangle {
         id: resetBtn
         width: Style.space(52)
         height: Style.space(18)
-        radius: Style.radius(4)
+        radius: Math.max(4, Style.cornerRadius)
         color: resetArea.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.2) : root.chipBackground
         border.color: resetArea.containsMouse ? root.playerColor : root.faintBorder
         border.width: 1
@@ -214,7 +217,8 @@ Rectangle {
           var pts = root.history || []
           var ptCount = pts.length
           if (ptCount > 0) {
-            for (var i = 0; i < ptCount; i++) {
+            var step = ptCount > 150 ? Math.ceil(ptCount / 150) : 1
+            for (var i = 0; i < ptCount; i += step) {
               var p = pts[i]
               var alpha = 0.10 + 0.65 * (i / Math.max(1, ptCount - 1))
               var px = cx + p.x * R1
@@ -278,7 +282,7 @@ Rectangle {
         Rectangle {
           width: (parent.width - Style.space(8)) / 3
           height: Style.space(20)
-          radius: Style.radius(4)
+          radius: Math.max(4, Style.cornerRadius)
           color: root.chipBackground
           border.color: root.faintBorder
           border.width: 1
@@ -295,7 +299,7 @@ Rectangle {
         Rectangle {
           width: (parent.width - Style.space(8)) / 3
           height: Style.space(20)
-          radius: Style.radius(4)
+          radius: Math.max(4, Style.cornerRadius)
           color: root.chipBackground
           border.color: root.faintBorder
           border.width: 1
@@ -312,7 +316,7 @@ Rectangle {
         Rectangle {
           width: (parent.width - Style.space(8)) / 3
           height: Style.space(20)
-          radius: Style.radius(4)
+          radius: Math.max(4, Style.cornerRadius)
           color: root.chipBackground
           border.color: root.faintBorder
           border.width: 1
@@ -337,7 +341,7 @@ Rectangle {
         Rectangle {
           width: (parent.width - Style.space(4)) / 2
           height: Style.space(26)
-          radius: Style.radius(4)
+          radius: Math.max(4, Style.cornerRadius)
           color: root.chipBackground
           border.color: root.circularityError > 15 ? "#F87171" : root.circularityError > 8 ? "#FBBF24" : root.faintBorder
           border.width: 1
@@ -369,7 +373,7 @@ Rectangle {
         Rectangle {
           width: (parent.width - Style.space(4)) / 2
           height: Style.space(26)
-          radius: Style.radius(4)
+          radius: Math.max(4, Style.cornerRadius)
           color: root.chipBackground
           border.color: root.centerDriftPercent > 5 ? "#F87171" : root.centerDriftPercent > 2.5 ? "#FBBF24" : root.faintBorder
           border.width: 1

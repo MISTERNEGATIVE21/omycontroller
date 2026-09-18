@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const Model = require('../GamepadModel.js');
+const Catalog = require('../GamepadlaCatalog.js');
 
 test('Classification - Xbox Series, DualSense, Switch Pro, and others', (t) => {
   // Xbox Series
@@ -257,5 +258,98 @@ test('Edge cases and boundary handling across all modules', (t) => {
   assert.strictEqual(Model.formatHz(-10), '0 Hz');
   assert.strictEqual(Model.formatHz('invalid'), '0 Hz');
   assert.strictEqual(Model.formatHz(NaN), '0 Hz');
+});
+
+test('ControllerImage button art resolution paths', (t) => {
+  // Art set per layout
+  assert.strictEqual(Model.artSet('xbox'), 'xbox360');
+  assert.strictEqual(Model.artSet('ps'), 'ps3');
+  assert.strictEqual(Model.artSet('switch'), 'switchpro');
+  assert.strictEqual(Model.artSet('generic'), '');
+  assert.strictEqual(Model.artSet('joystick'), '');
+
+  // Face caps: SDL3 positional naming n/s/w/e (relative, resolvable via Qt.resolvedUrl)
+  assert.strictEqual(Model.faceArt('xbox', 'top'), 'assets/input/xbox360/n.svg');
+  assert.strictEqual(Model.faceArt('xbox', 'bottom'), 'assets/input/xbox360/s.svg');
+  assert.strictEqual(Model.faceArt('xbox', 'left'), 'assets/input/xbox360/w.svg');
+  assert.strictEqual(Model.faceArt('xbox', 'right'), 'assets/input/xbox360/e.svg');
+  assert.strictEqual(Model.faceArt('ps', 'top'), 'assets/input/ps3/n.svg');
+
+  // Bumpers / triggers / center keys only exist for sets with that art
+  assert.strictEqual(Model.bumperArt('xbox', 'l'), 'assets/input/xbox360/leftshoulder.svg');
+  assert.strictEqual(Model.bumperArt('ps', 'r'), 'assets/input/ps3/rightshoulder.svg');
+  assert.strictEqual(Model.triggerArt('xbox', 'r'), 'assets/input/xbox360/righttrigger.svg');
+  assert.strictEqual(Model.centerArt('xbox', 'left'), 'assets/input/xbox360/back.svg');
+  assert.strictEqual(Model.centerArt('xbox', 'right'), 'assets/input/xbox360/start.svg');
+  assert.strictEqual(Model.centerArt('ps', 'left'), 'assets/input/ps3/back.svg');
+
+  // Switch/generic fall back to vector text labels
+  assert.strictEqual(Model.faceArt('switch', 'top'), '');
+  assert.strictEqual(Model.bumperArt('switch', 'l'), '');
+  assert.strictEqual(Model.centerArt('generic', 'right'), '');
+  assert.strictEqual(Model.triggerArt('generic', 'l'), '');
+});
+
+test('Gamepadla catalog matching, photo paths, and benchmark summaries', (t) => {
+  assert.ok(Array.isArray(Catalog.CATALOG));
+  assert.ok(Catalog.CATALOG.length >= 200, 'catalog should hold the scraped controllers');
+
+  // Known pads resolve against the scraped database
+  const dualSense = Catalog.find('DualSense', 'Sony');
+  assert.ok(dualSense, 'DualSense should match');
+  assert.match(dualSense.entry.n, /DualSense/i);
+  assert.strictEqual(dualSense.entry.b, 'Sony');
+
+  const xbox = Catalog.find('Xbox Series pad', 'Microsoft');
+  assert.ok(xbox, 'Xbox Series should match');
+  assert.match(xbox.entry.n, /Xbox/i);
+
+  const switchPro = Catalog.find('Switch Pro pad', 'Nintendo');
+  assert.ok(switchPro, 'Switch Pro should match');
+  assert.match(switchPro.entry.n, /Switch/i);
+
+  const bitdo = Catalog.find('8BitDo Ultimate 3E For Xbox', '8BitDo');
+  assert.ok(bitdo, '8BitDo Ultimate should match');
+  assert.strictEqual(bitdo.entry.b, '8BitDo');
+
+  // Unrelated pads fall through to generic
+  assert.strictEqual(Catalog.find('Generic USB pad', ''), null);
+  assert.strictEqual(Catalog.find('', ''), null);
+
+  // Photo path maps into the gamepadla assets dir
+  const img = Catalog.imagePath(dualSense.entry);
+  assert.match(img, /^assets\/gamepadla_data\/gamepadla_data\/images\/.+\.webp$/);
+
+  // Benchmark helpers produce non-empty summaries for matched entries
+  assert.ok(Catalog.benchmarkLabel(dualSense.entry).length > 0);
+  const best = Catalog.bestLatency(dualSense.entry);
+  assert.ok(best === null || (best.mode && best.ms > 0));
+
+  // Every catalog entry has a name and (usually) an image
+  for (const e of Catalog.CATALOG) {
+    assert.ok(e.n, 'entry must have a name');
+    assert.match(e.img, /\.webp$/, 'entry should point at a webp image');
+  }
+});
+
+test('Button remapping via profile presets and custom buttonMap', (t) => {
+  const std = Model.buttonTables('xbox');
+  assert.strictEqual(std.faceBottom, 0); // A
+  assert.strictEqual(std.faceRight, 1);  // B
+  assert.strictEqual(std.faceLeft, 2);   // X
+  assert.strictEqual(std.faceTop, 3);    // Y
+
+  // Nintendo layout swap (A <-> B, X <-> Y)
+  const swapped = Model.buttonTables('xbox', { remapPreset: 'nintendo_swap' });
+  assert.strictEqual(swapped.faceBottom, 1); // B is at bottom position
+  assert.strictEqual(swapped.faceRight, 0);  // A is at right position
+  assert.strictEqual(swapped.faceLeft, 3);   // Y is at left position
+  assert.strictEqual(swapped.faceTop, 2);    // X is at top position
+
+  // Custom buttonMap override
+  const custom = Model.buttonTables('xbox', { buttonMap: { bumperL: 10, bumperR: 11 } });
+  assert.strictEqual(custom.bumperL, 10);
+  assert.strictEqual(custom.bumperR, 11);
+  assert.strictEqual(custom.faceBottom, 0);
 });
 

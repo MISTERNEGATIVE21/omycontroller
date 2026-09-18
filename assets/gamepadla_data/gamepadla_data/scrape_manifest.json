@@ -1,0 +1,19 @@
+{
+  "started_at": "2026-09-18T17:35:10.865759+00:00",
+  "finished_at": "2026-09-18T17:41:42.588171+00:00",
+  "base_url": "https://gamepadla.com",
+  "total_controllers": 256,
+  "images_downloaded": 256,
+  "image_bytes_total": 1022784,
+  "details_fetched": 256,
+  "detail_errors": [],
+  "image_errors": [],
+  "script": "/home/z/my-project/scripts/gamepadla_scraper.py",
+  "args": {
+    "fetch_details": true,
+    "download_images": true,
+    "limit": 0,
+    "sleep": 0.4,
+    "only_post_id": 0
+  }
+}

@@ -6,7 +6,9 @@
 [![Platform: Omarchy / Quickshell](https://img.shields.io/badge/Platform-Omarchy%20%2F%20Quickshell-ff69b4.svg)](https://github.com/omarchy)
 [![Version: 2.0.0](https://img.shields.io/badge/Version-2.0.0-green.svg)](manifest.json)
 
-**omycontroller** is a pro-grade gamepad control center, diagnostics deck, and status bar widget designed natively for Omarchy Shell (Quickshell). It bridges the gap between desktop Linux gaming and professional hardware telemetry: offering Gamepadla-standard circularity radar tests, deep hardware and sysfs diagnostics, live sub-millisecond input latency measurement, DualSense adaptive triggers, 6-axis gyro/motion calibration, and an interactive simulation engine.
+![omycontroller Pro Control Deck](assets/preview.png)
+
+**omycontroller** is a pro-grade gamepad control center, diagnostics deck, and status bar widget designed natively for Omarchy Shell (Quickshell). It bridges the gap between desktop Linux gaming and professional hardware telemetry: offering Gamepadla-standard circularity radar tests, deep hardware and sysfs diagnostics, live sub-millisecond input latency measurement, ControllerImage vector button maps, 1-click button remapping, DualSense adaptive triggers, 6-axis gyro/motion calibration, and an interactive simulation engine.
 
 ```
 ┌ omycontroller ──────────────────────────────────────── P1 · Xbox Series pad ─┐
@@ -15,6 +17,10 @@
 │  🎯 CIRCULARITY RADAR (Gamepadla Benchmark)                                   │
 │     Avg Error: 4.8%  ·  Max: 8.2%  ·  Quality: EXCELLENT                      │
 │     [● Polar 32-point contour polygon vs 1.00 unit circle]                   │
+│                                                                               │
+│  🎮 CONTROLLER GUI & BUTTON REMAPPER                                          │
+│     Preset: [Standard A·B·X·Y] / [Nintendo Swap B·A·Y·X]  ·  Invert Stick Y   │
+│     Live Input Map: Btn 0..15 physical highlight with Kenney SVG caps         │
 │                                                                               │
 │  ⚡ INPUT LATENCY & POLLING                                                   │
 │     Live: 1.4 ms  ·  Min: 1.1 ms  ·  Max: 2.2 ms  ·  Effective: 714 Hz       │
@@ -31,20 +37,20 @@
 
 ## 📑 Table of Contents
 
-- [Features](#-features)
-- [The 5-Tab Pro Control Deck](#-the-5-tab-pro-control-deck)
-- [Gamepadla Circularity Radar](#-gamepadla-circularity-radar)
-- [Status Bar Widget](#-status-bar-widget)
-- [Interactive Simulator Mode](#-interactive-simulator-mode)
-- [Installation](#-installation)
-- [Keybindings & Desktop Entry](#-keybindings--desktop-entry)
-- [IPC Command Reference](#-ipc-command-reference)
-- [Settings & Schema](#-settings--schema)
-- [Architecture](#-architecture)
-- [Hardware & Driver Matrix](#-hardware--driver-matrix)
-- [Optional Dependencies](#-optional-dependencies)
-- [Troubleshooting](#-troubleshooting)
-- [License](#-license)
+- [Features](#features)
+- [The 5-Tab Pro Control Deck](#the-5-tab-pro-control-deck)
+- [Gamepadla Circularity Radar](#gamepadla-circularity-radar)
+- [Status Bar Widget](#status-bar-widget)
+- [Interactive Simulator Mode](#interactive-simulator-mode)
+- [Installation](#installation)
+- [Keybindings & Desktop Entry](#keybindings--desktop-entry)
+- [IPC Command Reference](#ipc-command-reference)
+- [Settings & Schema](#settings--schema)
+- [Architecture](#architecture)
+- [Hardware & Driver Matrix](#hardware--driver-matrix)
+- [Optional Dependencies](#optional-dependencies)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
 ---
 
@@ -69,18 +75,21 @@ The popout deck is segmented into five focused tabs:
 
 ### 1. Overview
 - **Model-Accurate Silhouette**: Live vector artwork for Xbox Series/One, DualSense/DualShock 4, Nintendo Switch Pro/Joy-Cons, Arcade Sticks, and HOTAS flight controllers.
+- **Prompt-Accurate Cap Art**: Vendored Kenney Input Prompts on every face, shoulder, and center key — bright at rest, player-colored on press.
+- **Gamepadla Database Match**: Detects the connected model against the bundled 256-entry Gamepadla catalog and shows the full controller photo (letterboxed, never cropped), a benchmark verdict, and live polling/latency figures.
 - **Live Button & Axis Illumination**: Real-time visual feedback as sticks, triggers, bumpers, face buttons, and D-pad are pressed.
 - **Multi-Pad Slot Switcher**: Switch between Player 1 through Player 4 with persistent status and slot indicators.
 - **Connection & Power Telemetry**: Hardware bus detection (Wired USB, Bluetooth, 2.4GHz Dongle) and battery health status.
 - **Live Latency Chip**: Displays real-time polling latency and refresh rate.
 
-### 2. Sticks & Triggers
+### 2. Sticks & Triggers (with Button Remapping & Controller GUI)
 - **Circularity Radar**: Polar coordinates mapped against ideal 1.0 unit circle.
 - **Circularity Error Metrics**: Average error percentage and max error rating based on Gamepadla benchmark standards.
 - **Stick Coordinates**: Real-time normalized readout `(X, Y, Magnitude)` for both Left and Right analog sticks.
 - **Response Curve Selector**: Switch between Linear, Dynamic, Smooth, and Aggressive response curves.
-- **Deadzone Sliders**: Per-stick radial deadzone configuration (0% to 50%) with live deadzone preview rings.
+- **Deadzone Sliders**: Per-stick radial deadzone configuration (0% to 50%) with live deadzone preview rings and outer boundary limits.
 - **Trigger Calibration**: Live analog trigger travel bars and trigger deadzone sliders.
+- **Button Remapper**: 1-click Face Button layout switching (`Standard A·B·X·Y` ⇄ `Nintendo Swap B·A·Y·X`), stick Y inversion toggles (`Invert Left Y`, `Invert Right Y`), and real-time physical button index inspector (`Btn 0..15`). Mappings persist across sessions per device profile.
 
 ### 3. Haptics
 - **Dual-Motor Mixer**: Independent Low-Frequency (LF heavy rumble) and High-Frequency (HF light rumble) sliders.
@@ -131,6 +140,7 @@ Click **Reset Radar** at any time to clear accumulated coordinate history and ru
 The status bar widget (`BarWidget.qml`) integrates into the Omarchy panel:
 
 - **Vector Silhouette Icon**: Renders the active controller's layout silhouette in the bar.
+- **Plugin Icon Glyph**: The `iconOnly` style swaps in the bundled plugin icon (`assets/icon.svg`, tinted per-theme and per-player-color when connected).
 - **Connection Glyphs**: Gamepadla SVG icons for Wired USB, Bluetooth, and 2.4GHz Dongle.
 - **Battery Pill**: Shows lowest battery percentage across connected pads; paints in `urgent` color when below threshold and `accent` when charging.
 - **Configurable Styles**:

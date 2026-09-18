@@ -4,11 +4,11 @@
 # Streams a gamepad's motion sensor (accelerometer + gyroscope) as JSON
 # snapshot lines on stdout:
 #
-#   {"ax":-0.01,"ay":0.02,"az":0.98,"gx":0.001,"gy":-0.004,"gz":0.0,"afs":8191,"gfs":2048}
+#   {"ax":-0.0981,"ay":0.1961,"az":9.6105,"gx":0.001,"gy":-0.004,"gz":0.0,"afs":8191,"gfs":2048}
 #
-# Values are normalized to -1..1 against each axis's real full scale, read
-# from the kernel via EVIOCGABS — so the figures stay honest for every
-# driver (hid-playstation, hid-sony, hid-nintendo expose different ranges).
+# Values are normalized against each axis's real full scale, read from the
+# kernel via EVIOCGABS — accelerometer axes are scaled by 9.80665 m/s² so
+# resting Z shows ~9.81 m/s² consistent with the UI scale.
 # "afs"/"gfs" report the accelerometer/gyro full scale so the UI can label
 # the gauge.
 #
@@ -56,9 +56,14 @@ def normalize(value, full_scale):
     return max(-1.0, min(1.0, v))
 
 
+GRAVITY_MSS = 9.80665
+
+
 def snapshot(vals, fs):
     return json.dumps({
-        "ax": round(vals["ax"], 4), "ay": round(vals["ay"], 4), "az": round(vals["az"], 4),
+        "ax": round(vals["ax"] * GRAVITY_MSS, 4),
+        "ay": round(vals["ay"] * GRAVITY_MSS, 4),
+        "az": round(vals["az"] * GRAVITY_MSS, 4),
         "gx": round(vals["gx"], 4), "gy": round(vals["gy"], 4), "gz": round(vals["gz"], 4),
         "afs": fs["ax"], "gfs": fs["gx"],
     })

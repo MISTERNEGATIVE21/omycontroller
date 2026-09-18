@@ -126,6 +126,10 @@ BarWidget {
     if (panelLoader.item) panelLoader.item.toggle()
   }
 
+  function toggleDemo() {
+    if (panelLoader.item && panelLoader.item.toggleDemo) panelLoader.item.toggleDemo()
+  }
+
   function closeForPopoutSwitch() {
     if (panelLoader.item) panelLoader.item.closeForPopoutSwitch()
   }
@@ -173,6 +177,7 @@ BarWidget {
       ControllerArt {
         id: miniArt
         mini: true
+        visible: root.pillStyle !== "iconOnly"
         layout: root.activePad ? (root.activePad.layout || "generic") : "generic"
         playerColor: root.activePad
           ? GamepadModel.playerColor(root.activePad.slot, Color)
@@ -181,6 +186,25 @@ BarWidget {
         implicitHeight: root.pillStyle === "compact" ? 14 : 16
         scale: root.pillStyle === "compact" ? 0.75 : 0.85
         anchors.verticalCenter: parent.verticalCenter
+      }
+
+      // Plugin icon glyph used by the iconOnly pill style.
+      Image {
+        id: pluginIcon
+        visible: root.pillStyle === "iconOnly"
+        anchors.verticalCenter: parent.verticalCenter
+        width: 16
+        height: 16
+        source: Qt.resolvedUrl("assets/icon.svg")
+        fillMode: Image.PreserveAspectFit
+        mipmap: true
+        layer.enabled: visible
+        layer.effect: MultiEffect {
+          colorization: 1.0
+          colorizationColor: root.activePad
+            ? GamepadModel.playerColor(root.activePad.slot, Color)
+            : root.pillText
+        }
       }
 
       Item {
@@ -226,7 +250,7 @@ BarWidget {
         visible: root.pillStyle === "badge" && root.isDemo
         height: Math.min(Style.space(18), (root.barSize || 30) - Style.space(6))
         width: demoBadgeText.implicitWidth + Style.space(8)
-        radius: Style.radius(4)
+        radius: Math.max(4, Style.cornerRadius)
         color: Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.20)
         border.width: 1
         border.color: Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.40)
@@ -260,7 +284,7 @@ BarWidget {
         visible: root.pillStyle === "badge" && !root.isDemo && root.batteryPad !== null && root.showBatteryPercent
         height: Math.min(Style.space(18), (root.barSize || 30) - Style.space(6))
         width: batteryBadgeText.implicitWidth + Style.space(8)
-        radius: Style.radius(4)
+        radius: Math.max(4, Style.cornerRadius)
         color: root.batteryPad && !root.batteryPad.charging && root.batteryPad.percent <= root.threshold
           ? Qt.rgba(Color.urgent.r, Color.urgent.g, Color.urgent.b, 0.22)
           : (root.batteryPad && !root.batteryPad.charging && root.batteryPad.percent <= 35
