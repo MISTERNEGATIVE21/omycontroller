@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
-  "id": "quatro.gamepad",
-  "name": "Quatro",
-  "version": "1.0.0",
-  "author": "Quatro",
-  "description": "Gamepad control center: live controller view, battery, connection mode, protocol, latency, deadzones, rumble and haptics for up to four pads.",
+  "id": "omycontroller",
+  "name": "omycontroller",
+  "version": "2.0.0",
+  "author": "misternegative21",
+  "description": "Pro gamepad control center & diagnostics: Gamepadla circularity radar, latency benchmark, battery, deadzones, rumble, and DualSense haptics.",
   "kinds": [
     "service",
     "bar-widget"
@@ -15,10 +15,45 @@
     "barWidget": "BarWidget.qml"
   },
   "barWidget": {
-    "displayName": "Quatro",
-    "description": "Gamepad status pill and control panel",
+    "displayName": "omycontroller",
+    "description": "Gamepad status pill and pro control center",
     "category": "Gaming",
     "allowMultiple": false,
-    "defaultSection": "right"
+    "defaultSection": "right",
+    "defaults": {
+      "showBatteryPercent": true,
+      "showLatency": true,
+      "lowBatteryThreshold": 15,
+      "pillStyle": "badge"
+    },
+    "schema": [
+      {
+        "key": "showBatteryPercent",
+        "type": "boolean",
+        "label": "Show lowest battery percentage on bar",
+        "defaultValue": true
+      },
+      {
+        "key": "showLatency",
+        "type": "boolean",
+        "label": "Display live input latency in tooltip",
+        "defaultValue": true
+      },
+      {
+        "key": "lowBatteryThreshold",
+        "type": "integer",
+        "label": "Low battery alert threshold (%)",
+        "defaultValue": 15,
+        "min": 5,
+        "max": 50,
+        "step": 5
+      },
+      {
+        "key": "pillStyle",
+        "type": "string",
+        "label": "Bar Pill Style (badge / compact / iconOnly)",
+        "defaultValue": "badge"
+      }
+    ]
   }
 }
