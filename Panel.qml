@@ -37,7 +37,6 @@ Panel {
     return null
   }
   readonly property var pads: svc ? svc.deviceList : []
-  readonly property bool demoActive: svc ? (svc.demoMode || svc.simulatorActive) : false
   readonly property var stats: (svc && svc.stats) ? svc.stats : computeFallbackStats()
 
   function computeFallbackStats() {
@@ -110,16 +109,17 @@ Panel {
     liveButtons = b
     liveAxes = (sel.axes || []).slice()
     var g = sel.gyro
-    liveGyro = g ? { ax: g.ax, ay: g.ay, az: g.az, gx: g.gx, gy: g.gy, gz: g.gz, afs: g.afs, gfs: g.gfs } : null
+    liveGyro = g ? {
+      ax: g.ax, ay: g.ay, az: g.az,
+      gx: g.gx, gy: g.gy, gz: g.gz,
+      pitch: g.pitch, roll: g.roll, yaw: g.yaw,
+      afs: g.afs, gfs: g.gfs
+    } : null
   }
 
   function select(id) {
     selectedId = String(id || "")
     refreshLive()
-  }
-
-  function toggleDemo() {
-    if (root.svc) root.svc.toggleDemo()
   }
 
   Connections {
@@ -363,7 +363,7 @@ Panel {
                 anchors.centerIn: parent
                 text: root.pads.length === 0
                   ? "no pads"
-                  : (root.pads.length + (root.pads.length === 1 ? " pad" : " pads") + (root.demoActive ? " · sim" : ""))
+                  : (root.pads.length + (root.pads.length === 1 ? " pad" : " pads"))
                 color: root.barForeground
                 font.family: root.bar ? root.bar.fontFamily : Style.font.family
                 font.pixelSize: Style.font.caption
@@ -371,7 +371,7 @@ Panel {
             }
           }
 
-          // Right Controls: Simulator Toggle Button
+          // Right Controls: Rescan Hardware Button
           Row {
             id: headerRightRow
             anchors.right: parent.right
@@ -379,14 +379,14 @@ Panel {
             spacing: Style.space(6)
 
             Button {
-              id: demoBtn
+              id: rescanBtn
               anchors.verticalCenter: parent.verticalCenter
-              text: root.demoActive ? "⚡ Bench Active" : "⚡ Simulator Bench"
+              text: "↻ Rescan"
               focusable: true
               foreground: root.barForeground
-              accent: root.demoActive ? Color.accent : root.barForeground
+              accent: Color.accent
               onClicked: {
-                if (root.svc) root.svc.toggleDemo()
+                if (root.svc) root.svc.runScan()
               }
             }
           }
@@ -436,7 +436,7 @@ Panel {
             width: parent.width - Style.space(40)
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
-            text: "Plug in an Xbox, PlayStation, Switch Pro, or generic controller via USB cable, Bluetooth, or wireless dongle. Up to 4 players supported."
+            text: "Plug in an Xbox, PlayStation, Switch Pro, or generic controller via USB cable, Bluetooth, or wireless adapter. Up to 4 players supported with real-time diagnostics, circularity radar, haptics, and 6-DOF gyro."
             color: Qt.darker(root.barForeground, 1.4)
             font.family: root.bar ? root.bar.fontFamily : Style.font.family
             font.pixelSize: Style.font.bodySmall
@@ -445,11 +445,11 @@ Panel {
 
           Button {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "⚡ Start Simulator Bench"
+            text: "↻ Rescan Hardware"
             focusable: true
             foreground: root.barForeground
             accent: Color.accent
-            onClicked: if (root.svc) root.svc.toggleDemo()
+            onClicked: if (root.svc) root.svc.runScan()
           }
 
           Item { height: Style.space(6); width: 1 }
@@ -786,6 +786,7 @@ Panel {
                     axes: root.liveAxes
                     axisNames: root.sel && root.sel.axisNames ? root.sel.axisNames : []
                     profile: root.sel && root.sel.profile ? root.sel.profile : null
+                    gyro: root.liveGyro
                     width: Style.space(310)
                     height: Style.space(190)
                   }
@@ -1699,6 +1700,69 @@ Panel {
                     text: "6-DOF Artificial Horizon & Orientation"
                     foreground: root.barForeground
                     font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                  }
+
+                  // 3D Motion Orientation Viewport
+                  Rectangle {
+                    width: parent.width
+                    height: Style.space(165)
+                    radius: Math.max(4, Style.cornerRadius)
+                    color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04)
+                    border.color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                    border.width: 1
+                    clip: true
+
+                    ControllerArt {
+                      anchors.centerIn: parent
+                      layout: root.sel ? root.sel.layout : "generic"
+                      playerColor: root.playerColor
+                      buttons: root.liveButtons
+                      axes: root.liveAxes
+                      axisNames: root.sel && root.sel.axisNames ? root.sel.axisNames : []
+                      profile: root.sel && root.sel.profile ? root.sel.profile : null
+                      gyro: root.liveGyro
+                      width: Style.space(250)
+                      height: Style.space(150)
+                    }
+
+                    // Live Orientation Degrees Badge
+                    Rectangle {
+                      anchors.top: parent.top
+                      anchors.left: parent.left
+                      anchors.margins: Style.space(8)
+                      height: Style.space(20)
+                      radius: height / 2
+                      color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.16)
+                      border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.35)
+                      border.width: 1
+                      width: orientRow.implicitWidth + Style.space(12)
+
+                      Row {
+                        id: orientRow
+                        anchors.centerIn: parent
+                        spacing: Style.space(6)
+                        Text {
+                          text: "PITCH " + (root.liveGyro && isFinite(root.liveGyro.pitch) ? ((root.liveGyro.pitch >= 0 ? "+" : "") + root.liveGyro.pitch.toFixed(1) + "°") : "0.0°")
+                          color: root.playerColor
+                          font.family: Style.font.family
+                          font.pixelSize: Style.font.caption
+                          font.bold: true
+                        }
+                        Text {
+                          text: "·"
+                          color: root.playerColor
+                          font.family: Style.font.family
+                          font.pixelSize: Style.font.caption
+                        }
+                        Text {
+                          text: "ROLL " + (root.liveGyro && isFinite(root.liveGyro.roll) ? ((root.liveGyro.roll >= 0 ? "+" : "") + root.liveGyro.roll.toFixed(1) + "°") : "0.0°")
+                          color: root.playerColor
+                          font.family: Style.font.family
+                          font.pixelSize: Style.font.caption
+                          font.bold: true
+                        }
+                      }
+                    }
                   }
 
                   // Artificial Horizon Gauge

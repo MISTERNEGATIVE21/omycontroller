@@ -40,8 +40,34 @@ Item {
   property var axes: []                  // normalized -1..1
   property var axisNames: []             // jstest header names ("X","Throttle"…)
   property var profile: ({})             // deadzone profile (stickL/stickR/...)
+  property var gyro: null                // live 6-DOF gyro telemetry { ax, ay, az, gx, gy, gz, pitch, roll, yaw }
   property bool mini: false              // tiny silhouette for menu rows / slot selector
   property bool showLabels: true
+
+  // Live motion telemetry derivations with automatic fallbacks
+  readonly property real rawPitch: {
+    if (!gyro) return 0
+    if (isFinite(Number(gyro.pitch))) return Number(gyro.pitch)
+    var ax = Number(gyro.ax) || 0
+    var ay = Number(gyro.ay) || 0
+    var az = Number(gyro.az) || 9.81
+    return Math.max(-85, Math.min(85, -Math.atan2(ay, Math.sqrt(ax * ax + az * az)) * 180 / Math.PI))
+  }
+
+  readonly property real rawRoll: {
+    if (!gyro) return 0
+    if (isFinite(Number(gyro.roll))) return Number(gyro.roll)
+    var ax = Number(gyro.ax) || 0
+    var az = Number(gyro.az) || 9.81
+    return Math.max(-180, Math.min(180, Math.atan2(ax, az) * 180 / Math.PI))
+  }
+
+  readonly property real rawYaw: {
+    if (!gyro) return 0
+    if (isFinite(Number(gyro.yaw))) return Number(gyro.yaw)
+    var gz = Number(gyro.gz) || 0
+    return Math.max(-45, Math.min(45, gz * 25.0))
+  }
 
   property real scale: 1.0
   readonly property real effScale: mini ? 1.0 : (width > 0 ? width / 340 : scale)
@@ -131,6 +157,10 @@ Item {
     sourceComponent: Item {
       width: 32
       height: 18
+      rotation: Math.max(-45, Math.min(45, root.rawRoll * 0.75))
+      Behavior on rotation {
+        SpringAnimation { spring: 3.5; damping: 0.35; epsilon: 0.1 }
+      }
 
       // Main controller body silhouette
       Rectangle {
@@ -198,6 +228,40 @@ Item {
     transformOrigin: Item.TopLeft
     x: (root.width - 340 * root.effScale) / 2
     y: (root.height - 208 * root.effScale) / 2
+
+    // 3D Gyro Motion Transform: tilts, rolls and yaws dynamically with physical controller motion
+    transform: [
+      Rotation {
+        id: pitchRot
+        origin.x: 170
+        origin.y: 104
+        axis { x: 1; y: 0; z: 0 }
+        angle: Math.max(-45, Math.min(45, root.rawPitch * 0.75))
+        Behavior on angle {
+          SpringAnimation { spring: 3.5; damping: 0.35; epsilon: 0.05 }
+        }
+      },
+      Rotation {
+        id: yawRot
+        origin.x: 170
+        origin.y: 104
+        axis { x: 0; y: 1; z: 0 }
+        angle: Math.max(-35, Math.min(35, root.rawYaw * 0.65))
+        Behavior on angle {
+          SpringAnimation { spring: 3.5; damping: 0.35; epsilon: 0.05 }
+        }
+      },
+      Rotation {
+        id: rollRot
+        origin.x: 170
+        origin.y: 104
+        axis { x: 0; y: 0; z: 1 }
+        angle: Math.max(-60, Math.min(60, root.rawRoll * 0.85))
+        Behavior on angle {
+          SpringAnimation { spring: 3.8; damping: 0.32; epsilon: 0.05 }
+        }
+      }
+    ]
 
     // 1. Layer 0: Deep Ambient Drop Shadow (Soft depth cast onto deck card)
     Shape {
@@ -745,6 +809,37 @@ Item {
     transformOrigin: Item.TopLeft
     x: (root.width - 340 * root.effScale) / 2
     y: (root.height - 208 * root.effScale) / 2
+
+    // 3D Gyro Motion Transform: tilts, rolls and yaws dynamically with physical flight stick motion
+    transform: [
+      Rotation {
+        origin.x: 170
+        origin.y: 104
+        axis { x: 1; y: 0; z: 0 }
+        angle: Math.max(-45, Math.min(45, root.rawPitch * 0.75))
+        Behavior on angle {
+          SpringAnimation { spring: 3.5; damping: 0.35; epsilon: 0.05 }
+        }
+      },
+      Rotation {
+        origin.x: 170
+        origin.y: 104
+        axis { x: 0; y: 1; z: 0 }
+        angle: Math.max(-35, Math.min(35, root.rawYaw * 0.65))
+        Behavior on angle {
+          SpringAnimation { spring: 3.5; damping: 0.35; epsilon: 0.05 }
+        }
+      },
+      Rotation {
+        origin.x: 170
+        origin.y: 104
+        axis { x: 0; y: 0; z: 1 }
+        angle: Math.max(-60, Math.min(60, root.rawRoll * 0.85))
+        Behavior on angle {
+          SpringAnimation { spring: 3.8; damping: 0.32; epsilon: 0.05 }
+        }
+      }
+    ]
 
     readonly property var ex: {
       if (root.extras) return root.extras

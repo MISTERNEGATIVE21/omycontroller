@@ -50,11 +50,6 @@ BarWidget {
   // Active pad for silhouette and connection icon
   readonly property var activePad: worstPad ? worstPad : (pads.length > 0 ? pads[0] : null)
 
-  // Demo / simulator active status
-  readonly property bool isDemo: (svc && (svc.demoMode || svc.simulatorActive))
-    || (worstPad && worstPad.driverNote === "simulated")
-    || (activePad && activePad.driverNote === "simulated")
-
   // ------------------------------------------------------------ settings
   readonly property bool showBatteryPercent: {
     var v = setting("showBatteryPercent", true)
@@ -82,19 +77,14 @@ BarWidget {
 
   // Dynamic tooltip with multi-pad status and latency
   readonly property string tooltip: {
-    if (pads.length === 0 && !isDemo) return "omycontroller — no gamepads\nClick to open panel"
+    if (pads.length === 0) return "omycontroller — no gamepads\nClick to open panel"
     var lines = []
-    if (isDemo) {
-      lines.push("⚡ omycontroller — Simulator Mode Active")
-    } else {
-      lines.push("omycontroller — " + pads.length + (pads.length === 1 ? " gamepad connected" : " gamepads connected"))
-    }
+    lines.push("omycontroller — " + pads.length + (pads.length === 1 ? " gamepad connected" : " gamepads connected"))
     for (var i = 0; i < pads.length; i++) {
       var p = pads[i]
       var slotName = "P" + (p.slot || (i + 1))
       var name = p.modelLabel || p.name || "Gamepad"
       var parts = [slotName, name]
-      if (p.driverNote === "simulated") parts.push("[Demo]")
       parts.push(GamepadModel.batteryLabel(p.percent, p.charging))
       if (p.connection) parts.push(p.connection)
       if (root.showLatency && p.avgMs > 0) {
@@ -124,10 +114,6 @@ BarWidget {
 
   function toggle() {
     if (panelLoader.item) panelLoader.item.toggle()
-  }
-
-  function toggleDemo() {
-    if (panelLoader.item && panelLoader.item.toggleDemo) panelLoader.item.toggleDemo()
   }
 
   function closeForPopoutSwitch() {
@@ -183,6 +169,10 @@ BarWidget {
         fillMode: Image.PreserveAspectFit
         mipmap: true
         smooth: true
+        rotation: (root.activePad && root.activePad.gyro) ? Math.max(-30, Math.min(30, (root.activePad.gyro.roll || 0) * 0.5)) : 0
+        Behavior on rotation {
+          SpringAnimation { spring: 3.5; damping: 0.35; epsilon: 0.1 }
+        }
         layer.enabled: true
         layer.effect: MultiEffect {
           colorization: 1.0
@@ -232,43 +222,9 @@ BarWidget {
       }
 
       Rectangle {
-        id: demoBadge
-        anchors.verticalCenter: parent.verticalCenter
-        visible: root.pillStyle === "badge" && root.isDemo
-        height: Math.min(Style.space(18), (root.barSize || 30) - Style.space(6))
-        width: demoBadgeText.implicitWidth + Style.space(8)
-        radius: Math.max(4, Style.cornerRadius)
-        color: Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.20)
-        border.width: 1
-        border.color: Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.40)
-
-        Text {
-          id: demoBadgeText
-          anchors.centerIn: parent
-          textFormat: Text.PlainText
-          text: "⚡ DEMO"
-          color: Color.accent
-          font.family: root.bar ? root.bar.fontFamily : Style.font.family
-          font.pixelSize: Style.font.caption
-          font.bold: true
-        }
-      }
-
-      Text {
-        anchors.verticalCenter: parent.verticalCenter
-        visible: root.pillStyle === "compact" && root.isDemo
-        textFormat: Text.PlainText
-        text: "⚡"
-        color: Color.accent
-        font.family: root.bar ? root.bar.fontFamily : Style.font.family
-        font.pixelSize: Style.font.body
-        font.bold: true
-      }
-
-      Rectangle {
         id: batteryBadge
         anchors.verticalCenter: parent.verticalCenter
-        visible: root.pillStyle === "badge" && !root.isDemo && root.batteryPad !== null && root.showBatteryPercent
+        visible: root.pillStyle === "badge" && root.batteryPad !== null && root.showBatteryPercent
         height: Math.min(Style.space(18), (root.barSize || 30) - Style.space(6))
         width: batteryBadgeText.implicitWidth + Style.space(8)
         radius: Math.max(4, Style.cornerRadius)
@@ -302,7 +258,7 @@ BarWidget {
 
       Text {
         anchors.verticalCenter: parent.verticalCenter
-        visible: root.pillStyle === "compact" && !root.isDemo && root.batteryPad !== null && root.showBatteryPercent
+        visible: root.pillStyle === "compact" && root.batteryPad !== null && root.showBatteryPercent
         textFormat: Text.PlainText
         text: root.batteryPad ? GamepadModel.batteryLabel(root.batteryPad.percent, root.batteryPad.charging) : ""
         color: root.batteryColor

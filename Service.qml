@@ -793,9 +793,24 @@ Item {
     var rec
     try { rec = JSON.parse(String(line || "")) } catch (e) { return }
     if (!rec) return
+    var ax = Number(rec.ax) || 0
+    var ay = Number(rec.ay) || 0
+    var az = Number(rec.az) || 9.81
+    var gx = Number(rec.gx) || 0
+    var gy = Number(rec.gy) || 0
+    var gz = Number(rec.gz) || 0
+    var pitchRad = -Math.atan2(ay, Math.sqrt(ax * ax + az * az))
+    var rollRad = Math.atan2(ax, az)
+    var pitch = Math.max(-85, Math.min(85, pitchRad * 180 / Math.PI))
+    var roll = Math.max(-180, Math.min(180, rollRad * 180 / Math.PI))
+    var yaw = Math.max(-45, Math.min(45, gz * 25.0))
+
     d.gyro = {
-      ax: Number(rec.ax) || 0, ay: Number(rec.ay) || 0, az: Number(rec.az) || 0,
-      gx: Number(rec.gx) || 0, gy: Number(rec.gy) || 0, gz: Number(rec.gz) || 0,
+      ax: ax, ay: ay, az: az,
+      gx: gx, gy: gy, gz: gz,
+      pitch: pitch,
+      roll: roll,
+      yaw: yaw,
       afs: Number(rec.afs) || 32767, gfs: Number(rec.gfs) || 32767
     }
     // Drift calibration collection: ~0.8s of stationary samples.

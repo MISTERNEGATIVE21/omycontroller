@@ -234,11 +234,6 @@ omarchy-shell shell open omycontroller '{}'
 omarchy-shell shell close omycontroller '{}'
 ```
 
-### Toggle Demo / Simulator Mode
-```bash
-omarchy-shell shell invoke omycontroller toggleDemo '{}'
-```
-
 ### Rescan Gamepad Hardware
 ```bash
 omarchy-shell shell invoke omycontroller rescan '{}'
