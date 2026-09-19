@@ -62,6 +62,8 @@ Panel {
     var n = Number(v)
     return isFinite(n) ? n : 15
   }
+  property string menuPosition: hostWidget ? hostWidget.setting("menuPosition", "left") : "left"
+  readonly property bool isSideMenu: menuPosition === "left" || menuPosition === "right"
 
   // ------------------------------------------------------------ selection
   property string selectedId: ""
@@ -312,7 +314,7 @@ Panel {
     bar: root.bar
     open: root.opened
     focusTarget: keyCatcher
-    contentWidth: panel.fittedContentWidth(Style.space(480))
+    contentWidth: panel.fittedContentWidth(root.isSideMenu ? Style.space(570) : Style.space(480))
     contentHeight: panel.fittedContentHeight(content.implicitHeight, Style.space(680))
 
     PanelKeyCatcher {
@@ -364,8 +366,58 @@ Panel {
             }
           }
 
+          // Menu Position Switcher
+          Row {
+            anchors.right: demoBtn.left
+            anchors.rightMargin: Style.space(8)
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 2
+
+            Repeater {
+              model: [
+                { pos: "left", label: "◧ Left" },
+                { pos: "top", label: "⬒ Top" },
+                { pos: "right", label: "◨ Right" }
+              ]
+              delegate: Rectangle {
+                id: posPill
+                required property var modelData
+                readonly property bool isCur: root.menuPosition === posPill.modelData.pos
+                width: posText.implicitWidth + Style.space(8)
+                height: Style.space(22)
+                radius: Math.max(3, Style.cornerRadius - 2)
+                color: isCur ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22) : "transparent"
+                border.color: isCur ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                border.width: 1
+
+                Text {
+                  id: posText
+                  anchors.centerIn: parent
+                  text: posPill.modelData.label
+                  color: posPill.isCur ? root.playerColor : Qt.darker(root.barForeground, 1.4)
+                  font.family: Style.font.family
+                  font.pixelSize: 8
+                  font.bold: posPill.isCur
+                }
+
+                MouseArea {
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    root.menuPosition = posPill.modelData.pos
+                    if (hostWidget && typeof hostWidget.setSetting === "function") {
+                      hostWidget.setSetting("menuPosition", posPill.modelData.pos)
+                    }
+                  }
+                }
+              }
+            }
+          }
+
           // Simulator Toggle Button
           Button {
+            id: demoBtn
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             text: root.demoActive ? "⚡ Demo (Active)" : "⚡ Demo"
@@ -439,6 +491,7 @@ Panel {
 
           // Slot Selector (P1..P4 Pills)
           Row {
+            visible: !root.isSideMenu
             width: parent.width
             spacing: Style.space(6)
 
@@ -525,8 +578,9 @@ Panel {
             }
           }
 
-          // Segmented Tab Bar
+          // Segmented Tab Bar (Visible in top menu mode)
           Rectangle {
+            visible: !root.isSideMenu
             width: parent.width
             height: Style.space(32)
             radius: Math.max(4, Style.cornerRadius)
@@ -584,12 +638,143 @@ Panel {
             }
           }
 
-          // Tab Content View Area
-          Item {
-            id: tabContainer
+          // Main Content Layout: Side Menu + Tab Content
+          Row {
             width: parent.width
-            height: Math.min(Style.space(500), tabFlickCol.implicitHeight)
-            clip: true
+            spacing: Style.space(10)
+            layoutDirection: root.menuPosition === "right" ? Qt.RightToLeft : Qt.LeftToRight
+
+            // Side Navigation Column (Left / Right)
+            Column {
+              id: sideNavCol
+              visible: root.isSideMenu
+              width: visible ? Style.space(120) : 0
+              spacing: Style.space(6)
+
+              // Compact Slot Selector (2x2 grid)
+              Grid {
+                columns: 2
+                spacing: Style.space(4)
+                width: parent.width
+
+                Repeater {
+                  model: 4
+                  delegate: Rectangle {
+                    id: sideSlotPill
+                    required property int index
+                    readonly property var pad: root.pads && root.pads.length > index ? root.pads[index] : null
+                    readonly property bool isSel: root.selectedSlot === index
+                    readonly property color slotColor: GamepadModel.playerColor(index, Color)
+
+                    width: (parent.width - Style.space(4)) / 2
+                    height: Style.space(24)
+                    radius: Math.max(3, Style.cornerRadius - 2)
+                    color: isSel ? Qt.rgba(slotColor.r, slotColor.g, slotColor.b, 0.2) : "transparent"
+                    border.color: isSel ? slotColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                    border.width: isSel ? 1.5 : 1
+
+                    Row {
+                      anchors.centerIn: parent
+                      spacing: Style.space(3)
+                      Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 5; height: 5; radius: 2.5
+                        color: sideSlotPill.pad ? sideSlotPill.slotColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.2)
+                      }
+                      Text {
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "P" + (sideSlotPill.index + 1)
+                        color: sideSlotPill.isSel ? sideSlotPill.slotColor : (sideSlotPill.pad ? root.barForeground : Qt.darker(root.barForeground, 1.8))
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.caption
+                        font.bold: sideSlotPill.isSel
+                      }
+                    }
+
+                    MouseArea {
+                      anchors.fill: parent
+                      hoverEnabled: true
+                      cursorShape: sideSlotPill.pad ? Qt.PointingHandCursor : Qt.ArrowCursor
+                      onClicked: if (sideSlotPill.pad) root.select(sideSlotPill.pad.id)
+                    }
+                  }
+                }
+              }
+
+              // Vertical Navigation Tabs
+              Column {
+                width: parent.width
+                spacing: Style.space(4)
+
+                Repeater {
+                  model: [
+                    { name: "Overview", icon: "🎮" },
+                    { name: "Sticks & Triggers", icon: "🕹" },
+                    { name: "Haptics", icon: "📳" },
+                    { name: "Motion", icon: "🧭" },
+                    { name: "Device Specs", icon: "📋" }
+                  ]
+
+                  delegate: Rectangle {
+                    id: sideTabItem
+                    required property var modelData
+                    required property int index
+                    readonly property bool isCur: root.currentTab === index
+
+                    width: parent.width
+                    height: Style.space(32)
+                    radius: Math.max(3, Style.cornerRadius - 1)
+                    color: isCur
+                      ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.18)
+                      : sideTabMouse.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.06) : "transparent"
+                    border.color: isCur ? root.playerColor : "transparent"
+                    border.width: isCur ? 1 : 0
+
+                    Row {
+                      anchors.verticalCenter: parent.verticalCenter
+                      x: Style.space(8)
+                      spacing: Style.space(6)
+                      width: parent.width - Style.space(12)
+
+                      Text {
+                        text: sideTabItem.modelData.icon
+                        font.pixelSize: Style.font.caption
+                        anchors.verticalCenter: parent.verticalCenter
+                      }
+
+                      Text {
+                        text: sideTabItem.modelData.name
+                        color: sideTabItem.isCur ? root.playerColor : (sideTabMouse.containsMouse ? root.barForeground : Qt.darker(root.barForeground, 1.4))
+                        font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                        font.pixelSize: Style.font.caption
+                        font.bold: sideTabItem.isCur
+                        elide: Text.ElideRight
+                        width: parent.width - Style.space(24)
+                        anchors.verticalCenter: parent.verticalCenter
+                      }
+                    }
+
+                    MouseArea {
+                      id: sideTabMouse
+                      anchors.fill: parent
+                      hoverEnabled: true
+                      cursorShape: Qt.PointingHandCursor
+                      onClicked: {
+                        root.currentTab = sideTabItem.index
+                        tabFlick.contentY = 0
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+            // Tab Content View Area
+            Item {
+              id: tabContainer
+              width: root.isSideMenu ? parent.width - Style.space(130) : parent.width
+              height: Math.min(Style.space(500), tabFlickCol.implicitHeight)
+              clip: true
 
             Flickable {
               id: tabFlick
@@ -1906,8 +2091,9 @@ Panel {
             }
           }
         }
+      }
 
-        // ---------------------------------------------------- Footer
+      // ---------------------------------------------------- Footer
         PanelSeparator { foreground: root.barForeground }
 
         Text {

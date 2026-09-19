@@ -26,7 +26,8 @@
       "showBatteryPercent": true,
       "showLatency": true,
       "lowBatteryThreshold": 15,
-      "pillStyle": "badge"
+      "pillStyle": "badge",
+      "menuPosition": "left"
     },
     "schema": [
       {
@@ -55,6 +56,12 @@
         "type": "string",
         "label": "Bar Pill Style (badge / compact / iconOnly)",
         "defaultValue": "badge"
+      },
+      {
+        "key": "menuPosition",
+        "type": "string",
+        "label": "Pro Deck Menu Position (left / top / right)",
+        "defaultValue": "left"
       }
     ]
   }

@@ -201,6 +201,14 @@ Item {
       border.color: root.bodyBorder
       border.width: root.anyPress ? 1.5 : 1
       Behavior on border.color { ColorAnimation { duration: 60 } }
+
+      // Ergonomic grip palm swell contour
+      Rectangle {
+        x: 8; y: 16; width: 44; height: 72; radius: 22
+        color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.04)
+        border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.08)
+        border.width: 1
+      }
     }
     Rectangle {
       x: 248; y: 92; width: 74; height: 104; radius: 34; rotation: 14
@@ -208,6 +216,14 @@ Item {
       border.color: root.bodyBorder
       border.width: root.anyPress ? 1.5 : 1
       Behavior on border.color { ColorAnimation { duration: 60 } }
+
+      // Ergonomic grip palm swell contour
+      Rectangle {
+        x: 22; y: 16; width: 44; height: 72; radius: 22
+        color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.04)
+        border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.08)
+        border.width: 1
+      }
     }
 
     // Body
@@ -218,6 +234,14 @@ Item {
       border.color: root.bodyBorder
       border.width: root.anyPress ? 1.5 : 1
       Behavior on border.color { ColorAnimation { duration: 60 } }
+
+      // Upper chassis glass/matte bevel reflection
+      Rectangle {
+        x: 24; y: 6; width: parent.width - 48; height: 32; radius: 16
+        color: Qt.rgba(1, 1, 1, 0.035)
+        border.color: Qt.rgba(1, 1, 1, 0.06)
+        border.width: 1
+      }
     }
 
     // Player badge
@@ -773,6 +797,17 @@ Item {
         border.color: Color.popups.background
         border.width: 1.5
         Behavior on width { NumberAnimation { duration: 40 } }
+
+        // Concentric textured thumb grip ring
+        Rectangle {
+          anchors.centerIn: parent
+          width: parent.width - 4
+          height: width
+          radius: width / 2
+          color: "transparent"
+          border.color: Qt.rgba(Color.popups.background.r, Color.popups.background.g, Color.popups.background.b, 0.45)
+          border.width: 1
+        }
 
         // Inner concave dot
         Rectangle {

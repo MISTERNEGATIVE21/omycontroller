@@ -162,6 +162,7 @@ BarWidget {
     anchors.fill: parent
     bar: root.bar
     text: ""
+    hasVisualContent: true
     keepSpace: true
     fixedWidth: contentRow.implicitWidth + (root.pillStyle === "compact" ? Style.space(8) : Style.space(14))
     tooltipText: root.tooltip
@@ -172,39 +173,32 @@ BarWidget {
     Row {
       id: contentRow
       anchors.centerIn: parent
-      spacing: root.pillStyle === "compact" ? Style.space(4) : Style.space(6)
-
-      ControllerArt {
-        id: miniArt
-        mini: true
-        visible: root.pillStyle !== "iconOnly"
-        layout: root.activePad ? (root.activePad.layout || "generic") : "generic"
-        playerColor: root.activePad
-          ? GamepadModel.playerColor(root.activePad.slot, Color)
-          : Qt.rgba(root.pillText.r, root.pillText.g, root.pillText.b, 0.55)
-        implicitWidth: root.pillStyle === "compact" ? 24 : 28
-        implicitHeight: root.pillStyle === "compact" ? 14 : 16
-        scale: root.pillStyle === "compact" ? 0.75 : 0.85
-        anchors.verticalCenter: parent.verticalCenter
-      }
-
-      // Plugin icon glyph used by the iconOnly pill style.
+      // Plugin tray / bar SVG icon (always visible)
       Image {
         id: pluginIcon
-        visible: root.pillStyle === "iconOnly"
         anchors.verticalCenter: parent.verticalCenter
-        width: 16
-        height: 16
-        source: Qt.resolvedUrl("assets/icon.svg")
+        width: root.pillStyle === "compact" ? Style.space(14) : Style.space(16)
+        height: root.pillStyle === "compact" ? Style.space(14) : Style.space(16)
+        source: Qt.resolvedUrl("assets/tray_icon.svg")
         fillMode: Image.PreserveAspectFit
         mipmap: true
-        layer.enabled: visible
+        smooth: true
+        layer.enabled: true
         layer.effect: MultiEffect {
           colorization: 1.0
           colorizationColor: root.activePad
             ? GamepadModel.playerColor(root.activePad.slot, Color)
             : root.pillText
         }
+      }
+
+      Text {
+        anchors.verticalCenter: parent.verticalCenter
+        visible: root.pillStyle === "badge" && root.activePad === null && !root.isDemo
+        text: "idle"
+        color: Qt.darker(root.pillText, 1.5)
+        font.family: root.bar ? root.bar.fontFamily : Style.font.family
+        font.pixelSize: Style.font.caption
       }
 
       Item {
