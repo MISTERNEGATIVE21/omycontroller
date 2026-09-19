@@ -210,20 +210,23 @@ Item {
       ShapePath {
         strokeWidth: 0
         fillColor: "#000000"
-        startX: 122; startY: 46
-        PathCubic { control1X: 142; control1Y: 48; control2X: 198; control2Y: 48; x: 218; y: 46 }
-        PathCubic { control1X: 236; control1Y: 45; control2X: 262; control2Y: 48; x: 280; y: 58 }
-        PathCubic { control1X: 300; control1Y: 70; control2X: 308; control2Y: 92; x: 308; y: 120 }
-        PathCubic { control1X: 308; control1Y: 150; control2X: 298; control2Y: 178; x: 280; y: 196 }
+        startX: 170; startY: 24
+        PathCubic { control1X: 192; control1Y: 24; control2X: 202; control2Y: 22; x: 214; y: 18 }
+        PathCubic { control1X: 226; control1Y: 14; control2X: 254; control2Y: 14; x: 268; y: 18 }
+        PathCubic { control1X: 280; control1Y: 24; control2X: 292; control2Y: 42; x: 298; y: 64 }
+        PathCubic { control1X: 306; control1Y: 88; control2X: 308; control2Y: 106; x: 308; y: 124 }
+        PathCubic { control1X: 308; control1Y: 152; control2X: 298; control2Y: 178; x: 280; y: 196 }
         PathCubic { control1X: 270; control1Y: 204; control2X: 254; control2Y: 202; x: 242; y: 194 }
         PathCubic { control1X: 226; control1Y: 184; control2X: 214; control2Y: 176; x: 204; y: 168 }
         PathCubic { control1X: 194; control1Y: 160; control2X: 182; control2Y: 158; x: 170; y: 158 }
         PathCubic { control1X: 158; control1Y: 158; control2X: 146; control2Y: 160; x: 136; y: 168 }
         PathCubic { control1X: 126; control1Y: 176; control2X: 114; control2Y: 184; x: 98; y: 194 }
         PathCubic { control1X: 86; control1Y: 202; control2X: 70; control2Y: 204; x: 60; y: 196 }
-        PathCubic { control1X: 42; control1Y: 178; control2X: 32; control2Y: 150; x: 32; y: 120 }
-        PathCubic { control1X: 32; control1Y: 92; control2X: 40; control2Y: 70; x: 60; y: 58 }
-        PathCubic { control1X: 78; control1Y: 48; control2X: 104; control2Y: 45; x: 122; y: 46 }
+        PathCubic { control1X: 42; control1Y: 178; control2X: 32; control2Y: 152; x: 32; y: 124 }
+        PathCubic { control1X: 32; control1Y: 106; control2X: 34; control2Y: 88; x: 42; y: 64 }
+        PathCubic { control1X: 48; control1Y: 42; control2X: 60; control2Y: 24; x: 72; y: 18 }
+        PathCubic { control1X: 86; control1Y: 14; control2X: 114; control2Y: 14; x: 126; y: 18 }
+        PathCubic { control1X: 138; control1Y: 22; control2X: 148; control2Y: 24; x: 170; y: 24 }
       }
     }
 
@@ -238,24 +241,27 @@ Item {
       ShapePath {
         strokeWidth: 0
         fillColor: "#000000"
-        startX: 122; startY: 46
-        PathCubic { control1X: 142; control1Y: 48; control2X: 198; control2Y: 48; x: 218; y: 46 }
-        PathCubic { control1X: 236; control1Y: 45; control2X: 262; control2Y: 48; x: 280; y: 58 }
-        PathCubic { control1X: 300; control1Y: 70; control2X: 308; control2Y: 92; x: 308; y: 120 }
-        PathCubic { control1X: 308; control1Y: 150; control2X: 298; control2Y: 178; x: 280; y: 196 }
+        startX: 170; startY: 24
+        PathCubic { control1X: 192; control1Y: 24; control2X: 202; control2Y: 22; x: 214; y: 18 }
+        PathCubic { control1X: 226; control1Y: 14; control2X: 254; control2Y: 14; x: 268; y: 18 }
+        PathCubic { control1X: 280; control1Y: 24; control2X: 292; control2Y: 42; x: 298; y: 64 }
+        PathCubic { control1X: 306; control1Y: 88; control2X: 308; control2Y: 106; x: 308; y: 124 }
+        PathCubic { control1X: 308; control1Y: 152; control2X: 298; control2Y: 178; x: 280; y: 196 }
         PathCubic { control1X: 270; control1Y: 204; control2X: 254; control2Y: 202; x: 242; y: 194 }
         PathCubic { control1X: 226; control1Y: 184; control2X: 214; control2Y: 176; x: 204; y: 168 }
         PathCubic { control1X: 194; control1Y: 160; control2X: 182; control2Y: 158; x: 170; y: 158 }
         PathCubic { control1X: 158; control1Y: 158; control2X: 146; control2Y: 160; x: 136; y: 168 }
         PathCubic { control1X: 126; control1Y: 176; control2X: 114; control2Y: 184; x: 98; y: 194 }
         PathCubic { control1X: 86; control1Y: 202; control2X: 70; control2Y: 204; x: 60; y: 196 }
-        PathCubic { control1X: 42; control1Y: 178; control2X: 32; control2Y: 150; x: 32; y: 120 }
-        PathCubic { control1X: 32; control1Y: 92; control2X: 40; control2Y: 70; x: 60; y: 58 }
-        PathCubic { control1X: 78; control1Y: 48; control2X: 104; control2Y: 45; x: 122; y: 46 }
+        PathCubic { control1X: 42; control1Y: 178; control2X: 32; control2Y: 152; x: 32; y: 124 }
+        PathCubic { control1X: 32; control1Y: 106; control2X: 34; control2Y: 88; x: 42; y: 64 }
+        PathCubic { control1X: 48; control1Y: 42; control2X: 60; control2Y: 24; x: 72; y: 18 }
+        PathCubic { control1X: 86; control1Y: 14; control2X: 114; control2Y: 14; x: 126; y: 18 }
+        PathCubic { control1X: 138; control1Y: 22; control2X: 148; control2Y: 24; x: 170; y: 24 }
       }
     }
 
-    // 3. Layer 2: 3D Lower Hull Clamshell Extrusion (Molded underside visible at bottom horns)
+    // 3. Layer 2: 3D Lower Hull Clamshell Extrusion (Molded underside visible at bottom horns & rear cowl)
     Shape {
       anchors.fill: parent
       anchors.topMargin: 4.5
@@ -266,24 +272,27 @@ Item {
         strokeWidth: 1.5
         strokeColor: Qt.rgba(0, 0, 0, 0.70)
         fillColor: Qt.darker(root.bodyColor, 1.45)
-        startX: 122; startY: 46
-        PathCubic { control1X: 142; control1Y: 48; control2X: 198; control2Y: 48; x: 218; y: 46 }
-        PathCubic { control1X: 236; control1Y: 45; control2X: 262; control2Y: 48; x: 280; y: 58 }
-        PathCubic { control1X: 300; control1Y: 70; control2X: 308; control2Y: 92; x: 308; y: 120 }
-        PathCubic { control1X: 308; control1Y: 150; control2X: 298; control2Y: 178; x: 280; y: 196 }
+        startX: 170; startY: 24
+        PathCubic { control1X: 192; control1Y: 24; control2X: 202; control2Y: 22; x: 214; y: 18 }
+        PathCubic { control1X: 226; control1Y: 14; control2X: 254; control2Y: 14; x: 268; y: 18 }
+        PathCubic { control1X: 280; control1Y: 24; control2X: 292; control2Y: 42; x: 298; y: 64 }
+        PathCubic { control1X: 306; control1Y: 88; control2X: 308; control2Y: 106; x: 308; y: 124 }
+        PathCubic { control1X: 308; control1Y: 152; control2X: 298; control2Y: 178; x: 280; y: 196 }
         PathCubic { control1X: 270; control1Y: 204; control2X: 254; control2Y: 202; x: 242; y: 194 }
         PathCubic { control1X: 226; control1Y: 184; control2X: 214; control2Y: 176; x: 204; y: 168 }
         PathCubic { control1X: 194; control1Y: 160; control2X: 182; control2Y: 158; x: 170; y: 158 }
         PathCubic { control1X: 158; control1Y: 158; control2X: 146; control2Y: 160; x: 136; y: 168 }
         PathCubic { control1X: 126; control1Y: 176; control2X: 114; control2Y: 184; x: 98; y: 194 }
         PathCubic { control1X: 86; control1Y: 202; control2X: 70; control2Y: 204; x: 60; y: 196 }
-        PathCubic { control1X: 42; control1Y: 178; control2X: 32; control2Y: 150; x: 32; y: 120 }
-        PathCubic { control1X: 32; control1Y: 92; control2X: 40; control2Y: 70; x: 60; y: 58 }
-        PathCubic { control1X: 78; control1Y: 48; control2X: 104; control2Y: 45; x: 122; y: 46 }
+        PathCubic { control1X: 42; control1Y: 178; control2X: 32; control2Y: 152; x: 32; y: 124 }
+        PathCubic { control1X: 32; control1Y: 106; control2X: 34; control2Y: 88; x: 42; y: 64 }
+        PathCubic { control1X: 48; control1Y: 42; control2X: 60; control2Y: 24; x: 72; y: 18 }
+        PathCubic { control1X: 86; control1Y: 14; control2X: 114; control2Y: 14; x: 126; y: 18 }
+        PathCubic { control1X: 138; control1Y: 22; control2X: 148; control2Y: 24; x: 170; y: 24 }
       }
     }
 
-    // 4. Layer 3: Top Deck Plate
+    // 4. Layer 3: Top Deck Plate (Solid sculpted controller body)
     Shape {
       anchors.fill: parent
       layer.enabled: true
@@ -293,20 +302,23 @@ Item {
         strokeWidth: root.anyPress ? 2 : 1.5
         strokeColor: root.bodyBorder
         fillColor: root.bodyColor
-        startX: 122; startY: 46
-        PathCubic { control1X: 142; control1Y: 48; control2X: 198; control2Y: 48; x: 218; y: 46 }
-        PathCubic { control1X: 236; control1Y: 45; control2X: 262; control2Y: 48; x: 280; y: 58 }
-        PathCubic { control1X: 300; control1Y: 70; control2X: 308; control2Y: 92; x: 308; y: 120 }
-        PathCubic { control1X: 308; control1Y: 150; control2X: 298; control2Y: 178; x: 280; y: 196 }
+        startX: 170; startY: 24
+        PathCubic { control1X: 192; control1Y: 24; control2X: 202; control2Y: 22; x: 214; y: 18 }
+        PathCubic { control1X: 226; control1Y: 14; control2X: 254; control2Y: 14; x: 268; y: 18 }
+        PathCubic { control1X: 280; control1Y: 24; control2X: 292; control2Y: 42; x: 298; y: 64 }
+        PathCubic { control1X: 306; control1Y: 88; control2X: 308; control2Y: 106; x: 308; y: 124 }
+        PathCubic { control1X: 308; control1Y: 152; control2X: 298; control2Y: 178; x: 280; y: 196 }
         PathCubic { control1X: 270; control1Y: 204; control2X: 254; control2Y: 202; x: 242; y: 194 }
         PathCubic { control1X: 226; control1Y: 184; control2X: 214; control2Y: 176; x: 204; y: 168 }
         PathCubic { control1X: 194; control1Y: 160; control2X: 182; control2Y: 158; x: 170; y: 158 }
         PathCubic { control1X: 158; control1Y: 158; control2X: 146; control2Y: 160; x: 136; y: 168 }
         PathCubic { control1X: 126; control1Y: 176; control2X: 114; control2Y: 184; x: 98; y: 194 }
         PathCubic { control1X: 86; control1Y: 202; control2X: 70; control2Y: 204; x: 60; y: 196 }
-        PathCubic { control1X: 42; control1Y: 178; control2X: 32; control2Y: 150; x: 32; y: 120 }
-        PathCubic { control1X: 32; control1Y: 92; control2X: 40; control2Y: 70; x: 60; y: 58 }
-        PathCubic { control1X: 78; control1Y: 48; control2X: 104; control2Y: 45; x: 122; y: 46 }
+        PathCubic { control1X: 42; control1Y: 178; control2X: 32; control2Y: 152; x: 32; y: 124 }
+        PathCubic { control1X: 32; control1Y: 106; control2X: 34; control2Y: 88; x: 42; y: 64 }
+        PathCubic { control1X: 48; control1Y: 42; control2X: 60; control2Y: 24; x: 72; y: 18 }
+        PathCubic { control1X: 86; control1Y: 14; control2X: 114; control2Y: 14; x: 126; y: 18 }
+        PathCubic { control1X: 138; control1Y: 22; control2X: 148; control2Y: 24; x: 170; y: 24 }
       }
     }
 
@@ -318,14 +330,63 @@ Item {
 
       ShapePath {
         strokeWidth: 2
-        strokeColor: Qt.rgba(1, 1, 1, 0.16)
+        strokeColor: Qt.rgba(1, 1, 1, 0.18)
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
-        startX: 56; startY: 62
-        PathCubic { control1X: 78; control1Y: 48; control2X: 104; control2Y: 45; x: 122; y: 46 }
-        PathCubic { control1X: 142; control1Y: 48; control2X: 198; control2Y: 48; x: 218; y: 46 }
-        PathCubic { control1X: 236; control1Y: 45; control2X: 262; control2Y: 48; x: 284; y: 62 }
+        startX: 52; startY: 36
+        PathCubic { control1X: 60; control1Y: 24; control2X: 72; control2Y: 18; x: 86; y: 14 }
+        PathCubic { control1X: 114; control1Y: 14; control2X: 126; control2Y: 18; x: 140; y: 22 }
+        PathCubic { control1X: 148; control1Y: 24; control2X: 192; control2Y: 24; x: 200; y: 22 }
+        PathCubic { control1X: 214; control1Y: 18; control2X: 226; control2Y: 14; x: 254; y: 14 }
+        PathCubic { control1X: 268; control1Y: 18; control2X: 280; control2Y: 24; x: 288; y: 36 }
       }
+    }
+
+    // 6. Molded Chassis Trigger Wells & Top Bulkhead
+    // Left Trigger Socket Well
+    Rectangle {
+      x: 64; y: 15
+      width: 62; height: 42
+      radius: 7
+      color: Qt.rgba(0, 0, 0, 0.38)
+      border.color: Qt.rgba(0, 0, 0, 0.60)
+      border.width: 1
+    }
+
+    // Right Trigger Socket Well
+    Rectangle {
+      x: 216; y: 15
+      width: 62; height: 42
+      radius: 7
+      color: Qt.rgba(0, 0, 0, 0.38)
+      border.color: Qt.rgba(0, 0, 0, 0.60)
+      border.width: 1
+    }
+
+    // USB-C Top Connector Port (Precision Hardware Detail)
+    Rectangle {
+      anchors.horizontalCenter: parent.horizontalCenter
+      y: 20
+      width: 22; height: 6; radius: 3
+      color: Qt.rgba(0, 0, 0, 0.70)
+      border.color: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.35)
+      border.width: 1
+
+      // Gold contact pins
+      Rectangle {
+        anchors.centerIn: parent
+        width: 14; height: 1.5; radius: 0.75
+        color: Qt.rgba(1, 0.84, 0, 0.35)
+      }
+    }
+
+    // Wireless Sync / Pairing Button
+    Rectangle {
+      x: 198; y: 21
+      width: 6; height: 4; radius: 2
+      color: Qt.rgba(0, 0, 0, 0.50)
+      border.color: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.30)
+      border.width: 1
     }
 
     // 6. Sculpted 3D Ergonomic Palm Swells (Left & Right)
@@ -690,55 +751,129 @@ Item {
       return { hatX: 0, hatY: 0, hasHat: false, throttle: -1, hasThrottle: false }
     }
 
-    // Base plate
+    // Layer 0: Ambient drop shadow
+    Rectangle {
+      x: 14; y: 48; width: 312; height: 140; radius: 34
+      color: "#000000"
+      opacity: 0.36
+    }
+
+    // Layer 1: Contact drop shadow
+    Rectangle {
+      x: 14; y: 44; width: 312; height: 140; radius: 34
+      color: "#000000"
+      opacity: 0.28
+    }
+
+    // Layer 2: 3D Lower base extrusion
+    Rectangle {
+      x: 14; y: 44.5; width: 312; height: 140; radius: 34
+      color: Qt.darker(root.bodyColor, 1.45)
+      border.color: Qt.rgba(0, 0, 0, 0.75)
+      border.width: 1.5
+    }
+
+    // Layer 3: Top Base Plate
     Rectangle {
       x: 14; y: 40; width: 312; height: 140; radius: 34
       color: root.bodyColor
       border.color: root.bodyBorder
       border.width: root.anyPress ? 1.5 : 1
       Behavior on border.color { ColorAnimation { duration: 60 } }
-    }
 
-    // Stick well
-    Rectangle {
-      x: 78; y: 72; width: 80; height: 80; radius: 40
-      color: root.idleFill
-      border.color: root.bodyBorder
-      border.width: 1
-    }
-
-    // Trigger (button 0) pill with glowing highlight
-    Rectangle {
-      x: 36; y: 52; width: 84; height: 22; radius: 11
-      color: root.pressed(root.tables.triggerL) ? root.playerColor : root.idleFill
-      border.color: root.pressed(root.tables.triggerL) ? root.playerColor : root.bodyBorder
-      border.width: root.pressed(root.tables.triggerL) ? 2 : 1
-      scale: root.pressed(root.tables.triggerL) ? 1.04 : 1.0
-      Behavior on color { ColorAnimation { duration: 50 } }
-      Behavior on scale { NumberAnimation { duration: 50 } }
-
-      // Trigger glow halo
+      // Layer 4: Upper perimeter specular highlight
       Rectangle {
-        anchors.centerIn: parent
-        width: parent.width + 8
-        height: parent.height + 8
-        radius: 13
-        color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, root.pressed(root.tables.triggerL) ? 0.25 : 0)
-        border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, root.pressed(root.tables.triggerL) ? 0.6 : 0)
-        border.width: 2
-        opacity: root.pressed(root.tables.triggerL) ? 1.0 : 0.0
-        z: -1
-        Behavior on opacity { NumberAnimation { duration: 60 } }
+        x: 6; y: 2; width: parent.width - 12; height: 3; radius: 1.5
+        color: Qt.rgba(1, 1, 1, 0.16)
       }
 
-      Text {
-        visible: root.showLabels
+      // 4 Non-slip rubber feet
+      Rectangle { x: 18; y: 16; width: 14; height: 14; radius: 7; color: Qt.rgba(0, 0, 0, 0.45); border.color: Qt.rgba(0, 0, 0, 0.65); border.width: 1 }
+      Rectangle { x: parent.width - 32; y: 16; width: 14; height: 14; radius: 7; color: Qt.rgba(0, 0, 0, 0.45); border.color: Qt.rgba(0, 0, 0, 0.65); border.width: 1 }
+      Rectangle { x: 18; y: parent.height - 30; width: 14; height: 14; radius: 7; color: Qt.rgba(0, 0, 0, 0.45); border.color: Qt.rgba(0, 0, 0, 0.65); border.width: 1 }
+      Rectangle { x: parent.width - 32; y: parent.height - 30; width: 14; height: 14; radius: 7; color: Qt.rgba(0, 0, 0, 0.45); border.color: Qt.rgba(0, 0, 0, 0.65); border.width: 1 }
+    }
+
+    // 3D Recessed Flight Stick Gimbal Bowl
+    Rectangle {
+      x: 74; y: 68; width: 88; height: 88; radius: 44
+      color: Qt.rgba(0, 0, 0, 0.55)
+      border.color: Qt.rgba(0, 0, 0, 0.75)
+      border.width: 1
+
+      // Gimbal inner chamfer
+      Rectangle {
         anchors.centerIn: parent
-        text: "TRIGGER"
-        color: root.pressed(root.tables.triggerL) ? Color.popups.background : root.dimGlyph
-        font.pixelSize: 8
-        font.bold: true
-        font.family: Style.font.family
+        width: 78; height: 78; radius: 39
+        color: Qt.rgba(0, 0, 0, 0.30)
+        border.color: Qt.rgba(1, 1, 1, 0.12)
+        border.width: 1
+      }
+    }
+
+    // 3D Flight Trigger (Button 0)
+    Item {
+      x: 36; y: 52; width: 84; height: 22
+
+      // Socket recess
+      Rectangle {
+        anchors.fill: parent
+        radius: 11
+        color: Qt.rgba(0, 0, 0, 0.45)
+        border.color: Qt.rgba(0, 0, 0, 0.65)
+        border.width: 1
+      }
+
+      // Trigger blade with click depression
+      Rectangle {
+        id: jtrigBlade
+        anchors.centerIn: parent
+        // Sinks 2px down when pressed
+        anchors.verticalCenterOffset: root.pressed(root.tables.triggerL) ? 1.5 : 0
+        width: parent.width - 2
+        height: parent.height - 2
+        radius: 10
+        color: root.pressed(root.tables.triggerL) ? root.playerColor : Qt.darker(root.bodyColor, 1.15)
+        border.color: root.pressed(root.tables.triggerL) ? root.playerColor : root.bodyBorder
+        border.width: root.pressed(root.tables.triggerL) ? 1.5 : 1
+        scale: root.pressed(root.tables.triggerL) ? 0.97 : 1.0
+
+        Behavior on anchors.verticalCenterOffset { NumberAnimation { duration: 35 } }
+        Behavior on color { ColorAnimation { duration: 50 } }
+        Behavior on scale { NumberAnimation { duration: 35 } }
+
+        // Glow halo
+        Rectangle {
+          anchors.centerIn: parent
+          width: parent.width + 6
+          height: parent.height + 6
+          radius: 12
+          color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, root.pressed(root.tables.triggerL) ? 0.30 : 0)
+          border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, root.pressed(root.tables.triggerL) ? 0.70 : 0)
+          border.width: 1.5
+          opacity: root.pressed(root.tables.triggerL) ? 1.0 : 0.0
+          z: -1
+          Behavior on opacity { NumberAnimation { duration: 50 } }
+        }
+
+        // Top specular highlight
+        Rectangle {
+          x: 4; y: 1.5
+          width: parent.width - 8
+          height: 2
+          radius: 1
+          color: Qt.rgba(1, 1, 1, root.pressed(root.tables.triggerL) ? 0.40 : 0.15)
+        }
+
+        Text {
+          visible: root.showLabels
+          anchors.centerIn: parent
+          text: "TRIGGER"
+          color: root.pressed(root.tables.triggerL) ? Color.popups.background : root.glyphColor
+          font.pixelSize: 8
+          font.bold: true
+          font.family: Style.font.family
+        }
       }
     }
 
