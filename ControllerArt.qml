@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Effects
+import QtQuick.Shapes
 import qs.Commons
 import "GamepadModel.js" as GamepadModel
 
@@ -112,9 +113,9 @@ Item {
   // ------------------------------------------------------------- geometry
   // Per-layout element centers inside the 340x208 canvas.
   readonly property var geo: {
-    if (isXbox || isSwitch) return { stickL: [88, 106], stickR: [198, 140], dpad: [144, 136], face: [254, 106], bumpers: [38, 246] }
-    if (isPs) return { stickL: [134, 140], stickR: [206, 140], dpad: [80, 106], face: [260, 106], bumpers: [38, 246] }
-    return { stickL: [134, 140], stickR: [206, 140], dpad: [80, 106], face: [260, 106], bumpers: [38, 246] }
+    if (isXbox || isSwitch) return { stickL: [88, 106], stickR: [198, 140], dpad: [144, 136], face: [254, 106], bumpers: [58, 226] }
+    if (isPs) return { stickL: [134, 140], stickR: [206, 140], dpad: [88, 106], face: [254, 106], bumpers: [58, 226] }
+    return { stickL: [88, 106], stickR: [198, 140], dpad: [144, 136], face: [254, 106], bumpers: [58, 226] }
   }
 
   // ------------------------------------------------------------------ mini
@@ -194,79 +195,79 @@ Item {
     x: (root.width - 340 * root.effScale) / 2
     y: (root.height - 208 * root.effScale) / 2
 
-    // Grips (behind body)
-    Rectangle {
-      x: 18; y: 92; width: 74; height: 104; radius: 34; rotation: -14
-      color: root.bodyColor
-      border.color: root.bodyBorder
-      border.width: root.anyPress ? 1.5 : 1
-      Behavior on border.color { ColorAnimation { duration: 60 } }
+    // Unified Seamless Ergonomic Chassis (Hardware-accelerated Shape)
+    Shape {
+      anchors.fill: parent
+      layer.enabled: true
+      layer.smooth: true
 
-      // Ergonomic grip palm swell contour
-      Rectangle {
-        x: 8; y: 16; width: 44; height: 72; radius: 22
-        color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.04)
-        border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.08)
-        border.width: 1
-      }
-    }
-    Rectangle {
-      x: 248; y: 92; width: 74; height: 104; radius: 34; rotation: 14
-      color: root.bodyColor
-      border.color: root.bodyBorder
-      border.width: root.anyPress ? 1.5 : 1
-      Behavior on border.color { ColorAnimation { duration: 60 } }
-
-      // Ergonomic grip palm swell contour
-      Rectangle {
-        x: 22; y: 16; width: 44; height: 72; radius: 22
-        color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.04)
-        border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.08)
-        border.width: 1
+      ShapePath {
+        strokeWidth: root.anyPress ? 2 : 1.5
+        strokeColor: root.bodyBorder
+        fillColor: root.bodyColor
+        startX: 120; startY: 42
+        PathCubic { control1X: 140; control1Y: 44; control2X: 200; control2Y: 44; x: 220; y: 42 }
+        PathCubic { control1X: 245; control1Y: 40; control2X: 275; control2Y: 42; x: 290; y: 58 }
+        PathCubic { control1X: 305; control1Y: 74; control2X: 308; control2Y: 96; x: 304; y: 126 }
+        PathCubic { control1X: 298; control1Y: 155; control2X: 286; control2Y: 182; x: 272; y: 196 }
+        PathCubic { control1X: 260; control1Y: 206; control2X: 246; control2Y: 204; x: 234; y: 194 }
+        PathCubic { control1X: 220; control1Y: 182; control2X: 212; control2Y: 162; x: 206; y: 142 }
+        PathCubic { control1X: 202; control1Y: 134; control2X: 190; control2Y: 132; x: 170; y: 132 }
+        PathCubic { control1X: 150; control1Y: 132; control2X: 138; control2Y: 134; x: 134; y: 142 }
+        PathCubic { control1X: 128; control1Y: 162; control2X: 120; control2Y: 182; x: 106; y: 194 }
+        PathCubic { control1X: 94; control1Y: 204; control2X: 80; control2Y: 206; x: 68; y: 196 }
+        PathCubic { control1X: 54; control1Y: 182; control2X: 42; control2Y: 155; x: 36; y: 126 }
+        PathCubic { control1X: 32; control1Y: 96; control2X: 35; control2Y: 74; x: 50; y: 58 }
+        PathCubic { control1X: 65; control1Y: 42; control2X: 95; control2Y: 40; x: 120; y: 42 }
       }
     }
 
-    // Body
+    // Ergonomic grip palm swell contours (Left & Right)
     Rectangle {
-      id: body
-      x: 16; y: 44; width: 308; height: 112; radius: 44
-      color: root.bodyColor
-      border.color: root.bodyBorder
-      border.width: root.anyPress ? 1.5 : 1
-      Behavior on border.color { ColorAnimation { duration: 60 } }
-
-      // Upper chassis glass/matte bevel reflection
-      Rectangle {
-        x: 24; y: 6; width: parent.width - 48; height: 32; radius: 16
-        color: Qt.rgba(1, 1, 1, 0.035)
-        border.color: Qt.rgba(1, 1, 1, 0.06)
-        border.width: 1
-      }
-    }
-
-    // Player badge
-    Rectangle {
-      x: 8; y: 36; width: 12; height: 12; radius: 6
-      color: root.playerColor
-      border.color: root.bodyBorder
+      x: 46; y: 92; width: 42; height: 84; radius: 21; rotation: -12
+      color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.035)
+      border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.08)
       border.width: 1
+    }
+    Rectangle {
+      x: 252; y: 92; width: 42; height: 84; radius: 21; rotation: 12
+      color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.035)
+      border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.08)
+      border.width: 1
+    }
 
-      // Glowing aura around player badge
-      Rectangle {
-        anchors.centerIn: parent
-        width: 18; height: 18; radius: 9
-        color: "transparent"
-        border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.4)
-        border.width: 1.5
+    // Upper chassis matte bevel reflection
+    Rectangle {
+      x: 72; y: 48; width: 196; height: 26; radius: 13
+      color: Qt.rgba(1, 1, 1, 0.035)
+      border.color: Qt.rgba(1, 1, 1, 0.06)
+      border.width: 1
+    }
+
+    // Integrated Player Slot LEDs on lower center bridge
+    Row {
+      anchors.horizontalCenter: parent.horizontalCenter
+      y: 112
+      spacing: 5
+
+      Repeater {
+        model: 4
+        Rectangle {
+          required property int index
+          width: 5; height: 5; radius: 2.5
+          color: index === 0 ? root.playerColor : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.22)
+          border.color: index === 0 ? root.playerColor : "transparent"
+          border.width: 1
+        }
       }
     }
 
-    // ---------------- triggers (analog fill bars) + bumpers --------------
-    TrigBar { x: root.geo.bumpers[0] + 6; side: "l" }
-    TrigBar { x: root.geo.bumpers[1] + 6; side: "r" }
+    // ---------------- triggers + bumpers --------------------------------
+    TrigBar { xPos: root.geo.bumpers[0] + 4; yPos: 18; side: "l" }
+    TrigBar { xPos: root.geo.bumpers[1] + 4; yPos: 18; side: "r" }
 
-    Bumper { x: root.geo.bumpers[0]; label: root.isPs ? "L1" : root.isSwitch ? "L" : "LB"; on: root.pressed(root.tables.bumperL); artSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "l")) }
-    Bumper { x: root.geo.bumpers[1]; label: root.isPs ? "R1" : root.isSwitch ? "R" : "RB"; on: root.pressed(root.tables.bumperR); artSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "r")) }
+    Bumper { xPos: root.geo.bumpers[0]; yPos: 38; label: root.isPs ? "L1" : root.isSwitch ? "L" : "LB"; on: root.pressed(root.tables.bumperL); artSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "l")) }
+    Bumper { xPos: root.geo.bumpers[1]; yPos: 38; label: root.isPs ? "R1" : root.isSwitch ? "R" : "RB"; on: root.pressed(root.tables.bumperR); artSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "r")) }
 
     // ---------------- left stick ----------------------------------------
     Stick {
@@ -572,72 +573,64 @@ Item {
   // ------------------------------------------------------------- TrigBar
   component TrigBar : Item {
     id: trig
+    property real xPos: 0
+    property real yPos: 18
     property string side: "l"
     property string labelOverride: ""
-    // 26px analog range floats fully ABOVE the bumper shelf (Bumper y:44),
-    // so a fully depressed trigger never slides behind the shoulder button.
-    readonly property real h: 26
-    width: 18
-    height: h + 16
-    y: 0
 
-    readonly property real fillH: Math.max(0, Math.min(1, root.triggerNorm(side))) * h
+    x: xPos
+    y: yPos
+    width: 50
+    height: 16
+
+    readonly property real fillAmount: Math.max(0, Math.min(1, root.triggerNorm(side)))
 
     Rectangle {
-      x: 2; y: 16; width: 14; height: trig.h; radius: 7
+      anchors.fill: parent
+      radius: 5
       color: root.idleFill
-      border.color: trig.fillH > 0 ? root.playerColor : root.bodyBorder
-      border.width: 1
-    }
+      border.color: trig.fillAmount > 0 ? root.playerColor : root.bodyBorder
+      border.width: trig.fillAmount > 0 ? 1.5 : 1
 
-    // Glow halo aura around active trigger fill
-    Rectangle {
-      x: 0; y: 14; width: 18; height: trig.h + 4; radius: 9
-      color: "transparent"
-      border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, trig.fillH > 0 ? 0.45 * (trig.fillH / trig.h) : 0)
-      border.width: 2
-      opacity: trig.fillH > 0 ? 1.0 : 0.0
-      Behavior on opacity { NumberAnimation { duration: 40 } }
-    }
+      // Analog Fill Level
+      Rectangle {
+        x: 2; y: 2
+        width: Math.max(0, (parent.width - 4) * trig.fillAmount)
+        height: parent.height - 4
+        radius: 3
+        color: root.playerColor
+        opacity: trig.fillAmount > 0 ? 0.75 : 0.0
+        Behavior on opacity { NumberAnimation { duration: 40 } }
+      }
 
-    // Trigger fill bar
-    Rectangle {
-      x: 2
-      y: 16 + (trig.h - trig.fillH)
-      width: 14
-      height: trig.fillH
-      radius: 7
-      color: root.playerColor
-      opacity: trig.fillH > 0 ? 0.9 : 0
-      Behavior on y { NumberAnimation { duration: 40 } }
-      Behavior on height { NumberAnimation { duration: 40 } }
-    }
-
-    Text {
-      visible: root.showLabels
-      anchors.horizontalCenter: parent.horizontalCenter
-      y: 1
-      text: trig.labelOverride !== "" ? trig.labelOverride
-           : root.isPs ? (trig.side === "l" ? "L2" : "R2")
-           : root.isSwitch ? (trig.side === "l" ? "ZL" : "ZR")
-           : (trig.side === "l" ? "LT" : "RT")
-      color: trig.fillH > 0 ? root.playerColor : root.dimGlyph
-      font.pixelSize: 8
-      font.family: Style.font.family
+      Text {
+        anchors.centerIn: parent
+        text: trig.labelOverride !== "" ? trig.labelOverride
+             : root.isPs ? (trig.side === "l" ? "L2" : "R2")
+             : root.isSwitch ? (trig.side === "l" ? "ZL" : "ZR")
+             : (trig.side === "l" ? "LT" : "RT")
+        color: trig.fillAmount > 0.4 ? Color.popups.background : root.dimGlyph
+        font.pixelSize: 8
+        font.bold: true
+        font.family: Style.font.family
+      }
     }
   }
 
   // -------------------------------------------------------------- Bumper
   component Bumper : Rectangle {
     id: bump
+    property real xPos: 0
+    property real yPos: 38
     property bool on: false
     property string label: ""
-    property string artSource: ""        // kenney shoulder-cap URL ("" = text)
-    // Sits on the body's top shelf; triggers float above it (no overlap).
-    y: 44
-    width: 66
+    property string artSource: ""
+
+    x: xPos
+    y: yPos
+    width: 58
     height: 16
-    radius: 8
+    radius: 6
     color: on ? root.playerColor : root.idleFill
     border.color: on ? root.playerColor : root.bodyBorder
     border.width: on ? 2 : 1
@@ -648,9 +641,9 @@ Item {
     // Glow halo drop-shadow
     Rectangle {
       anchors.centerIn: parent
-      width: parent.width + 8
-      height: parent.height + 8
-      radius: 10
+      width: parent.width + 6
+      height: parent.height + 6
+      radius: 8
       color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, bump.on ? 0.22 : 0)
       border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, bump.on ? 0.6 : 0)
       border.width: 2
@@ -659,7 +652,6 @@ Item {
       Behavior on opacity { NumberAnimation { duration: 60 } }
     }
 
-    // Kenney shoulder-cap art (tinted; press swaps to the contrast color).
     Image {
       visible: bump.artSource !== ""
       anchors.fill: parent
@@ -838,12 +830,44 @@ Item {
     width: 56
     height: 56
 
-    // Center pivot plate
+    // Circular recessed dish
     Rectangle {
-      x: 18; y: 18; width: 20; height: 20
+      anchors.centerIn: parent
+      width: 52
+      height: 52
+      radius: 26
+      color: Qt.rgba(0, 0, 0, 0.22)
+      border.color: root.bodyBorder
+      border.width: 1
+    }
+
+    // Unified cross body bars
+    Rectangle {
+      anchors.centerIn: parent
+      width: 18
+      height: 48
       radius: 4
       color: root.idleFill
       border.color: root.bodyBorder
+      border.width: 1
+    }
+    Rectangle {
+      anchors.centerIn: parent
+      width: 48
+      height: 18
+      radius: 4
+      color: root.idleFill
+      border.color: root.bodyBorder
+      border.width: 1
+    }
+    // Center pivot disc
+    Rectangle {
+      anchors.centerIn: parent
+      width: 14
+      height: 14
+      radius: 7
+      color: root.idleFill
+      border.color: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.5)
       border.width: 1
     }
 
@@ -862,12 +886,12 @@ Item {
     width: 18
     height: 18
     radius: 4
-    x: arm === "left" ? 0 : arm === "right" ? 38 : 19
-    y: arm === "up" ? 0 : arm === "down" ? 38 : 19
+    x: arm === "left" ? 4 : arm === "right" ? 34 : 19
+    y: arm === "up" ? 4 : arm === "down" ? 34 : 19
     rotation: 0
-    color: on ? arm.accent : root.idleFill
-    border.color: on ? arm.accent : root.bodyBorder
-    border.width: on ? 2 : 1
+    color: on ? arm.accent : "transparent"
+    border.color: on ? arm.accent : "transparent"
+    border.width: on ? 2 : 0
     scale: on ? 1.08 : 1.0
     Behavior on color { ColorAnimation { duration: 60 } }
     Behavior on scale { NumberAnimation { duration: 60 } }
@@ -888,10 +912,11 @@ Item {
 
     // Directional chevron indicator
     Text {
+      visible: root.showLabels
       anchors.centerIn: parent
       text: arm.arm === "up" ? "▲" : arm.arm === "down" ? "▼" : arm.arm === "left" ? "◀" : "▶"
-      color: arm.on ? Color.popups.background : root.dimGlyph
-      font.pixelSize: 8
+      color: arm.on ? Color.popups.background : root.glyphColor
+      font.pixelSize: 9
       font.bold: true
       font.family: Style.font.family
     }
@@ -909,8 +934,9 @@ Item {
     property string artSource: ""
     property bool on: false
 
-    // Canonical button colors for Xbox:
-    // Y=yellow (#F1C40F), A=green (#2ECC71), X=blue (#3498DB), B=red (#E74C3C)
+    // Canonical button colors:
+    // Xbox: Y=yellow (#F1C40F), A=green (#2ECC71), X=blue (#3498DB), B=red (#E74C3C)
+    // PS: △=emerald (#40E2A0), ×=blue/purple (#7C66E8), □=pink (#FF69F8), ○=red (#F34545)
     readonly property color buttonAccent: {
       if (root.isXbox) {
         if (fb.pos === "top") return "#F1C40F"
@@ -918,24 +944,30 @@ Item {
         if (fb.pos === "left") return "#3498DB"
         if (fb.pos === "right") return "#E74C3C"
       }
+      if (root.isPs) {
+        if (fb.pos === "top") return "#40E2A0"
+        if (fb.pos === "bottom") return "#7C66E8"
+        if (fb.pos === "left") return "#FF69F8"
+        if (fb.pos === "right") return "#F34545"
+      }
       return root.playerColor
     }
 
-    x: cx - 12
-    y: cy - 12
-    width: 24
-    height: 24
+    x: cx - 13
+    y: cy - 13
+    width: 26
+    height: 26
     scale: on ? 1.15 : 1.0
     Behavior on scale { NumberAnimation { duration: 50 } }
 
     // Soft base plate behind the cap
     Rectangle {
       anchors.fill: parent
-      radius: 12
+      radius: 13
       color: fb.on
         ? Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.35)
-        : (root.isXbox ? Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.12) : root.idleFill)
-      border.color: fb.on ? fb.buttonAccent : (root.isXbox ? Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.4) : "transparent")
+        : ((root.isXbox || root.isPs) ? Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.14) : root.idleFill)
+      border.color: fb.on ? fb.buttonAccent : ((root.isXbox || root.isPs) ? Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.5) : root.bodyBorder)
       border.width: fb.on ? 2 : 1
       Behavior on color { ColorAnimation { duration: 50 } }
       Behavior on border.color { ColorAnimation { duration: 50 } }
@@ -974,12 +1006,12 @@ Item {
       }
     }
 
-    // Fallback label text (Switch / generic)
+    // Fallback label text (Switch / generic / when art unavailable)
     Text {
-      visible: fb.artSource === "" && root.showLabels
+      visible: (fb.artSource === "" || capImg.status !== Image.Ready) && root.showLabels
       anchors.centerIn: parent
       text: fb.label
-      color: fb.on ? Color.popups.background : root.glyphColor
+      color: fb.on ? Color.popups.background : (root.isXbox || root.isPs ? fb.buttonAccent : root.glyphColor)
       font.pixelSize: 11
       font.bold: true
       font.family: Style.font.family

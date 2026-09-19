@@ -452,12 +452,11 @@ Panel {
           ControllerArt {
             anchors.horizontalCenter: parent.horizontalCenter
             mini: false
-            layout: "generic"
-            playerColor: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.3)
-            width: Style.space(200)
-            height: Style.space(120)
-            scale: 200 / 340
-            showLabels: false
+            layout: "xbox"
+            playerColor: Color.accent
+            width: Style.space(270)
+            height: Style.space(165)
+            showLabels: true
           }
 
           Text {
