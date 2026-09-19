@@ -199,7 +199,91 @@ Item {
     x: (root.width - 340 * root.effScale) / 2
     y: (root.height - 208 * root.effScale) / 2
 
-    // Unified Seamless Ergonomic Chassis (Hardware-accelerated Shape)
+    // 1. Layer 0: Deep Ambient Drop Shadow (Soft depth cast onto deck card)
+    Shape {
+      anchors.fill: parent
+      anchors.topMargin: 8
+      layer.enabled: true
+      layer.smooth: true
+      opacity: 0.36
+
+      ShapePath {
+        strokeWidth: 0
+        fillColor: "#000000"
+        startX: 122; startY: 46
+        PathCubic { control1X: 142; control1Y: 48; control2X: 198; control2Y: 48; x: 218; y: 46 }
+        PathCubic { control1X: 236; control1Y: 45; control2X: 262; control2Y: 48; x: 280; y: 58 }
+        PathCubic { control1X: 300; control1Y: 70; control2X: 308; control2Y: 92; x: 308; y: 120 }
+        PathCubic { control1X: 308; control1Y: 150; control2X: 298; control2Y: 178; x: 280; y: 196 }
+        PathCubic { control1X: 270; control1Y: 204; control2X: 254; control2Y: 202; x: 242; y: 194 }
+        PathCubic { control1X: 226; control1Y: 184; control2X: 214; control2Y: 176; x: 204; y: 168 }
+        PathCubic { control1X: 194; control1Y: 160; control2X: 182; control2Y: 158; x: 170; y: 158 }
+        PathCubic { control1X: 158; control1Y: 158; control2X: 146; control2Y: 160; x: 136; y: 168 }
+        PathCubic { control1X: 126; control1Y: 176; control2X: 114; control2Y: 184; x: 98; y: 194 }
+        PathCubic { control1X: 86; control1Y: 202; control2X: 70; control2Y: 204; x: 60; y: 196 }
+        PathCubic { control1X: 42; control1Y: 178; control2X: 32; control2Y: 150; x: 32; y: 120 }
+        PathCubic { control1X: 32; control1Y: 92; control2X: 40; control2Y: 70; x: 60; y: 58 }
+        PathCubic { control1X: 78; control1Y: 48; control2X: 104; control2Y: 45; x: 122; y: 46 }
+      }
+    }
+
+    // 2. Layer 1: Contact Drop Shadow (Tighter ground-plane proximity)
+    Shape {
+      anchors.fill: parent
+      anchors.topMargin: 4
+      layer.enabled: true
+      layer.smooth: true
+      opacity: 0.28
+
+      ShapePath {
+        strokeWidth: 0
+        fillColor: "#000000"
+        startX: 122; startY: 46
+        PathCubic { control1X: 142; control1Y: 48; control2X: 198; control2Y: 48; x: 218; y: 46 }
+        PathCubic { control1X: 236; control1Y: 45; control2X: 262; control2Y: 48; x: 280; y: 58 }
+        PathCubic { control1X: 300; control1Y: 70; control2X: 308; control2Y: 92; x: 308; y: 120 }
+        PathCubic { control1X: 308; control1Y: 150; control2X: 298; control2Y: 178; x: 280; y: 196 }
+        PathCubic { control1X: 270; control1Y: 204; control2X: 254; control2Y: 202; x: 242; y: 194 }
+        PathCubic { control1X: 226; control1Y: 184; control2X: 214; control2Y: 176; x: 204; y: 168 }
+        PathCubic { control1X: 194; control1Y: 160; control2X: 182; control2Y: 158; x: 170; y: 158 }
+        PathCubic { control1X: 158; control1Y: 158; control2X: 146; control2Y: 160; x: 136; y: 168 }
+        PathCubic { control1X: 126; control1Y: 176; control2X: 114; control2Y: 184; x: 98; y: 194 }
+        PathCubic { control1X: 86; control1Y: 202; control2X: 70; control2Y: 204; x: 60; y: 196 }
+        PathCubic { control1X: 42; control1Y: 178; control2X: 32; control2Y: 150; x: 32; y: 120 }
+        PathCubic { control1X: 32; control1Y: 92; control2X: 40; control2Y: 70; x: 60; y: 58 }
+        PathCubic { control1X: 78; control1Y: 48; control2X: 104; control2Y: 45; x: 122; y: 46 }
+      }
+    }
+
+    // 3. Layer 2: 3D Lower Hull Clamshell Extrusion (Molded underside visible at bottom horns)
+    Shape {
+      anchors.fill: parent
+      anchors.topMargin: 4.5
+      layer.enabled: true
+      layer.smooth: true
+
+      ShapePath {
+        strokeWidth: 1.5
+        strokeColor: Qt.rgba(0, 0, 0, 0.70)
+        fillColor: Qt.darker(root.bodyColor, 1.45)
+        startX: 122; startY: 46
+        PathCubic { control1X: 142; control1Y: 48; control2X: 198; control2Y: 48; x: 218; y: 46 }
+        PathCubic { control1X: 236; control1Y: 45; control2X: 262; control2Y: 48; x: 280; y: 58 }
+        PathCubic { control1X: 300; control1Y: 70; control2X: 308; control2Y: 92; x: 308; y: 120 }
+        PathCubic { control1X: 308; control1Y: 150; control2X: 298; control2Y: 178; x: 280; y: 196 }
+        PathCubic { control1X: 270; control1Y: 204; control2X: 254; control2Y: 202; x: 242; y: 194 }
+        PathCubic { control1X: 226; control1Y: 184; control2X: 214; control2Y: 176; x: 204; y: 168 }
+        PathCubic { control1X: 194; control1Y: 160; control2X: 182; control2Y: 158; x: 170; y: 158 }
+        PathCubic { control1X: 158; control1Y: 158; control2X: 146; control2Y: 160; x: 136; y: 168 }
+        PathCubic { control1X: 126; control1Y: 176; control2X: 114; control2Y: 184; x: 98; y: 194 }
+        PathCubic { control1X: 86; control1Y: 202; control2X: 70; control2Y: 204; x: 60; y: 196 }
+        PathCubic { control1X: 42; control1Y: 178; control2X: 32; control2Y: 150; x: 32; y: 120 }
+        PathCubic { control1X: 32; control1Y: 92; control2X: 40; control2Y: 70; x: 60; y: 58 }
+        PathCubic { control1X: 78; control1Y: 48; control2X: 104; control2Y: 45; x: 122; y: 46 }
+      }
+    }
+
+    // 4. Layer 3: Top Deck Plate
     Shape {
       anchors.fill: parent
       layer.enabled: true
@@ -226,26 +310,125 @@ Item {
       }
     }
 
-    // Ergonomic grip palm swell contours (Left & Right)
-    Rectangle {
-      x: 48; y: 96; width: 36; height: 72; radius: 18; rotation: -20
-      color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.03)
-      border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.06)
-      border.width: 1
+    // 5. Layer 4: Upper Shoulder Specular Crest Curve (Curved rim highlight)
+    Shape {
+      anchors.fill: parent
+      layer.enabled: true
+      layer.smooth: true
+
+      ShapePath {
+        strokeWidth: 2
+        strokeColor: Qt.rgba(1, 1, 1, 0.16)
+        fillColor: "transparent"
+        capStyle: ShapePath.RoundCap
+        startX: 56; startY: 62
+        PathCubic { control1X: 78; control1Y: 48; control2X: 104; control2Y: 45; x: 122; y: 46 }
+        PathCubic { control1X: 142; control1Y: 48; control2X: 198; control2Y: 48; x: 218; y: 46 }
+        PathCubic { control1X: 236; control1Y: 45; control2X: 262; control2Y: 48; x: 284; y: 62 }
+      }
     }
-    Rectangle {
-      x: 256; y: 96; width: 36; height: 72; radius: 18; rotation: 20
-      color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.03)
-      border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.06)
-      border.width: 1
+
+    // 6. Sculpted 3D Ergonomic Palm Swells (Left & Right)
+    // Left Palm Swell
+    Item {
+      x: 44; y: 92
+      width: 44; height: 80
+      rotation: -20
+      transformOrigin: Item.Center
+
+      // Drop shadow behind grip pad
+      Rectangle {
+        x: 2; y: 3; width: parent.width; height: parent.height; radius: 22
+        color: Qt.rgba(0, 0, 0, 0.35)
+      }
+      // Matte textured rubber pad
+      Rectangle {
+        anchors.fill: parent; radius: 22
+        color: Qt.rgba(0, 0, 0, 0.30)
+        border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.12)
+        border.width: 1
+
+        // Tactile micro-ribbing (5 horizontal grip ridges)
+        Repeater {
+          model: 5
+          Item {
+            x: 6
+            y: 18 + index * 9
+            width: parent.width - 12
+            height: 2
+
+            Rectangle {
+              x: 0; y: 0; width: parent.width; height: 1
+              color: Qt.rgba(1, 1, 1, 0.08)
+            }
+            Rectangle {
+              x: 0; y: 1; width: parent.width; height: 1
+              color: Qt.rgba(0, 0, 0, 0.40)
+            }
+          }
+        }
+
+        // Outer curvature specular catch-light
+        Rectangle {
+          x: 2; y: 8; width: 2.5; height: parent.height - 16; radius: 1.25
+          color: Qt.rgba(1, 1, 1, 0.14)
+        }
+      }
+    }
+
+    // Right Palm Swell
+    Item {
+      x: 252; y: 92
+      width: 44; height: 80
+      rotation: 20
+      transformOrigin: Item.Center
+
+      // Drop shadow behind grip pad
+      Rectangle {
+        x: -2; y: 3; width: parent.width; height: parent.height; radius: 22
+        color: Qt.rgba(0, 0, 0, 0.35)
+      }
+      // Matte textured rubber pad
+      Rectangle {
+        anchors.fill: parent; radius: 22
+        color: Qt.rgba(0, 0, 0, 0.30)
+        border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.12)
+        border.width: 1
+
+        // Tactile micro-ribbing (5 horizontal grip ridges)
+        Repeater {
+          model: 5
+          Item {
+            x: 6
+            y: 18 + index * 9
+            width: parent.width - 12
+            height: 2
+
+            Rectangle {
+              x: 0; y: 0; width: parent.width; height: 1
+              color: Qt.rgba(1, 1, 1, 0.08)
+            }
+            Rectangle {
+              x: 0; y: 1; width: parent.width; height: 1
+              color: Qt.rgba(0, 0, 0, 0.40)
+            }
+          }
+        }
+
+        // Outer curvature specular catch-light
+        Rectangle {
+          x: parent.width - 4.5; y: 8; width: 2.5; height: parent.height - 16; radius: 1.25
+          color: Qt.rgba(1, 1, 1, 0.14)
+        }
+      }
     }
 
     // Upper chassis matte bevel reflection
     Rectangle {
       visible: !root.isPs
-      x: 80; y: 52; width: 180; height: 22; radius: 11
-      color: Qt.rgba(1, 1, 1, 0.03)
-      border.color: Qt.rgba(1, 1, 1, 0.05)
+      x: 80; y: 52; width: 180; height: 20; radius: 10
+      color: Qt.rgba(1, 1, 1, 0.04)
+      border.color: Qt.rgba(1, 1, 1, 0.06)
       border.width: 1
     }
 
@@ -337,6 +520,17 @@ Item {
         width: 82
         height: 38
 
+        // Recessed chassis well socket
+        Rectangle {
+          anchors.centerIn: parent
+          width: parent.width + 2
+          height: parent.height + 2
+          radius: 10
+          color: Qt.rgba(0, 0, 0, 0.45)
+          border.color: Qt.rgba(0, 0, 0, 0.65)
+          border.width: 1
+        }
+
         // DualSense Lightbar halo glow
         Rectangle {
           anchors.centerIn: parent
@@ -360,19 +554,39 @@ Item {
           border.width: 1.5
         }
 
-        // DualSense Touchpad surface
+        // 3D Touchpad surface
         Rectangle {
           id: psTouchpad
           anchors.centerIn: parent
+          // Tactile click depression: sinks 1.5px into socket on click
+          y: root.pressed(root.tables.centerExtra) ? 4.5 : 3
           width: 76
           height: 32
           radius: 7
           color: root.pressed(root.tables.centerExtra)
             ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.3)
-            : root.idleFill
+            : Qt.rgba(root.bodyColor.r, root.bodyColor.g, root.bodyColor.b, 0.90)
           border.color: root.pressed(root.tables.centerExtra) ? root.playerColor : root.bodyBorder
           border.width: root.pressed(root.tables.centerExtra) ? 2 : 1
           Behavior on color { ColorAnimation { duration: 50 } }
+          Behavior on y { NumberAnimation { duration: 40 } }
+
+          // Top chamfer specular highlight
+          Rectangle {
+            x: 4; y: 1
+            width: parent.width - 8
+            height: 2
+            radius: 1
+            color: Qt.rgba(1, 1, 1, 0.20)
+          }
+
+          // Bottom shadow seam
+          Rectangle {
+            x: 4; y: parent.height - 2
+            width: parent.width - 8
+            height: 1
+            color: Qt.rgba(0, 0, 0, 0.50)
+          }
 
           // Touchpad click indicator / glowing center dot
           Rectangle {
@@ -593,7 +807,7 @@ Item {
     id: su
     property string side: "l" // "l" or "r"
     property real xPos: 0
-    property real yPos: 12
+    property real yPos: 18
     property string trigLabel: ""
     property string bumpLabel: ""
     property string bumpArtSource: ""
@@ -603,35 +817,95 @@ Item {
     x: xPos
     y: yPos
     width: 58
-    height: 42
+    height: 44
 
-    // 1. Recessed Trigger Well (The Grounding Cavity)
-    // Dark mechanical chamber socket physically embedded into the chassis shoulder
-    Rectangle {
+    // 1. Chassis Docking Cradle (Physical socket embedded into gamepad shoulder)
+    // Anchors into the curved top contour of the controller hull, eliminating floating box frames.
+    Item {
       anchors.fill: parent
-      radius: 6
-      color: Qt.rgba(0, 0, 0, 0.45)
-      border.color: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.45)
-      border.width: 1
 
-      // Inner cavity depth shadow
+      // Internal chassis guide pins extending directly into the hull plate
       Rectangle {
-        anchors.fill: parent
-        anchors.margins: 1
-        radius: 5
-        color: "transparent"
-        border.color: Qt.rgba(0, 0, 0, 0.65)
-        border.width: 1
+        x: su.side === "l" ? 8 : parent.width - 12
+        y: 22
+        width: 3
+        height: 24
+        radius: 1.5
+        color: Qt.rgba(0, 0, 0, 0.75)
+      }
+      Rectangle {
+        x: su.side === "l" ? parent.width - 12 : 8
+        y: 22
+        width: 3
+        height: 24
+        radius: 1.5
+        color: Qt.rgba(0, 0, 0, 0.75)
       }
     }
 
-    // 2. 2.5D Wireframe Travel Rail & Graduation Scale (Outer Flank)
+    // 2. 2.5D Mechanical Hinge Pivot (Inner Corner)
+    // Exploded engineering schematic pivot axle with concentric bearing rings
+    Item {
+      id: hingePivot
+      x: su.side === "l" ? parent.width - 10 : 3
+      y: 4
+      width: 8
+      height: 8
+
+      // Outer bearing race
+      Rectangle {
+        anchors.centerIn: parent
+        width: 7
+        height: 7
+        radius: 3.5
+        color: "transparent"
+        border.color: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.50)
+        border.width: 1
+      }
+      // Inner axle pin
+      Rectangle {
+        anchors.centerIn: parent
+        width: 2.5
+        height: 2.5
+        radius: 1.25
+        color: su.fillAmount > 0.05 ? root.playerColor : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.60)
+      }
+    }
+
+    // 3. 2.5D Dynamic Mechanical Compression Spring
+    // Visibly compresses dynamically as the trigger blade is pulled!
+    Shape {
+      x: su.side === "l" ? 12 : parent.width - 18
+      y: 8 + su.fillAmount * 4.0
+      width: 6
+      height: Math.max(4, 12 - su.fillAmount * 5.0)
+      layer.enabled: true
+      layer.smooth: true
+
+      ShapePath {
+        strokeWidth: 1
+        strokeColor: su.fillAmount > 0.05
+          ? root.playerColor
+          : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.40)
+        fillColor: "transparent"
+        capStyle: ShapePath.RoundCap
+        joinStyle: ShapePath.RoundJoin
+
+        startX: 3; startY: 0
+        PathLine { x: 0; y: parent.height * 0.25 }
+        PathLine { x: 6; y: parent.height * 0.50 }
+        PathLine { x: 0; y: parent.height * 0.75 }
+        PathLine { x: 3; y: parent.height }
+      }
+    }
+
+    // 4. 2.5D Wireframe Travel Rail & Graduation Scale (Outer Flank)
     Item {
       id: wireRail
-      x: su.side === "l" ? 3 : parent.width - 7
+      x: su.side === "l" ? 2 : parent.width - 6
       y: 2
       width: 5
-      height: 20
+      height: 22
 
       // Vertical guide rail
       Rectangle {
@@ -642,7 +916,7 @@ Item {
         color: Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.35)
       }
 
-      // 0% rest tick
+      // 0% rest tick (0mm)
       Rectangle {
         x: su.side === "l" ? 0 : parent.width - 4
         y: 2
@@ -651,69 +925,63 @@ Item {
         color: Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.50)
       }
 
-      // 50% travel tick
+      // 50% travel tick (4.5mm)
       Rectangle {
         x: su.side === "l" ? 0 : parent.width - 3
-        y: 9
+        y: 10
         width: 3
         height: 1
-        color: Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.35)
+        color: su.fillAmount > 0.45 ? root.playerColor : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.35)
       }
 
-      // 100% full-pull tick
+      // 100% full-pull tick (9mm)
       Rectangle {
         x: su.side === "l" ? 0 : parent.width - 4
-        y: 16
+        y: 18
         width: 4
         height: 1
-        color: su.fillAmount > 0.85
-          ? root.playerColor
-          : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.50)
+        color: su.fillAmount > 0.85 ? root.playerColor : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.50)
+      }
+
+      // Dynamic 2.5D Traveling Position Chevron
+      Rectangle {
+        x: su.side === "l" ? 1 : parent.width - 5
+        y: 2 + su.fillAmount * 16.0
+        width: 4
+        height: 2
+        radius: 1
+        color: su.fillAmount > 0.05 ? root.playerColor : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.40)
+        Behavior on y { NumberAnimation { duration: 30 } }
       }
     }
 
-    // 3. Mechanical Pivot Pin / Crosshair (Inner Hinge Corner)
-    Item {
-      x: su.side === "l" ? parent.width - 10 : 3
-      y: 3
-      width: 7
-      height: 7
-
-      Rectangle {
-        anchors.centerIn: parent
-        width: 5
-        height: 5
-        radius: 2.5
-        color: "transparent"
-        border.color: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.45)
-        border.width: 1
-      }
-      Rectangle {
-        anchors.centerIn: parent
-        width: 1.5
-        height: 1.5
-        radius: 0.75
-        color: Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.50)
-      }
-    }
-
-    // 4. 2.5D Trigger Blade (Pivots downward behind the bumper when pulled)
+    // 5. 2.5D Mechanical Trigger Blade (Pivots downward behind bumper into housing)
     Rectangle {
       id: trigBlade
-      x: 6
-      // Mechanical 2.5D travel depression: sinks 4px into well when pulled
-      y: 1 + su.fillAmount * 4.0
-      width: parent.width - 12
-      height: 20
+      x: su.side === "l" ? 8 : 6
+      // Mechanical 2.5D travel depression: sinks 5px into housing when pulled
+      y: 1 + su.fillAmount * 5.0
+      width: parent.width - 14
+      height: 21
       radius: 4
       color: su.fillAmount > 0.05
-        ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.24)
-        : root.idleFill
+        ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.28)
+        : Qt.darker(root.bodyColor, 1.25)
       border.color: su.fillAmount > 0.05 ? root.playerColor : root.bodyBorder
       border.width: su.fillAmount > 0.05 ? 1.5 : 1
 
-      Behavior on y { NumberAnimation { duration: 45 } }
+      Behavior on y { NumberAnimation { duration: 40 } }
       Behavior on color { ColorAnimation { duration: 50 } }
+
+      // 2.5D Isometric Sidewall Facet (Gives physical depth to the trigger edge)
+      Rectangle {
+        x: su.side === "l" ? 0 : parent.width - 3
+        y: 0
+        width: 3
+        height: parent.height
+        radius: 2
+        color: Qt.rgba(0, 0, 0, 0.35)
+      }
 
       // 2.5D Top Crown Bevel (Reflective Upper Ridge)
       Rectangle {
@@ -721,21 +989,21 @@ Item {
         width: parent.width - 4
         height: 2.5
         radius: 1.5
-        color: Qt.rgba(1, 1, 1, su.fillAmount > 0.05 ? 0.28 : 0.09)
+        color: Qt.rgba(1, 1, 1, su.fillAmount > 0.05 ? 0.35 : 0.12)
       }
 
-      // 3 Tactile Grip Ribs (Wireframe Engineering Detail)
+      // 3 Tactile Knurled Grip Ribs
       Repeater {
         model: 3
         Rectangle {
           required property int index
-          x: 6
+          x: 5
           y: 5 + index * 3
-          width: parent.width - 12
+          width: parent.width - 10
           height: 1
           color: su.fillAmount > 0.05
             ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.45)
-            : Qt.rgba(1, 1, 1, 0.07)
+            : Qt.rgba(1, 1, 1, 0.08)
         }
       }
 
@@ -747,7 +1015,7 @@ Item {
         radius: 1
         color: root.playerColor
         visible: su.fillAmount > 0.02
-        opacity: 0.90
+        opacity: 0.95
       }
 
       // Trigger Label
@@ -762,51 +1030,53 @@ Item {
       }
     }
 
-    // 5. 2.5D Bumper Plate (Seated directly onto the chassis shoulder)
+    // 6. 2.5D Sculpted Ergonomic Bumper (LB / RB / L1 / R1)
+    // Seated directly on the chassis shoulder with contoured corners and specular highlight
     Rectangle {
       id: bumperPlate
       x: 0
-      // Mechanical click depression: sinks 1.5px into housing when pressed
-      y: su.bumpOn ? 20.5 : 19
+      // Mechanical click depression: sinks 2px into chassis socket when pressed
+      y: su.bumpOn ? 23.5 : 21.5
       width: parent.width
-      height: 22
-      radius: 5
-      color: su.bumpOn ? root.playerColor : root.idleFill
+      height: 20
+      // Outer corner is rounded to match the controller shoulder curvature
+      radius: 6
+      color: su.bumpOn ? root.playerColor : Qt.darker(root.bodyColor, 1.12)
       border.color: su.bumpOn ? root.playerColor : root.bodyBorder
       border.width: su.bumpOn ? 1.5 : 1
 
-      Behavior on y { NumberAnimation { duration: 40 } }
-      Behavior on color { ColorAnimation { duration: 60 } }
+      Behavior on y { NumberAnimation { duration: 35 } }
+      Behavior on color { ColorAnimation { duration: 50 } }
 
       // 2.5D Bumper Glow Halo on Press
       Rectangle {
         anchors.centerIn: parent
         width: parent.width + 6
         height: parent.height + 6
-        radius: 7
-        color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.25 : 0)
-        border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.65 : 0)
+        radius: 8
+        color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.30 : 0)
+        border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.70 : 0)
         border.width: 1.5
         opacity: su.bumpOn ? 1.0 : 0.0
         z: -1
-        Behavior on opacity { NumberAnimation { duration: 60 } }
+        Behavior on opacity { NumberAnimation { duration: 50 } }
       }
 
-      // 2.5D Top Highlight Bevel (Upper edge thickness)
+      // 2.5D Top Highlight Bevel (Specular upper edge)
       Rectangle {
         x: 3; y: 1
         width: parent.width - 6
         height: 2
         radius: 1
-        color: su.bumpOn ? Qt.rgba(1, 1, 1, 0.40) : Qt.rgba(1, 1, 1, 0.12)
+        color: su.bumpOn ? Qt.rgba(1, 1, 1, 0.45) : Qt.rgba(1, 1, 1, 0.16)
       }
 
-      // Technical Seam Line (engineered partition joint with chassis)
+      // Parting Seam Line (engineered partition joint with chassis)
       Rectangle {
         x: 0; y: parent.height - 1
         width: parent.width
         height: 1
-        color: Qt.rgba(0, 0, 0, 0.50)
+        color: Qt.rgba(0, 0, 0, 0.60)
       }
 
       // Cap Art SVG (if provided)
@@ -836,25 +1106,42 @@ Item {
       }
     }
 
-    // 6. 2.5D Wireframe Structural Flank Anchor (Binds housing to grip contour)
+    // 7. Structural 2.5D Wireframe Truss Anchors (Physical chassis lock)
+    // Connects hinge and outer guide rail directly into the chassis body
     Shape {
       anchors.fill: parent
-      visible: true
+      layer.enabled: true
+      layer.smooth: true
 
       ShapePath {
         strokeWidth: 1
-        strokeColor: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.40)
+        strokeColor: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.45)
         fillColor: "transparent"
 
-        startX: su.side === "l" ? 0 : su.width
-        startY: 14
+        // Outer contour guide trace
+        startX: su.side === "l" ? 1 : su.width - 1
+        startY: 12
         PathLine {
-          x: su.side === "l" ? 0 : su.width
+          x: su.side === "l" ? 1 : su.width - 1
           y: 40
         }
         PathLine {
-          x: su.side === "l" ? -4 : su.width + 4
-          y: 44
+          x: su.side === "l" ? -3 : su.width + 3
+          y: 46
+        }
+      }
+
+      // Inner structural anchor trace to chassis center bridge
+      ShapePath {
+        strokeWidth: 1
+        strokeColor: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.30)
+        fillColor: "transparent"
+
+        startX: su.side === "l" ? su.width - 6 : 6
+        startY: 20
+        PathLine {
+          x: su.side === "l" ? su.width - 2 : 2
+          y: 42
         }
       }
     }
@@ -980,31 +1267,64 @@ Item {
     property bool on: false
     property color accent: root.playerColor
 
-    x: cx - 25
-    y: cy - 25
-    width: 50
-    height: 50
+    x: cx - 26
+    y: cy - 26
+    width: 52
+    height: 52
 
     readonly property var corrected: GamepadModel.applyStickDeadzone(rawX, rawY, dz)
     readonly property real dispDist: Math.sqrt(corrected.x * corrected.x + corrected.y * corrected.y) * 18
     readonly property real dispAngle: Math.atan2(corrected.y, corrected.x) * 180 / Math.PI
 
-    // Base ring
+    // 1. Recessed Spherical Gimbal Well Socket
+    // Outer chassis chamfer bezel ring
     Rectangle {
       anchors.centerIn: parent
-      width: 44; height: 44; radius: 22
-      color: root.idleFill
-      border.color: st.on ? st.accent : (st.dispDist > 1 ? Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.4) : root.bodyBorder)
+      width: 50; height: 50; radius: 25
+      color: "transparent"
+      border.color: Qt.rgba(0, 0, 0, 0.65)
+      border.width: 1
+
+      // Top-left chamfer highlight
+      Rectangle {
+        x: 4; y: 2
+        width: 22; height: 2; radius: 1
+        color: Qt.rgba(1, 1, 1, 0.18)
+      }
+    }
+
+    // Deep spherical cavity (concentric depth rings)
+    Rectangle {
+      anchors.centerIn: parent
+      width: 46; height: 46; radius: 23
+      color: Qt.rgba(0, 0, 0, 0.65)
+      border.color: st.on ? st.accent : (st.dispDist > 1 ? Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.45) : Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.50))
       border.width: st.on ? 2 : 1
 
-      // Glow halo when L3/R3 clicked
+      // Mid bowl depth ring
+      Rectangle {
+        anchors.centerIn: parent
+        width: 36; height: 36; radius: 18
+        color: Qt.rgba(0, 0, 0, 0.35)
+        border.color: Qt.rgba(0, 0, 0, 0.55)
+        border.width: 1
+      }
+
+      // Gimbal base socket floor
+      Rectangle {
+        anchors.centerIn: parent
+        width: 24; height: 24; radius: 12
+        color: Qt.rgba(0, 0, 0, 0.25)
+      }
+
+      // L3/R3 Click Glow Halo
       Rectangle {
         anchors.centerIn: parent
         width: parent.width + 6
         height: parent.height + 6
         radius: width / 2
-        color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.25 : 0)
-        border.color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.6 : 0)
+        color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.30 : 0)
+        border.color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.70 : 0)
         border.width: 2
         opacity: st.on ? 1.0 : 0.0
         Behavior on opacity { NumberAnimation { duration: 50 } }
@@ -1018,85 +1338,144 @@ Item {
       height: width
       radius: width / 2
       color: "transparent"
-      border.color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.5)
+      border.color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.45)
       border.width: 1
     }
 
-    // Vector displacement stem line
-    Rectangle {
-      x: 25
-      y: 24
+    // 2. 3D Cylindrical Stem Linkage (Extrudes from socket center to deflected thumb cap)
+    Item {
+      x: 26; y: 26 - 3
       width: st.dispDist
-      height: 2
-      radius: 1
-      color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.5)
+      height: 6
       transformOrigin: Item.Left
       rotation: st.dispAngle
-      visible: st.dispDist > 1.5
-      antialiasing: true
+      visible: st.dispDist > 1.2
+
+      // Stem upper light facet
+      Rectangle {
+        x: 0; y: 0; width: parent.width; height: 3; radius: 1.5
+        color: Qt.rgba(1, 1, 1, 0.30)
+      }
+      // Stem core accent
+      Rectangle {
+        x: 0; y: 1.5; width: parent.width; height: 2
+        color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.45)
+      }
+      // Stem underside shadow facet
+      Rectangle {
+        x: 0; y: 3; width: parent.width; height: 3; radius: 1.5
+        color: Qt.rgba(0, 0, 0, 0.70)
+      }
     }
 
     // Raw input ghost dot
     Rectangle {
-      width: 6; height: 6; radius: 3
-      x: 25 - 3 + st.rawX * 18
-      y: 25 - 3 + st.rawY * 18
+      width: 5; height: 5; radius: 2.5
+      x: 26 - 2.5 + st.rawX * 18
+      y: 26 - 2.5 + st.rawY * 18
       color: root.dimGlyph
-      opacity: 0.4
+      opacity: 0.35
     }
 
-    // Corrected vector stick cap with glowing aura
+    // 3. 3D Sculpted Thumbcap Assembly
     Item {
       id: stickCap
-      x: 25 - 8 + st.corrected.x * 18
-      y: 25 - 8 + st.corrected.y * 18
-      width: 16
-      height: 16
+      x: 26 - 10 + st.corrected.x * 18
+      // Physical microswitch click depression: sinks 1.5px into socket on click
+      y: 26 - 10 + st.corrected.y * 18 + (st.on ? 1.5 : 0)
+      width: 20
+      height: 20
+      scale: st.on ? 0.94 : 1.0
 
       Behavior on x { NumberAnimation { duration: 25 } }
       Behavior on y { NumberAnimation { duration: 25 } }
+      Behavior on scale { NumberAnimation { duration: 40 } }
+
+      // Cap Ambient Drop Shadow (casts shadow into well)
+      Rectangle {
+        x: 1 + st.corrected.x * 2
+        y: 2.5 + st.corrected.y * 2
+        width: 20; height: 20; radius: 10
+        color: Qt.rgba(0, 0, 0, 0.50)
+        z: -1
+      }
 
       // Outer glow aura when deflected or clicked
       Rectangle {
         anchors.centerIn: parent
-        width: 24
-        height: 24
-        radius: 12
-        color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.35 : (st.dispDist > 2 ? 0.20 : 0))
-        border.color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.7 : (st.dispDist > 2 ? 0.45 : 0))
+        width: 28; height: 28; radius: 14
+        color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.40 : (st.dispDist > 2 ? 0.22 : 0))
+        border.color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.80 : (st.dispDist > 2 ? 0.50 : 0))
         border.width: 1.5
         opacity: (st.on || st.dispDist > 2) ? 1.0 : 0.0
         Behavior on opacity { NumberAnimation { duration: 50 } }
       }
 
-      // Stick cap outer ring
+      // 3D Knurled Outer Grip Rim (Dark textured elastomer tire)
       Rectangle {
-        anchors.centerIn: parent
-        width: st.on ? 14 : 16
-        height: width
-        radius: width / 2
-        color: st.accent
-        border.color: Color.popups.background
-        border.width: 1.5
-        Behavior on width { NumberAnimation { duration: 40 } }
+        anchors.fill: parent
+        radius: 10
+        color: Qt.rgba(0.12, 0.13, 0.16, 1.0)
+        border.color: Qt.rgba(0, 0, 0, 0.85)
+        border.width: 1
 
-        // Concentric textured thumb grip ring
+        // Top-left specular rim highlight
         Rectangle {
-          anchors.centerIn: parent
-          width: parent.width - 4
-          height: width
-          radius: width / 2
-          color: "transparent"
-          border.color: Qt.rgba(Color.popups.background.r, Color.popups.background.g, Color.popups.background.b, 0.45)
-          border.width: 1
+          x: 2; y: 1.5
+          width: 12; height: 2.5; radius: 1.25
+          color: Qt.rgba(1, 1, 1, 0.38)
         }
 
-        // Inner concave dot
+        // Bottom-right shadow rim
+        Rectangle {
+          x: 6; y: parent.height - 3.5
+          width: 12; height: 2; radius: 1
+          color: Qt.rgba(0, 0, 0, 0.70)
+        }
+
+        // 4 Tactile Knurling Micro-Notches (0°, 90°, 180°, 270°)
+        Rectangle { x: 9.25; y: 0.5; width: 1.5; height: 2; color: Qt.rgba(0, 0, 0, 0.6) }
+        Rectangle { x: 9.25; y: 17.5; width: 1.5; height: 2; color: Qt.rgba(0, 0, 0, 0.6) }
+        Rectangle { x: 0.5; y: 9.25; width: 2; height: 1.5; color: Qt.rgba(0, 0, 0, 0.6) }
+        Rectangle { x: 17.5; y: 9.25; width: 2; height: 1.5; color: Qt.rgba(0, 0, 0, 0.6) }
+
+        // Glowing Inner Accent Bezel (Hall Effect / Pro Controller ring)
         Rectangle {
           anchors.centerIn: parent
-          width: 6; height: 6; radius: 3
-          color: Color.popups.background
-          opacity: 0.7
+          width: 15; height: 15; radius: 7.5
+          color: "transparent"
+          border.color: st.on ? st.accent : (st.dispDist > 1 ? Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.65) : Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.25))
+          border.width: 1.5
+        }
+
+        // 3D Concave Ergonomic Center Dish (The Thumb Bowl)
+        Rectangle {
+          anchors.centerIn: parent
+          width: 12; height: 12; radius: 6
+          color: Qt.rgba(0.08, 0.09, 0.11, 1.0)
+          border.color: Qt.rgba(0, 0, 0, 0.60)
+          border.width: 1
+
+          // Inverted bowl shadow (top is shadowed in a concave dish!)
+          Rectangle {
+            x: 2; y: 1
+            width: 8; height: 3; radius: 1.5
+            color: Qt.rgba(0, 0, 0, 0.65)
+          }
+
+          // Inverted bowl bounce reflection (bottom catches upward light reflection!)
+          Rectangle {
+            x: 2; y: 8
+            width: 8; height: 2.5; radius: 1.25
+            color: Qt.rgba(1, 1, 1, 0.22)
+          }
+
+          // Center textured pivot core
+          Rectangle {
+            anchors.centerIn: parent
+            width: 4; height: 4; radius: 2
+            color: st.on ? st.accent : Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.40)
+          }
         }
       }
     }
@@ -1115,56 +1494,92 @@ Item {
     property alias dpadDown: dp.down
     property color accent: root.playerColor
 
-    x: cx - 25
-    y: cy - 25
-    width: 50
-    height: 50
+    x: cx - 26
+    y: cy - 26
+    width: 52
+    height: 52
 
-    // Circular recessed dish
+    // 1. Recessed D-Pad Crucible (Spherical Bowl in Chassis)
     Rectangle {
       anchors.centerIn: parent
-      width: 48
-      height: 48
-      radius: 24
-      color: Qt.rgba(0, 0, 0, 0.25)
-      border.color: root.bodyBorder
+      width: 50; height: 50; radius: 25
+      color: Qt.rgba(0, 0, 0, 0.45)
+      border.color: Qt.rgba(0, 0, 0, 0.70)
       border.width: 1
+
+      // Top-left chamfer highlight
+      Rectangle {
+        x: 4; y: 2
+        width: 22; height: 2; radius: 1
+        color: Qt.rgba(1, 1, 1, 0.16)
+      }
+      // Inner shadow ring
+      Rectangle {
+        anchors.fill: parent; anchors.margins: 1; radius: 24
+        color: "transparent"
+        border.color: Qt.rgba(0, 0, 0, 0.55)
+        border.width: 1.5
+      }
     }
 
-    // Unified cross body bars
+    // 2. Extruded 3D Cross Base Sidewall (2px shadow under cross)
     Rectangle {
       anchors.centerIn: parent
-      width: 16
-      height: 44
-      radius: 4
+      anchors.verticalCenterOffset: 2
+      width: 16; height: 44; radius: 4
+      color: Qt.rgba(0, 0, 0, 0.55)
+    }
+    Rectangle {
+      anchors.centerIn: parent
+      anchors.verticalCenterOffset: 2
+      width: 44; height: 16; radius: 4
+      color: Qt.rgba(0, 0, 0, 0.55)
+    }
+
+    // 3. Main Cross Surface
+    Rectangle {
+      anchors.centerIn: parent
+      width: 16; height: 44; radius: 4
       color: root.idleFill
       border.color: root.bodyBorder
       border.width: 1
     }
     Rectangle {
       anchors.centerIn: parent
-      width: 44
-      height: 16
-      radius: 4
+      width: 44; height: 16; radius: 4
       color: root.idleFill
       border.color: root.bodyBorder
       border.width: 1
     }
-    // Center pivot disc
-    Rectangle {
-      anchors.centerIn: parent
-      width: 12
-      height: 12
-      radius: 6
-      color: root.idleFill
-      border.color: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.5)
-      border.width: 1
-    }
 
+    // 4. Directional Arms with 3D Facets & Tactile Rocker Motion
     DpadArm { dir: "up";    on: dp.up;        accent: dp.accent }
     DpadArm { dir: "down";  on: dp.down;      accent: dp.accent }
     DpadArm { dir: "left";  on: dp.dpadLeft;  accent: dp.accent }
     DpadArm { dir: "right"; on: dp.dpadRight; accent: dp.accent }
+
+    // 5. Ergonomic Center Pivot Dish (Concave Thumb Bowl)
+    Rectangle {
+      anchors.centerIn: parent
+      width: 14; height: 14; radius: 7
+      color: Qt.rgba(0, 0, 0, 0.35)
+      border.color: Qt.rgba(0, 0, 0, 0.60)
+      border.width: 1
+
+      // Inverted bowl bottom bounce reflection
+      Rectangle {
+        x: 3; y: 9
+        width: 8; height: 2; radius: 1
+        color: Qt.rgba(1, 1, 1, 0.20)
+      }
+
+      // Center pivot pin
+      Rectangle {
+        anchors.centerIn: parent
+        width: 4; height: 4; radius: 2
+        color: Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.40)
+      }
+    }
   }
 
   // ------------------------------------------------------------- DpadArm
@@ -1176,15 +1591,20 @@ Item {
     width: 16
     height: 16
     radius: 3
-    x: dir === "left" ? 3 : dir === "right" ? 31 : 17
-    y: dir === "up" ? 3 : dir === "down" ? 31 : 17
+    // Tactile rocker switch tilt: depresses 1.5px toward center when clicked
+    x: dir === "left" ? (on ? 5.5 : 4) : dir === "right" ? (on ? 30.5 : 32) : 18
+    y: dir === "up" ? (on ? 5.5 : 4) : dir === "down" ? (on ? 30.5 : 32) : 18
+
     rotation: 0
-    color: on ? dpadArmItem.accent : "transparent"
+    color: on ? dpadArmItem.accent : (dir === "up" ? Qt.rgba(1, 1, 1, 0.08) : dir === "down" ? Qt.rgba(0, 0, 0, 0.20) : "transparent")
     border.color: on ? dpadArmItem.accent : "transparent"
     border.width: on ? 2 : 0
-    scale: on ? 1.08 : 1.0
-    Behavior on color { ColorAnimation { duration: 60 } }
-    Behavior on scale { NumberAnimation { duration: 60 } }
+    scale: on ? 0.96 : 1.0
+
+    Behavior on y { NumberAnimation { duration: 35 } }
+    Behavior on x { NumberAnimation { duration: 35 } }
+    Behavior on color { ColorAnimation { duration: 50 } }
+    Behavior on scale { NumberAnimation { duration: 35 } }
 
     // Glow halo
     Rectangle {
@@ -1192,12 +1612,52 @@ Item {
       width: parent.width + 6
       height: parent.height + 6
       radius: 5
-      color: Qt.rgba(dpadArmItem.accent.r, dpadArmItem.accent.g, dpadArmItem.accent.b, dpadArmItem.on ? 0.30 : 0)
-      border.color: Qt.rgba(dpadArmItem.accent.r, dpadArmItem.accent.g, dpadArmItem.accent.b, dpadArmItem.on ? 0.70 : 0)
+      color: Qt.rgba(dpadArmItem.accent.r, dpadArmItem.accent.g, dpadArmItem.accent.b, dpadArmItem.on ? 0.35 : 0)
+      border.color: Qt.rgba(dpadArmItem.accent.r, dpadArmItem.accent.g, dpadArmItem.accent.b, dpadArmItem.on ? 0.75 : 0)
       border.width: 2
       opacity: dpadArmItem.on ? 1.0 : 0.0
       z: -1
-      Behavior on opacity { NumberAnimation { duration: 60 } }
+      Behavior on opacity { NumberAnimation { duration: 50 } }
+    }
+
+    // 3D Beveled Top Edge on Up Arm
+    Rectangle {
+      visible: dpadArmItem.dir === "up" && !dpadArmItem.on
+      x: 1; y: 1; width: parent.width - 2; height: 2; radius: 1
+      color: Qt.rgba(1, 1, 1, 0.24)
+    }
+
+    // 3D Shadow Bottom Edge on Down Arm
+    Rectangle {
+      visible: dpadArmItem.dir === "down" && !dpadArmItem.on
+      x: 1; y: parent.height - 2; width: parent.width - 2; height: 1.5; radius: 0.75
+      color: Qt.rgba(0, 0, 0, 0.45)
+    }
+
+    // 3D Highlight Left Edge on Left Arm
+    Rectangle {
+      visible: dpadArmItem.dir === "left" && !dpadArmItem.on
+      x: 1; y: 1; width: 2; height: parent.height - 2; radius: 1
+      color: Qt.rgba(1, 1, 1, 0.16)
+    }
+
+    // 3D Shadow Right Edge on Right Arm
+    Rectangle {
+      visible: dpadArmItem.dir === "right" && !dpadArmItem.on
+      x: parent.width - 2; y: 1; width: 1.5; height: parent.height - 2; radius: 0.75
+      color: Qt.rgba(0, 0, 0, 0.40)
+    }
+
+    // Embossed Tactile Chevron Shadow
+    Text {
+      visible: root.showLabels
+      anchors.centerIn: parent
+      anchors.verticalCenterOffset: 1
+      text: dpadArmItem.dir === "up" ? "▲" : dpadArmItem.dir === "down" ? "▼" : dpadArmItem.dir === "left" ? "◀" : "▶"
+      color: Qt.rgba(0, 0, 0, 0.60)
+      font.pixelSize: 8
+      font.bold: true
+      font.family: Style.font.family
     }
 
     // Directional chevron indicator
@@ -1213,8 +1673,8 @@ Item {
   }
 
   // ---------------------------------------------------------- FaceButton
-  // Pressable face key. When kenney cap art is supplied (artSource) the SVG
-  // cap is drawn with authentic console coloring and glowing aura on press.
+  // Pressable 3D domed acrylic gem button. Bored shell socket well, extruded
+  // cylindrical sidewall, glossy specular crescent sheen, and tactile depression.
   component FaceButton : Item {
     id: fb
     property real cx: 0
@@ -1243,73 +1703,135 @@ Item {
       return root.playerColor
     }
 
-    x: cx - 13
-    y: cy - 13
-    width: 26
-    height: 26
-    scale: on ? 1.15 : 1.0
-    Behavior on scale { NumberAnimation { duration: 50 } }
+    x: cx - 14
+    y: cy - 14
+    width: 28
+    height: 28
 
-    // Soft base plate behind the cap
-    Rectangle {
-      anchors.fill: parent
-      radius: 13
-      color: fb.on
-        ? Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.35)
-        : ((root.isXbox || root.isPs) ? Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.14) : root.idleFill)
-      border.color: fb.on ? fb.buttonAccent : ((root.isXbox || root.isPs) ? Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.5) : root.bodyBorder)
-      border.width: fb.on ? 2 : 1
-      Behavior on color { ColorAnimation { duration: 50 } }
-      Behavior on border.color { ColorAnimation { duration: 50 } }
-    }
-
-    // Glow halo drop-shadow aura
+    // 1. Bored Cylindrical Shell Socket Well
     Rectangle {
       anchors.centerIn: parent
-      width: parent.width + 6
-      height: parent.height + 6
-      radius: width / 2
-      color: Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, fb.on ? 0.35 : 0)
-      border.color: Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, fb.on ? 0.75 : 0)
-      border.width: 2
-      opacity: fb.on ? 1.0 : 0.0
-      z: -1
-      Behavior on opacity { NumberAnimation { duration: 60 } }
-    }
+      width: 28; height: 28; radius: 14
+      color: Qt.rgba(0, 0, 0, 0.50)
+      border.color: Qt.rgba(0, 0, 0, 0.70)
+      border.width: 1
 
-    // Kenney cap art (64x64 SVG).
-    // For PS: native SVG has multi-color fills (#40E2A0 Triangle, #7C66E8 Cross, #FF69F8 Square, #F34545 Circle).
-    // When idle, preserve native colors without flat colorization!
-    // For Xbox: colorize with canonical button colors.
-    Image {
-      id: capImg
-      visible: fb.artSource !== ""
-      anchors.fill: parent
-      anchors.margins: 1
-      source: fb.artSource
-      fillMode: Image.PreserveAspectFit
-      mipmap: true
-      layer.enabled: visible && (root.isXbox || fb.on)
-      layer.effect: MultiEffect {
-        colorization: 1.0
-        colorizationColor: fb.on ? fb.buttonAccent : (root.isXbox ? fb.buttonAccent : root.glyphColor)
+      // Top chamfer reflection on the chassis hole
+      Rectangle {
+        x: 4; y: 1
+        width: 14; height: 1.5; radius: 0.75
+        color: Qt.rgba(1, 1, 1, 0.12)
       }
     }
 
-    // Fallback label text (Switch / generic / when art unavailable)
-    Text {
-      visible: (fb.artSource === "" || capImg.status !== Image.Ready) && root.showLabels
-      anchors.centerIn: parent
-      text: fb.label
-      color: fb.on ? Color.popups.background : (root.isXbox || root.isPs ? fb.buttonAccent : root.glyphColor)
-      font.pixelSize: 11
-      font.bold: true
-      font.family: Style.font.family
+    // 2. Extruded 3D Button Cylinder (Sidewall Base)
+    // Protrudes 2.5px above the shell when idle.
+    Rectangle {
+      visible: !fb.on
+      anchors.horizontalCenter: parent.horizontalCenter
+      y: 4.5
+      width: 24; height: 24; radius: 12
+      color: Qt.darker(fb.buttonAccent, 2.0)
+      border.color: Qt.rgba(0, 0, 0, 0.75)
+      border.width: 1
+
+      // Bottom shadow lip
+      Rectangle {
+        anchors.bottom: parent.bottom
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: 18; height: 3; radius: 1.5
+        color: Qt.rgba(0, 0, 0, 0.65)
+      }
+    }
+
+    // 3. 3D Domed Acrylic Gem Button Cap
+    Item {
+      id: capItem
+      anchors.horizontalCenter: parent.horizontalCenter
+      // Mechanical tactile stroke: sinks 2px down into socket when pressed!
+      y: fb.on ? 4.0 : 2.0
+      width: 24
+      height: 24
+      scale: fb.on ? 0.96 : 1.0
+
+      Behavior on y { NumberAnimation { duration: 40 } }
+      Behavior on scale { NumberAnimation { duration: 40 } }
+
+      // Glow halo bloom on press
+      Rectangle {
+        anchors.centerIn: parent
+        width: parent.width + 8
+        height: parent.height + 8
+        radius: width / 2
+        color: Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, fb.on ? 0.40 : 0)
+        border.color: Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, fb.on ? 0.85 : 0)
+        border.width: 2
+        opacity: fb.on ? 1.0 : 0.0
+        z: -1
+        Behavior on opacity { NumberAnimation { duration: 50 } }
+      }
+
+      // Acrylic button dome surface
+      Rectangle {
+        anchors.fill: parent
+        radius: 12
+        color: root.isPs ? (fb.on ? fb.buttonAccent : Qt.rgba(0.12, 0.13, 0.16, 0.95))
+             : (root.isXbox ? (fb.on ? Qt.lighter(fb.buttonAccent, 1.25) : fb.buttonAccent)
+             : (fb.on ? fb.buttonAccent : root.idleFill))
+        border.color: fb.on ? Qt.rgba(1, 1, 1, 0.70) : Qt.rgba(0, 0, 0, 0.45)
+        border.width: 1
+
+        // Glossy 3D Acrylic Specular Crescent Highlight (The glass dome reflection)
+        Rectangle {
+          x: 3; y: 1.5
+          width: 18; height: 8; radius: 4
+          color: Qt.rgba(1, 1, 1, 0.46)
+        }
+
+        // Secondary tight specular point reflection
+        Rectangle {
+          x: 6; y: 2.5
+          width: 5; height: 2; radius: 1
+          color: Qt.rgba(1, 1, 1, 0.70)
+        }
+
+        // Lower internal refraction caustics highlight
+        Rectangle {
+          x: 5; y: 16
+          width: 14; height: 5; radius: 2.5
+          color: Qt.rgba(1, 1, 1, 0.16)
+        }
+
+        // 3D Engraved Drop Shadow for Button Glyph
+        Text {
+          visible: root.showLabels
+          anchors.centerIn: parent
+          anchors.verticalCenterOffset: 1
+          text: fb.label
+          color: Qt.rgba(0, 0, 0, 0.65)
+          font.pixelSize: root.isPs ? 13 : 11
+          font.bold: true
+          font.family: Style.font.family
+        }
+
+        // Crisp 3D Button Glyph / Letter (Pure white on Xbox/Switch, vibrant on PlayStation)
+        Text {
+          visible: root.showLabels
+          anchors.centerIn: parent
+          text: fb.label
+          color: root.isPs ? (fb.on ? Color.popups.background : fb.buttonAccent)
+               : ((root.isXbox || fb.on) ? "#FFFFFF" : root.glyphColor)
+          font.pixelSize: root.isPs ? 13 : 11
+          font.bold: true
+          font.family: Style.font.family
+        }
+      }
     }
   }
 
   // ----------------------------------------------------------- CircleKey
-  component CircleKey : Rectangle {
+  // ----------------------------------------------------------- CircleKey
+  component CircleKey : Item {
     id: ck
     property real cx: 0
     property real cy: 0
@@ -1321,55 +1843,110 @@ Item {
     property bool showLabel: true
     property int labelSize: 7
 
-    x: cx - r
-    y: cy - r
-    width: r * 2
-    height: r * 2
-    radius: r
-    color: on ? accent : root.idleFill
-    border.color: on ? accent : root.bodyBorder
-    border.width: on ? 2 : 1
-    scale: on ? 1.08 : 1.0
-    Behavior on color { ColorAnimation { duration: 50 } }
-    Behavior on scale { NumberAnimation { duration: 50 } }
+    x: cx - r - 1
+    y: cy - r - 1
+    width: (r + 1) * 2
+    height: (r + 1) * 2
 
-    // Glow halo
+    // 1. Bored socket well in chassis
     Rectangle {
-      anchors.centerIn: parent
-      width: parent.width + 8
-      height: parent.height + 8
-      radius: width / 2
-      color: Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, ck.on ? 0.25 : 0)
-      border.color: Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, ck.on ? 0.6 : 0)
-      border.width: 2
-      opacity: ck.on ? 1.0 : 0.0
-      z: -1
-      Behavior on opacity { NumberAnimation { duration: 50 } }
-    }
-
-    // Kenney cap art (start/back for the Create/Options keys)
-    Image {
-      visible: ck.artSource !== ""
       anchors.fill: parent
-      anchors.margins: ck.r >= 7 ? 0 : 1
-      source: ck.artSource
-      fillMode: Image.PreserveAspectFit
-      mipmap: true
-      layer.enabled: visible
-      layer.effect: MultiEffect {
-        colorization: 1.0
-        colorizationColor: ck.on ? root.playerColor : root.glyphColor
-      }
+      radius: width / 2
+      color: Qt.rgba(0, 0, 0, 0.45)
+      border.color: Qt.rgba(0, 0, 0, 0.65)
+      border.width: 1
     }
 
-    Text {
-      visible: ck.artSource === "" && ck.showLabel
-      anchors.centerIn: parent
-      text: ck.label
-      color: ck.on ? Color.popups.background : root.glyphColor
-      font.pixelSize: ck.labelSize
-      font.bold: true
-      font.family: Style.font.family
+    // 2. Extruded cylinder sidewall base
+    Rectangle {
+      visible: !ck.on
+      anchors.horizontalCenter: parent.horizontalCenter
+      y: 2.5
+      width: ck.r * 2
+      height: ck.r * 2
+      radius: ck.r
+      color: Qt.rgba(0, 0, 0, 0.60)
+    }
+
+    // 3. Domed Key Cap
+    Rectangle {
+      id: keyCap
+      anchors.horizontalCenter: parent.horizontalCenter
+      // Tactile click depression: sinks 1.5px into socket when pressed
+      y: ck.on ? 2.5 : 1.0
+      width: ck.r * 2
+      height: ck.r * 2
+      radius: ck.r
+      color: ck.on ? ck.accent : root.idleFill
+      border.color: ck.on ? ck.accent : root.bodyBorder
+      border.width: ck.on ? 2 : 1
+      scale: ck.on ? 0.94 : 1.0
+
+      Behavior on y { NumberAnimation { duration: 35 } }
+      Behavior on color { ColorAnimation { duration: 50 } }
+      Behavior on scale { NumberAnimation { duration: 35 } }
+
+      // Glow halo
+      Rectangle {
+        anchors.centerIn: parent
+        width: parent.width + 6
+        height: parent.height + 6
+        radius: width / 2
+        color: Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, ck.on ? 0.30 : 0)
+        border.color: Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, ck.on ? 0.70 : 0)
+        border.width: 1.5
+        opacity: ck.on ? 1.0 : 0.0
+        z: -1
+        Behavior on opacity { NumberAnimation { duration: 50 } }
+      }
+
+      // Top specular highlight sheen
+      Rectangle {
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: 1
+        width: Math.max(4, parent.width - 4)
+        height: Math.max(2, parent.height * 0.4)
+        radius: width / 2
+        color: Qt.rgba(1, 1, 1, ck.on ? 0.45 : 0.18)
+      }
+
+      // Kenney cap art (start/back for the Create/Options keys)
+      Image {
+        visible: ck.artSource !== ""
+        anchors.fill: parent
+        anchors.margins: ck.r >= 7 ? 0 : 1
+        source: ck.artSource
+        fillMode: Image.PreserveAspectFit
+        mipmap: true
+        layer.enabled: visible
+        layer.effect: MultiEffect {
+          colorization: 1.0
+          colorizationColor: ck.on ? root.playerColor : root.glyphColor
+        }
+      }
+
+      // Embossed shadow for text label
+      Text {
+        visible: ck.artSource === "" && ck.showLabel
+        anchors.centerIn: parent
+        anchors.verticalCenterOffset: 1
+        text: ck.label
+        color: Qt.rgba(0, 0, 0, 0.50)
+        font.pixelSize: ck.labelSize
+        font.bold: true
+        font.family: Style.font.family
+      }
+
+      // Core text label
+      Text {
+        visible: ck.artSource === "" && ck.showLabel
+        anchors.centerIn: parent
+        text: ck.label
+        color: ck.on ? Color.popups.background : root.glyphColor
+        font.pixelSize: ck.labelSize
+        font.bold: true
+        font.family: Style.font.family
+      }
     }
   }
 }

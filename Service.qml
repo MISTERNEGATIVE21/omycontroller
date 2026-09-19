@@ -58,6 +58,22 @@ Item {
     if (demoMode !== simulatorActive) demoMode = simulatorActive
   }
 
+  IpcHandler {
+    target: "omycontroller-service"
+
+    function toggleDemo() {
+      return root.toggleDemo()
+    }
+
+    function cycleDemoLayout() {
+      return root.cycleDemoLayout()
+    }
+
+    function rescan() {
+      root.rescan()
+    }
+  }
+
   // Live polling rate (Hz) and min/avg/max latency benchmark stats
   property var stats: computeStats()
 
@@ -226,6 +242,40 @@ Item {
   function toggleDemo() {
     root.demoMode = !root.demoMode
     return root.demoMode
+  }
+
+  function cycleDemoLayout() {
+    if (!root.demoMode) {
+      root.demoMode = true
+    } else {
+      var d = _devices["sim:1"]
+      if (d) {
+        if (d.layout === "xbox") {
+          d.layout = "ps"
+          d.modelLabel = "DualSense Wireless Controller (Simulated)"
+          d.maker = "Sony"
+          d.protocol = "DualSense (Simulated)"
+          d.vendor = "054c"
+          d.product = "0ce6"
+        } else if (d.layout === "ps") {
+          d.layout = "switch"
+          d.modelLabel = "Nintendo Switch Pro Controller (Simulated)"
+          d.maker = "Nintendo"
+          d.protocol = "SwitchPro (Simulated)"
+          d.vendor = "057e"
+          d.product = "2009"
+        } else {
+          d.layout = "xbox"
+          d.modelLabel = "Xbox Wireless Controller (Simulated)"
+          d.maker = "Microsoft"
+          d.protocol = "XInput (Simulated)"
+          d.vendor = "045e"
+          d.product = "0b12"
+        }
+        root.devicesChanged()
+      }
+    }
+    return true
   }
 
   function rescan() {
