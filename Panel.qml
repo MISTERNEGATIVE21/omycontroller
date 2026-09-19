@@ -331,10 +331,14 @@ Panel {
         // ---------------------------------------------------- 1. Header
         Item {
           width: parent.width
-          height: headerRow.implicitHeight
+          height: Math.max(headerRow.implicitHeight, headerRightRow.implicitHeight)
 
           Row {
             id: headerRow
+            anchors.left: parent.left
+            anchors.verticalCenter: parent.verticalCenter
+            width: Math.min(implicitWidth, parent.width - headerRightRow.width - Style.space(8))
+            clip: true
             spacing: Style.space(8)
 
             Text {
@@ -366,66 +370,71 @@ Panel {
             }
           }
 
-          // Menu Position Switcher
+          // Right Controls: Menu Switcher + Demo Button (enclosed to prevent overlapping)
           Row {
-            anchors.right: demoBtn.left
-            anchors.rightMargin: Style.space(8)
+            id: headerRightRow
+            anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 2
+            spacing: Style.space(6)
 
-            Repeater {
-              model: [
-                { pos: "left", label: "◧ Left" },
-                { pos: "top", label: "⬒ Top" },
-                { pos: "right", label: "◨ Right" }
-              ]
-              delegate: Rectangle {
-                id: posPill
-                required property var modelData
-                readonly property bool isCur: root.menuPosition === posPill.modelData.pos
-                width: posText.implicitWidth + Style.space(8)
-                height: Style.space(22)
-                radius: Math.max(3, Style.cornerRadius - 2)
-                color: isCur ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22) : "transparent"
-                border.color: isCur ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
-                border.width: 1
+            // Menu Position Switcher
+            Row {
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: 2
 
-                Text {
-                  id: posText
-                  anchors.centerIn: parent
-                  text: posPill.modelData.label
-                  color: posPill.isCur ? root.playerColor : Qt.darker(root.barForeground, 1.4)
-                  font.family: Style.font.family
-                  font.pixelSize: 8
-                  font.bold: posPill.isCur
-                }
+              Repeater {
+                model: [
+                  { pos: "left", label: "◧ Left" },
+                  { pos: "top", label: "⬒ Top" },
+                  { pos: "right", label: "◨ Right" }
+                ]
+                delegate: Rectangle {
+                  id: posPill
+                  required property var modelData
+                  readonly property bool isCur: root.menuPosition === posPill.modelData.pos
+                  width: posText.implicitWidth + Style.space(8)
+                  height: Style.space(22)
+                  radius: Math.max(3, Style.cornerRadius - 2)
+                  color: isCur ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22) : "transparent"
+                  border.color: isCur ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                  border.width: 1
 
-                MouseArea {
-                  anchors.fill: parent
-                  hoverEnabled: true
-                  cursorShape: Qt.PointingHandCursor
-                  onClicked: {
-                    root.menuPosition = posPill.modelData.pos
-                    if (hostWidget && typeof hostWidget.setSetting === "function") {
-                      hostWidget.setSetting("menuPosition", posPill.modelData.pos)
+                  Text {
+                    id: posText
+                    anchors.centerIn: parent
+                    text: posPill.modelData.label
+                    color: posPill.isCur ? root.playerColor : Qt.darker(root.barForeground, 1.4)
+                    font.family: Style.font.family
+                    font.pixelSize: 8
+                    font.bold: posPill.isCur
+                  }
+
+                  MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                      root.menuPosition = posPill.modelData.pos
+                      if (hostWidget && typeof hostWidget.setSetting === "function") {
+                        hostWidget.setSetting("menuPosition", posPill.modelData.pos)
+                      }
                     }
                   }
                 }
               }
             }
-          }
 
-          // Simulator Toggle Button
-          Button {
-            id: demoBtn
-            anchors.right: parent.right
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.demoActive ? "⚡ Demo (Active)" : "⚡ Demo"
-            focusable: true
-            foreground: root.barForeground
-            accent: root.demoActive ? Color.accent : root.barForeground
-            onClicked: {
-              if (root.svc) root.svc.toggleDemo()
+            // Simulator Toggle Button
+            Button {
+              id: demoBtn
+              anchors.verticalCenter: parent.verticalCenter
+              text: root.demoActive ? "⚡ Demo (Active)" : "⚡ Demo"
+              focusable: true
+              foreground: root.barForeground
+              accent: root.demoActive ? Color.accent : root.barForeground
+              onClicked: {
+                if (root.svc) root.svc.toggleDemo()
+              }
             }
           }
         }
@@ -663,8 +672,8 @@ Panel {
                     id: sideSlotPill
                     required property int index
                     readonly property var pad: root.pads && root.pads.length > index ? root.pads[index] : null
-                    readonly property bool isSel: root.selectedSlot === index
-                    readonly property color slotColor: GamepadModel.playerColor(index, Color)
+                    readonly property bool isSel: root.sel && pad && pad.id === root.sel.id
+                    readonly property color slotColor: GamepadModel.playerColor(index + 1, Color)
 
                     width: (parent.width - Style.space(4)) / 2
                     height: Style.space(24)
@@ -732,9 +741,11 @@ Panel {
 
                     Row {
                       anchors.verticalCenter: parent.verticalCenter
-                      x: Style.space(8)
+                      anchors.left: parent.left
+                      anchors.leftMargin: Style.space(8)
+                      anchors.right: parent.right
+                      anchors.rightMargin: Style.space(6)
                       spacing: Style.space(6)
-                      width: parent.width - Style.space(12)
 
                       Text {
                         text: sideTabItem.modelData.icon
@@ -749,7 +760,7 @@ Panel {
                         font.pixelSize: Style.font.caption
                         font.bold: sideTabItem.isCur
                         elide: Text.ElideRight
-                        width: parent.width - Style.space(24)
+                        width: parent.width - Style.space(22)
                         anchors.verticalCenter: parent.verticalCenter
                       }
                     }

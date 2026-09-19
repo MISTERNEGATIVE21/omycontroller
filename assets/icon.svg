@@ -1,47 +1,118 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
   <defs>
-    <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#3d446b"/>
-      <stop offset="100%" stop-color="#1f2338"/>
+    <linearGradient id="chassisGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2d324d"/>
+      <stop offset="45%" stop-color="#202438"/>
+      <stop offset="100%" stop-color="#141724"/>
     </linearGradient>
     <linearGradient id="gripGradL" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#2a2e47"/>
-      <stop offset="100%" stop-color="#181a29"/>
+      <stop offset="0%" stop-color="#22263b"/>
+      <stop offset="100%" stop-color="#10121c"/>
     </linearGradient>
     <linearGradient id="gripGradR" x1="100%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#2a2e47"/>
-      <stop offset="100%" stop-color="#181a29"/>
+      <stop offset="0%" stop-color="#22263b"/>
+      <stop offset="100%" stop-color="#10121c"/>
     </linearGradient>
+    <linearGradient id="stickGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#3b4266"/>
+      <stop offset="100%" stop-color="#181b2a"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
   </defs>
 
-  <!-- grip contours -->
-  <path d="M7 32 l7 19 a5 5 0 0 0 5 3.5 h4 a4 4 0 0 0 3.2-1.6 L31 42 Z" fill="url(#gripGradL)" stroke="#4e588a" stroke-width="1.2"/>
-  <path d="M57 32 l-7 19 a5 5 0 0 1 -5 3.5 h-4 a4 4 0 0 1 -3.2-1.6 L33 42 Z" fill="url(#gripGradR)" stroke="#4e588a" stroke-width="1.2"/>
+  <!-- Left/Right Analog Triggers peeking above -->
+  <path d="M 28 32 C 26 22, 33 18, 42 21 L 46 32 Z" fill="#1b1e2e" stroke="#3d4469" stroke-width="1.2"/>
+  <path d="M 100 32 C 102 22, 95 18, 86 21 L 82 32 Z" fill="#1b1e2e" stroke="#3d4469" stroke-width="1.2"/>
 
-  <!-- main chassis body -->
-  <rect x="5" y="16" width="54" height="28" rx="12" fill="url(#bodyGrad)" stroke="#636fa4" stroke-width="1.5"/>
-  <!-- top bevel highlight -->
-  <rect x="9" y="17.5" width="46" height="7" rx="3.5" fill="#ffffff" opacity="0.08"/>
+  <!-- Left/Right Bumpers -->
+  <path d="M 26 34 C 34 29, 44 29, 52 32 L 50 36 C 42 33, 34 33, 28 37 Z" fill="#2c314c" stroke="#4a5382" stroke-width="1"/>
+  <path d="M 102 34 C 94 29, 84 29, 76 32 L 78 36 C 86 33, 94 33, 100 37 Z" fill="#2c314c" stroke="#4a5382" stroke-width="1"/>
 
-  <!-- dpad -->
-  <rect x="13.5" y="26" width="5" height="10" rx="1.8" fill="#7082ff"/>
-  <rect x="11" y="28.5" width="10" height="5" rx="1.8" fill="#7082ff"/>
-  <circle cx="16" cy="31" r="1.2" fill="#1f2338"/>
+  <!-- Main Controller Chassis -->
+  <g filter="url(#shadow)">
+    <path d="
+      M 46 32
+      C 54 34, 74 34, 82 32
+      C 89 31, 99 32, 105 36
+      C 112 41, 115 50, 115 62
+      C 115 74, 111 88, 104 98
+      C 100 104, 94 106, 88 103
+      C 81 99, 77 89, 74 78
+      C 72 72, 70 70, 64 70
+      C 58 70, 56 72, 54 78
+      C 51 89, 47 99, 40 103
+      C 34 106, 28 104, 24 98
+      C 17 88, 13 74, 13 62
+      C 13 50, 16 41, 23 36
+      C 29 32, 39 31, 46 32
+      Z
+    " fill="url(#chassisGrad)" stroke="#566299" stroke-width="1.6"/>
+  </g>
 
-  <!-- left thumbstick (asymmetric Xbox style) -->
-  <circle cx="27" cy="27" r="4.8" fill="#434c77" stroke="#7e8bff" stroke-width="1.2"/>
-  <circle cx="27" cy="27" r="2.2" fill="#1b1d2e"/>
+  <!-- Ergonomic Palm Grip Insets -->
+  <path d="M 16 56 C 15 66, 18 80, 25 94 C 28 100, 34 101, 38 98 C 30 86, 26 70, 26 56 Z" fill="url(#gripGradL)" opacity="0.8"/>
+  <path d="M 112 56 C 113 66, 110 80, 103 94 C 100 100, 94 101, 90 98 C 98 86, 102 70, 102 56 Z" fill="url(#gripGradR)" opacity="0.8"/>
 
-  <!-- right thumbstick -->
-  <circle cx="37" cy="35" r="4.8" fill="#434c77" stroke="#7e8bff" stroke-width="1.2"/>
-  <circle cx="37" cy="35" r="2.2" fill="#1b1d2e"/>
+  <!-- Upper Chassis Highlight Bevel -->
+  <path d="M 44 34 C 54 36, 74 36, 84 34 C 94 34, 101 37, 104 42 C 98 39, 86 37, 80 37 C 72 37, 56 37, 48 37 C 42 37, 30 39, 24 42 C 27 37, 34 34, 44 34 Z" fill="#ffffff" opacity="0.10"/>
 
-  <!-- center logo / guide -->
-  <circle cx="32" cy="22" r="2.5" fill="#00e5ff" opacity="0.9"/>
+  <!-- D-Pad (Left lower, asymmetric Xbox layout) -->
+  <g transform="translate(48, 72)">
+    <rect x="-4" y="-12" width="8" height="24" rx="2.5" fill="#1b1d2e" stroke="#47517c" stroke-width="1"/>
+    <rect x="-12" y="-4" width="24" height="8" rx="2.5" fill="#1b1d2e" stroke="#47517c" stroke-width="1"/>
+    <circle cx="0" cy="0" r="3.5" fill="#121420"/>
+    <path d="M 0 -8 L -2 -6 L 2 -6 Z" fill="#7582b8"/>
+    <path d="M 0 8 L -2 6 L 2 6 Z" fill="#7582b8"/>
+    <path d="M -8 0 L -6 -2 L -6 2 Z" fill="#7582b8"/>
+    <path d="M 8 0 L 6 -2 L 6 2 Z" fill="#7582b8"/>
+  </g>
 
-  <!-- face buttons (A=green, B=red, X=blue, Y=yellow) -->
-  <circle cx="48" cy="22.5" r="2" fill="#ffd166"/> <!-- Y -->
-  <circle cx="48" cy="31.5" r="2" fill="#06d6a0"/> <!-- A -->
-  <circle cx="43.5" cy="27" r="2" fill="#118ab2"/> <!-- X -->
-  <circle cx="52.5" cy="27" r="2" fill="#ef476f"/> <!-- B -->
+  <!-- Left Thumbstick (Asymmetric top) -->
+  <g transform="translate(38, 52)">
+    <circle cx="0" cy="0" r="11" fill="#161826" stroke="#47517c" stroke-width="1.2"/>
+    <circle cx="0" cy="0" r="8.5" fill="url(#stickGrad)" stroke="#6674ad" stroke-width="1"/>
+    <circle cx="0" cy="0" r="6" fill="none" stroke="#25293d" stroke-width="1"/>
+    <circle cx="0" cy="0" r="2.5" fill="#121420"/>
+  </g>
+
+  <!-- Right Thumbstick (Asymmetric bottom) -->
+  <g transform="translate(80, 72)">
+    <circle cx="0" cy="0" r="11" fill="#161826" stroke="#47517c" stroke-width="1.2"/>
+    <circle cx="0" cy="0" r="8.5" fill="url(#stickGrad)" stroke="#6674ad" stroke-width="1"/>
+    <circle cx="0" cy="0" r="6" fill="none" stroke="#25293d" stroke-width="1"/>
+    <circle cx="0" cy="0" r="2.5" fill="#121420"/>
+  </g>
+
+  <!-- Center Controls: View, Guide, Menu -->
+  <circle cx="54" cy="46" r="2.2" fill="#282d47" stroke="#4f598a" stroke-width="0.8"/>
+  <circle cx="74" cy="46" r="2.2" fill="#282d47" stroke="#4f598a" stroke-width="0.8"/>
+
+  <!-- Center Nexus / Guide Logo with Cyan Neon Aura -->
+  <g transform="translate(64, 46)">
+    <circle cx="0" cy="0" r="6.5" fill="#131624" stroke="#00e5ff" stroke-width="1.4"/>
+    <circle cx="0" cy="0" r="4.2" fill="#00e5ff" opacity="0.25"/>
+    <circle cx="0" cy="0" r="2.8" fill="#00e5ff"/>
+    <path d="M -4.5 -2.5 L 4.5 2.5 M -4.5 2.5 L 4.5 -2.5" stroke="#131624" stroke-width="0.9" stroke-linecap="round"/>
+  </g>
+
+  <!-- Quad Face Buttons (A, B, X, Y) -->
+  <g transform="translate(90, 52)">
+    <!-- Y Button (Top, Amber/Yellow) -->
+    <circle cx="0" cy="-8.5" r="3.6" fill="#1b1e2e" stroke="#fbbf24" stroke-width="1.2"/>
+    <text x="0" y="-6.5" font-family="sans-serif" font-size="5" font-weight="900" fill="#fbbf24" text-anchor="middle">Y</text>
+
+    <!-- A Button (Bottom, Emerald/Green) -->
+    <circle cx="0" cy="8.5" r="3.6" fill="#1b1e2e" stroke="#10b981" stroke-width="1.2"/>
+    <text x="0" y="10.5" font-family="sans-serif" font-size="5" font-weight="900" fill="#10b981" text-anchor="middle">A</text>
+
+    <!-- X Button (Left, Azure/Blue) -->
+    <circle cx="-8.5" cy="0" r="3.6" fill="#1b1e2e" stroke="#3b82f6" stroke-width="1.2"/>
+    <text x="-8.5" y="2" font-family="sans-serif" font-size="5" font-weight="900" fill="#3b82f6" text-anchor="middle">X</text>
+
+    <!-- B Button (Right, Crimson/Red) -->
+    <circle cx="8.5" cy="0" r="3.6" fill="#1b1e2e" stroke="#ef4444" stroke-width="1.2"/>
+    <text x="8.5" y="2" font-family="sans-serif" font-size="5" font-weight="900" fill="#ef4444" text-anchor="middle">B</text>
+  </g>
 </svg>

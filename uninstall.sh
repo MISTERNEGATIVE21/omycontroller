@@ -40,11 +40,14 @@ if [ -f "$APPS_DIR/quatro-gamepads.desktop" ]; then
   rm -f "$APPS_DIR/quatro-gamepads.desktop"
 fi
 
-ICONS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps"
-if [ -f "$ICONS_DIR/omycontroller.svg" ]; then
-  rm -f "$ICONS_DIR/omycontroller.svg"
-  info "icon removed: $ICONS_DIR/omycontroller.svg"
-fi
+ICONS_SCALABLE="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps/omycontroller.svg"
+ICONS_256="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/256x256/apps/omycontroller.png"
+PIXMAP_SVG="${XDG_DATA_HOME:-$HOME/.local/share}/pixmaps/omycontroller.svg"
+PIXMAP_PNG="${XDG_DATA_HOME:-$HOME/.local/share}/pixmaps/omycontroller.png"
+
+rm -f "$ICONS_SCALABLE" "$ICONS_256" "$PIXMAP_SVG" "$PIXMAP_PNG"
+info "icons removed from hicolor and pixmaps"
+command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t "${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor" 2>/dev/null || true
 
 # --- 4. Plugin folder / symlink --------------------------------------------
 TARGET_LINK="${XDG_CONFIG_HOME:-$HOME/.config}/omarchy/plugins/$PLUGIN_ID"

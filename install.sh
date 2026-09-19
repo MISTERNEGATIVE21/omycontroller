@@ -62,12 +62,27 @@ else
 fi
 
 # --- 3. Desktop entry and Icon ---------------------------------------------
-ICONS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps"
-mkdir -p "$ICONS_DIR"
+ICONS_SCALABLE="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/scalable/apps"
+ICONS_256="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/256x256/apps"
+PIXMAPS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/pixmaps"
+mkdir -p "$ICONS_SCALABLE" "$ICONS_256" "$PIXMAPS_DIR"
+
 if [ -f "$REPO_DIR/assets/icon.svg" ]; then
-  cp -f "$REPO_DIR/assets/icon.svg" "$ICONS_DIR/omycontroller.svg"
-  info "icon installed: $ICONS_DIR/omycontroller.svg"
+  cp -f "$REPO_DIR/assets/icon.svg" "$ICONS_SCALABLE/omycontroller.svg"
+  cp -f "$REPO_DIR/assets/icon.svg" "$PIXMAPS_DIR/omycontroller.svg"
+  info "vector icon installed: $ICONS_SCALABLE/omycontroller.svg"
 fi
+
+if [ -f "$REPO_DIR/assets/icon.png" ]; then
+  cp -f "$REPO_DIR/assets/icon.png" "$ICONS_256/omycontroller.png"
+  cp -f "$REPO_DIR/assets/icon.png" "$PIXMAPS_DIR/omycontroller.png"
+  info "png icon installed: $ICONS_256/omycontroller.png"
+elif command -v rsvg-convert >/dev/null 2>&1 && [ -f "$REPO_DIR/assets/icon.svg" ]; then
+  rsvg-convert -w 256 -h 256 "$REPO_DIR/assets/icon.svg" -o "$ICONS_256/omycontroller.png"
+  cp -f "$ICONS_256/omycontroller.png" "$PIXMAPS_DIR/omycontroller.png"
+fi
+
+command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t "${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor" 2>/dev/null || true
 
 APPS_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 mkdir -p "$APPS_DIR"
