@@ -268,12 +268,22 @@ Item {
       }
     }
 
-    // ---------------- triggers + bumpers --------------------------------
-    TrigBar { xPos: root.geo.bumpers[0] + 6; yPos: 16; side: "l" }
-    TrigBar { xPos: root.geo.bumpers[1] + 6; yPos: 16; side: "r" }
+    // ---------------- 2.5D Integrated Shoulder & Trigger Units ----------
+    ShoulderUnit {
+      side: "l"
+      xPos: root.geo.bumpers[0]
+      trigLabel: root.isPs ? "L2" : root.isSwitch ? "ZL" : "LT"
+      bumpLabel: root.isPs ? "L1" : root.isSwitch ? "L" : "LB"
+      bumpOn: root.pressed(root.tables.bumperL)
+    }
 
-    Bumper { xPos: root.geo.bumpers[0]; yPos: 34; label: root.isPs ? "L1" : root.isSwitch ? "L" : "LB"; on: root.pressed(root.tables.bumperL); artSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "l")) }
-    Bumper { xPos: root.geo.bumpers[1]; yPos: 34; label: root.isPs ? "R1" : root.isSwitch ? "R" : "RB"; on: root.pressed(root.tables.bumperR); artSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "r")) }
+    ShoulderUnit {
+      side: "r"
+      xPos: root.geo.bumpers[1]
+      trigLabel: root.isPs ? "R2" : root.isSwitch ? "ZR" : "RT"
+      bumpLabel: root.isPs ? "R1" : root.isSwitch ? "R" : "RB"
+      bumpOn: root.pressed(root.tables.bumperR)
+    }
 
     // ---------------- left stick ----------------------------------------
     Stick {
@@ -574,6 +584,281 @@ Item {
   }
 
   // ============================================================ components
+
+  // -------------------------------------------------------- ShoulderUnit
+  // 2.5D Integrated Shoulder & Trigger Unit with Wireframe Schematics
+  // Anchors the trigger well, trigger blade, and bumper directly to the chassis
+  // with 2.5D perspective bevels, travel depression, and tactile grip ribs.
+  component ShoulderUnit : Item {
+    id: su
+    property string side: "l" // "l" or "r"
+    property real xPos: 0
+    property real yPos: 12
+    property string trigLabel: ""
+    property string bumpLabel: ""
+    property string bumpArtSource: ""
+    property bool bumpOn: false
+    readonly property real fillAmount: Math.max(0, Math.min(1, root.triggerNorm(side)))
+
+    x: xPos
+    y: yPos
+    width: 58
+    height: 42
+
+    // 1. Recessed Trigger Well (The Grounding Cavity)
+    // Dark mechanical chamber socket physically embedded into the chassis shoulder
+    Rectangle {
+      anchors.fill: parent
+      radius: 6
+      color: Qt.rgba(0, 0, 0, 0.45)
+      border.color: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.45)
+      border.width: 1
+
+      // Inner cavity depth shadow
+      Rectangle {
+        anchors.fill: parent
+        anchors.margins: 1
+        radius: 5
+        color: "transparent"
+        border.color: Qt.rgba(0, 0, 0, 0.65)
+        border.width: 1
+      }
+    }
+
+    // 2. 2.5D Wireframe Travel Rail & Graduation Scale (Outer Flank)
+    Item {
+      id: wireRail
+      x: su.side === "l" ? 3 : parent.width - 7
+      y: 2
+      width: 5
+      height: 20
+
+      // Vertical guide rail
+      Rectangle {
+        x: su.side === "l" ? 0 : parent.width - 1
+        y: 0
+        width: 1
+        height: parent.height
+        color: Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.35)
+      }
+
+      // 0% rest tick
+      Rectangle {
+        x: su.side === "l" ? 0 : parent.width - 4
+        y: 2
+        width: 4
+        height: 1
+        color: Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.50)
+      }
+
+      // 50% travel tick
+      Rectangle {
+        x: su.side === "l" ? 0 : parent.width - 3
+        y: 9
+        width: 3
+        height: 1
+        color: Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.35)
+      }
+
+      // 100% full-pull tick
+      Rectangle {
+        x: su.side === "l" ? 0 : parent.width - 4
+        y: 16
+        width: 4
+        height: 1
+        color: su.fillAmount > 0.85
+          ? root.playerColor
+          : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.50)
+      }
+    }
+
+    // 3. Mechanical Pivot Pin / Crosshair (Inner Hinge Corner)
+    Item {
+      x: su.side === "l" ? parent.width - 10 : 3
+      y: 3
+      width: 7
+      height: 7
+
+      Rectangle {
+        anchors.centerIn: parent
+        width: 5
+        height: 5
+        radius: 2.5
+        color: "transparent"
+        border.color: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.45)
+        border.width: 1
+      }
+      Rectangle {
+        anchors.centerIn: parent
+        width: 1.5
+        height: 1.5
+        radius: 0.75
+        color: Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.50)
+      }
+    }
+
+    // 4. 2.5D Trigger Blade (Pivots downward behind the bumper when pulled)
+    Rectangle {
+      id: trigBlade
+      x: 6
+      // Mechanical 2.5D travel depression: sinks 4px into well when pulled
+      y: 1 + su.fillAmount * 4.0
+      width: parent.width - 12
+      height: 20
+      radius: 4
+      color: su.fillAmount > 0.05
+        ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.24)
+        : root.idleFill
+      border.color: su.fillAmount > 0.05 ? root.playerColor : root.bodyBorder
+      border.width: su.fillAmount > 0.05 ? 1.5 : 1
+
+      Behavior on y { NumberAnimation { duration: 45 } }
+      Behavior on color { ColorAnimation { duration: 50 } }
+
+      // 2.5D Top Crown Bevel (Reflective Upper Ridge)
+      Rectangle {
+        x: 2; y: 1
+        width: parent.width - 4
+        height: 2.5
+        radius: 1.5
+        color: Qt.rgba(1, 1, 1, su.fillAmount > 0.05 ? 0.28 : 0.09)
+      }
+
+      // 3 Tactile Grip Ribs (Wireframe Engineering Detail)
+      Repeater {
+        model: 3
+        Rectangle {
+          required property int index
+          x: 6
+          y: 5 + index * 3
+          width: parent.width - 12
+          height: 1
+          color: su.fillAmount > 0.05
+            ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.45)
+            : Qt.rgba(1, 1, 1, 0.07)
+        }
+      }
+
+      // Analog Precision Travel Fill Indicator
+      Rectangle {
+        x: 2; y: parent.height - 3
+        width: Math.max(0, (parent.width - 4) * su.fillAmount)
+        height: 2
+        radius: 1
+        color: root.playerColor
+        visible: su.fillAmount > 0.02
+        opacity: 0.90
+      }
+
+      // Trigger Label
+      Text {
+        anchors.centerIn: parent
+        anchors.verticalCenterOffset: -2
+        text: su.trigLabel
+        color: su.fillAmount > 0.45 ? Color.popups.background : root.glyphColor
+        font.pixelSize: 8
+        font.bold: true
+        font.family: Style.font.family
+      }
+    }
+
+    // 5. 2.5D Bumper Plate (Seated directly onto the chassis shoulder)
+    Rectangle {
+      id: bumperPlate
+      x: 0
+      // Mechanical click depression: sinks 1.5px into housing when pressed
+      y: su.bumpOn ? 20.5 : 19
+      width: parent.width
+      height: 22
+      radius: 5
+      color: su.bumpOn ? root.playerColor : root.idleFill
+      border.color: su.bumpOn ? root.playerColor : root.bodyBorder
+      border.width: su.bumpOn ? 1.5 : 1
+
+      Behavior on y { NumberAnimation { duration: 40 } }
+      Behavior on color { ColorAnimation { duration: 60 } }
+
+      // 2.5D Bumper Glow Halo on Press
+      Rectangle {
+        anchors.centerIn: parent
+        width: parent.width + 6
+        height: parent.height + 6
+        radius: 7
+        color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.25 : 0)
+        border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.65 : 0)
+        border.width: 1.5
+        opacity: su.bumpOn ? 1.0 : 0.0
+        z: -1
+        Behavior on opacity { NumberAnimation { duration: 60 } }
+      }
+
+      // 2.5D Top Highlight Bevel (Upper edge thickness)
+      Rectangle {
+        x: 3; y: 1
+        width: parent.width - 6
+        height: 2
+        radius: 1
+        color: su.bumpOn ? Qt.rgba(1, 1, 1, 0.40) : Qt.rgba(1, 1, 1, 0.12)
+      }
+
+      // Technical Seam Line (engineered partition joint with chassis)
+      Rectangle {
+        x: 0; y: parent.height - 1
+        width: parent.width
+        height: 1
+        color: Qt.rgba(0, 0, 0, 0.50)
+      }
+
+      // Cap Art SVG (if provided)
+      Image {
+        visible: su.bumpArtSource !== ""
+        anchors.fill: parent
+        anchors.margins: 2
+        source: su.bumpArtSource
+        fillMode: Image.PreserveAspectFit
+        mipmap: true
+        layer.enabled: visible
+        layer.effect: MultiEffect {
+          colorization: 1.0
+          colorizationColor: su.bumpOn ? root.playerColor : root.glyphColor
+        }
+      }
+
+      // Bumper Label
+      Text {
+        visible: root.showLabels && su.bumpArtSource === ""
+        anchors.centerIn: parent
+        text: su.bumpLabel
+        color: su.bumpOn ? Color.popups.background : root.glyphColor
+        font.pixelSize: 8
+        font.bold: true
+        font.family: Style.font.family
+      }
+    }
+
+    // 6. 2.5D Wireframe Structural Flank Anchor (Binds housing to grip contour)
+    Shape {
+      anchors.fill: parent
+      visible: true
+
+      ShapePath {
+        strokeWidth: 1
+        strokeColor: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.40)
+        fillColor: "transparent"
+
+        startX: su.side === "l" ? 0 : su.width
+        startY: 14
+        PathLine {
+          x: su.side === "l" ? 0 : su.width
+          y: 40
+        }
+        PathLine {
+          x: su.side === "l" ? -4 : su.width + 4
+          y: 44
+        }
+      }
+    }
+  }
 
   // ------------------------------------------------------------- TrigBar
   component TrigBar : Item {
