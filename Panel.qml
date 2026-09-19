@@ -21,7 +21,8 @@ import "."
 Panel {
   id: root
   moduleName: "omycontroller"
-  manageIpc: false
+  ipcTarget: "omycontroller"
+  manageIpc: true
 
   property var anchorItem: null
   property var hostWidget: null
@@ -93,8 +94,8 @@ Panel {
     ? (GamepadlaCatalog.bestLatency(matched.entry)
         ? "best " + GamepadlaCatalog.bestLatency(matched.entry).mode +
           " " + GamepadlaCatalog.bestLatency(matched.entry).ms.toFixed(2) + " ms" : "") +
-      (matched.entry.avg ? " · avg " + matched.entry.avg + " ms" : "") +
-      (matched.entry.poll ? " · poll " + matched.entry.poll + " Hz" : "")
+      (matched.entry.avg ? " · avg " + Number(matched.entry.avg).toFixed(1) + " ms" : "") +
+      (matched.entry.poll ? " · poll " + Math.round(Number(matched.entry.poll)) + " Hz" : "")
     : ""
 
   // Live state mirrors (copied on every event for instant re-render)
@@ -314,7 +315,7 @@ Panel {
     bar: root.bar
     open: root.opened
     focusTarget: keyCatcher
-    contentWidth: panel.fittedContentWidth(root.isSideMenu ? Style.space(570) : Style.space(480))
+    contentWidth: panel.fittedContentWidth(root.isSideMenu ? Style.space(600) : Style.space(480))
     contentHeight: panel.fittedContentHeight(content.implicitHeight, Style.space(680))
 
     PanelKeyCatcher {
@@ -370,65 +371,17 @@ Panel {
             }
           }
 
-          // Right Controls: Menu Switcher + Demo Button (enclosed to prevent overlapping)
+          // Right Controls: Simulator Toggle Button
           Row {
             id: headerRightRow
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: Style.space(6)
 
-            // Menu Position Switcher
-            Row {
-              anchors.verticalCenter: parent.verticalCenter
-              spacing: 2
-
-              Repeater {
-                model: [
-                  { pos: "left", label: "◧ Left" },
-                  { pos: "top", label: "⬒ Top" },
-                  { pos: "right", label: "◨ Right" }
-                ]
-                delegate: Rectangle {
-                  id: posPill
-                  required property var modelData
-                  readonly property bool isCur: root.menuPosition === posPill.modelData.pos
-                  width: posText.implicitWidth + Style.space(8)
-                  height: Style.space(22)
-                  radius: Math.max(3, Style.cornerRadius - 2)
-                  color: isCur ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22) : "transparent"
-                  border.color: isCur ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
-                  border.width: 1
-
-                  Text {
-                    id: posText
-                    anchors.centerIn: parent
-                    text: posPill.modelData.label
-                    color: posPill.isCur ? root.playerColor : Qt.darker(root.barForeground, 1.4)
-                    font.family: Style.font.family
-                    font.pixelSize: 8
-                    font.bold: posPill.isCur
-                  }
-
-                  MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: {
-                      root.menuPosition = posPill.modelData.pos
-                      if (hostWidget && typeof hostWidget.setSetting === "function") {
-                        hostWidget.setSetting("menuPosition", posPill.modelData.pos)
-                      }
-                    }
-                  }
-                }
-              }
-            }
-
-            // Simulator Toggle Button
             Button {
               id: demoBtn
               anchors.verticalCenter: parent.verticalCenter
-              text: root.demoActive ? "⚡ Demo (Active)" : "⚡ Demo"
+              text: root.demoActive ? "⚡ Bench Active" : "⚡ Simulator Bench"
               focusable: true
               foreground: root.barForeground
               accent: root.demoActive ? Color.accent : root.barForeground
@@ -447,16 +400,27 @@ Panel {
           width: parent.width
           spacing: Style.space(10)
 
-          Item { height: Style.space(6); width: 1 }
+          Item { height: Style.space(4); width: 1 }
 
-          ControllerArt {
+          // Preview Chassis Card
+          Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter
-            mini: false
-            layout: "xbox"
-            playerColor: Color.accent
-            width: Style.space(270)
-            height: Style.space(165)
-            showLabels: true
+            width: parent.width - Style.space(24)
+            height: Style.space(195)
+            radius: Style.cornerRadius
+            color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.03)
+            border.color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08)
+            border.width: 1
+
+            ControllerArt {
+              anchors.centerIn: parent
+              mini: false
+              layout: "xbox"
+              playerColor: Color.accent
+              width: Style.space(280)
+              height: Style.space(170)
+              showLabels: true
+            }
           }
 
           Text {
@@ -656,7 +620,7 @@ Panel {
             Column {
               id: sideNavCol
               visible: root.isSideMenu
-              width: visible ? Style.space(120) : 0
+              width: visible ? Style.space(138) : 0
               spacing: Style.space(6)
 
               // Compact Slot Selector (2x2 grid)
@@ -782,7 +746,7 @@ Panel {
             // Tab Content View Area
             Item {
               id: tabContainer
-              width: root.isSideMenu ? parent.width - Style.space(130) : parent.width
+              width: root.isSideMenu ? parent.width - Style.space(148) : parent.width
               height: Math.min(Style.space(500), tabFlickCol.implicitHeight)
               clip: true
 
@@ -977,7 +941,7 @@ Panel {
                     CircularityRadar {
                       width: (parent.width - Style.space(8)) / 2
                       height: Style.space(245)
-                      title: "Left Stick (Circularity)"
+                      title: "Left Stick Radar"
                       rawX: root.stickX("l")
                       rawY: root.stickY("l")
                       deadzone: root.dzFor("l")
@@ -987,7 +951,7 @@ Panel {
                     CircularityRadar {
                       width: (parent.width - Style.space(8)) / 2
                       height: Style.space(245)
-                      title: "Right Stick (Circularity)"
+                      title: "Right Stick Radar"
                       rawX: root.stickX("r")
                       rawY: root.stickY("r")
                       deadzone: root.dzFor("r")
@@ -2207,7 +2171,7 @@ Panel {
 
     Text {
       anchors.verticalCenter: parent.verticalCenter
-      width: Style.space(95)
+      width: Style.space(115)
       text: dzRow.labelText
       color: dzRow.foreground
       font.family: Style.font.family
@@ -2217,7 +2181,7 @@ Panel {
 
     PanelSlider {
       id: slider
-      width: Math.max(Style.space(60), parent.width - Style.space(153))
+      width: Math.max(Style.space(60), parent.width - Style.space(173))
       anchors.verticalCenter: parent.verticalCenter
       minimum: dzRow.minValue
       maximum: dzRow.maxValue

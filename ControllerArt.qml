@@ -69,7 +69,11 @@ Item {
     return isFinite(v) ? v : fallback
   }
   function triggerNorm(side) {
-    var raw = axisValue(side === "l" ? axisMap.lt : axisMap.rt, side === "l" ? pressed(tables.triggerL) ? 1 : 0 : pressed(tables.triggerR) ? 1 : 0)
+    if (!axes || axes.length === 0) {
+      return (side === "l" ? pressed(tables.triggerL) : pressed(tables.triggerR)) ? 1.0 : 0.0
+    }
+    var fallback = isXbox ? -1 : 0
+    var raw = axisValue(side === "l" ? axisMap.lt : axisMap.rt, fallback)
     return GamepadModel.triggerNorm(layout, raw)
   }
   function stickX(side) { return axisValue(side === "l" ? axisMap.lx : axisMap.rx, 0) }
@@ -113,9 +117,9 @@ Item {
   // ------------------------------------------------------------- geometry
   // Per-layout element centers inside the 340x208 canvas.
   readonly property var geo: {
-    if (isXbox || isSwitch) return { stickL: [88, 106], stickR: [198, 140], dpad: [144, 136], face: [254, 106], bumpers: [58, 226] }
-    if (isPs) return { stickL: [134, 140], stickR: [206, 140], dpad: [88, 106], face: [254, 106], bumpers: [58, 226] }
-    return { stickL: [88, 106], stickR: [198, 140], dpad: [144, 136], face: [254, 106], bumpers: [58, 226] }
+    if (isXbox || isSwitch) return { stickL: [92, 102], stickR: [212, 140], dpad: [128, 140], face: [248, 102], bumpers: [66, 218] }
+    if (isPs) return { stickL: [126, 140], stickR: [214, 140], dpad: [92, 102], face: [248, 102], bumpers: [66, 218] }
+    return { stickL: [92, 102], stickR: [212, 140], dpad: [128, 140], face: [248, 102], bumpers: [66, 218] }
   }
 
   // ------------------------------------------------------------------ mini
@@ -205,56 +209,58 @@ Item {
         strokeWidth: root.anyPress ? 2 : 1.5
         strokeColor: root.bodyBorder
         fillColor: root.bodyColor
-        startX: 120; startY: 42
-        PathCubic { control1X: 140; control1Y: 44; control2X: 200; control2Y: 44; x: 220; y: 42 }
-        PathCubic { control1X: 245; control1Y: 40; control2X: 275; control2Y: 42; x: 290; y: 58 }
-        PathCubic { control1X: 305; control1Y: 74; control2X: 308; control2Y: 96; x: 304; y: 126 }
-        PathCubic { control1X: 298; control1Y: 155; control2X: 286; control2Y: 182; x: 272; y: 196 }
-        PathCubic { control1X: 260; control1Y: 206; control2X: 246; control2Y: 204; x: 234; y: 194 }
-        PathCubic { control1X: 220; control1Y: 182; control2X: 212; control2Y: 162; x: 206; y: 142 }
-        PathCubic { control1X: 202; control1Y: 134; control2X: 190; control2Y: 132; x: 170; y: 132 }
-        PathCubic { control1X: 150; control1Y: 132; control2X: 138; control2Y: 134; x: 134; y: 142 }
-        PathCubic { control1X: 128; control1Y: 162; control2X: 120; control2Y: 182; x: 106; y: 194 }
-        PathCubic { control1X: 94; control1Y: 204; control2X: 80; control2Y: 206; x: 68; y: 196 }
-        PathCubic { control1X: 54; control1Y: 182; control2X: 42; control2Y: 155; x: 36; y: 126 }
-        PathCubic { control1X: 32; control1Y: 96; control2X: 35; control2Y: 74; x: 50; y: 58 }
-        PathCubic { control1X: 65; control1Y: 42; control2X: 95; control2Y: 40; x: 120; y: 42 }
+        startX: 122; startY: 46
+        PathCubic { control1X: 142; control1Y: 48; control2X: 198; control2Y: 48; x: 218; y: 46 }
+        PathCubic { control1X: 236; control1Y: 45; control2X: 262; control2Y: 48; x: 280; y: 58 }
+        PathCubic { control1X: 300; control1Y: 70; control2X: 308; control2Y: 92; x: 308; y: 120 }
+        PathCubic { control1X: 308; control1Y: 150; control2X: 298; control2Y: 178; x: 280; y: 196 }
+        PathCubic { control1X: 270; control1Y: 204; control2X: 254; control2Y: 202; x: 242; y: 194 }
+        PathCubic { control1X: 226; control1Y: 184; control2X: 214; control2Y: 176; x: 204; y: 168 }
+        PathCubic { control1X: 194; control1Y: 160; control2X: 182; control2Y: 158; x: 170; y: 158 }
+        PathCubic { control1X: 158; control1Y: 158; control2X: 146; control2Y: 160; x: 136; y: 168 }
+        PathCubic { control1X: 126; control1Y: 176; control2X: 114; control2Y: 184; x: 98; y: 194 }
+        PathCubic { control1X: 86; control1Y: 202; control2X: 70; control2Y: 204; x: 60; y: 196 }
+        PathCubic { control1X: 42; control1Y: 178; control2X: 32; control2Y: 150; x: 32; y: 120 }
+        PathCubic { control1X: 32; control1Y: 92; control2X: 40; control2Y: 70; x: 60; y: 58 }
+        PathCubic { control1X: 78; control1Y: 48; control2X: 104; control2Y: 45; x: 122; y: 46 }
       }
     }
 
     // Ergonomic grip palm swell contours (Left & Right)
     Rectangle {
-      x: 46; y: 92; width: 42; height: 84; radius: 21; rotation: -12
-      color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.035)
-      border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.08)
+      x: 48; y: 96; width: 36; height: 72; radius: 18; rotation: -20
+      color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.03)
+      border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.06)
       border.width: 1
     }
     Rectangle {
-      x: 252; y: 92; width: 42; height: 84; radius: 21; rotation: 12
-      color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.035)
-      border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.08)
+      x: 256; y: 96; width: 36; height: 72; radius: 18; rotation: 20
+      color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.03)
+      border.color: Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.06)
       border.width: 1
     }
 
     // Upper chassis matte bevel reflection
     Rectangle {
-      x: 72; y: 48; width: 196; height: 26; radius: 13
-      color: Qt.rgba(1, 1, 1, 0.035)
-      border.color: Qt.rgba(1, 1, 1, 0.06)
+      visible: !root.isPs
+      x: 80; y: 52; width: 180; height: 22; radius: 11
+      color: Qt.rgba(1, 1, 1, 0.03)
+      border.color: Qt.rgba(1, 1, 1, 0.05)
       border.width: 1
     }
 
     // Integrated Player Slot LEDs on lower center bridge
     Row {
       anchors.horizontalCenter: parent.horizontalCenter
-      y: 112
-      spacing: 5
+      y: 126
+      spacing: 4
+      visible: !root.isPs
 
       Repeater {
         model: 4
         Rectangle {
           required property int index
-          width: 5; height: 5; radius: 2.5
+          width: 4; height: 4; radius: 2
           color: index === 0 ? root.playerColor : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.22)
           border.color: index === 0 ? root.playerColor : "transparent"
           border.width: 1
@@ -263,11 +269,11 @@ Item {
     }
 
     // ---------------- triggers + bumpers --------------------------------
-    TrigBar { xPos: root.geo.bumpers[0] + 4; yPos: 18; side: "l" }
-    TrigBar { xPos: root.geo.bumpers[1] + 4; yPos: 18; side: "r" }
+    TrigBar { xPos: root.geo.bumpers[0] + 6; yPos: 16; side: "l" }
+    TrigBar { xPos: root.geo.bumpers[1] + 6; yPos: 16; side: "r" }
 
-    Bumper { xPos: root.geo.bumpers[0]; yPos: 38; label: root.isPs ? "L1" : root.isSwitch ? "L" : "LB"; on: root.pressed(root.tables.bumperL); artSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "l")) }
-    Bumper { xPos: root.geo.bumpers[1]; yPos: 38; label: root.isPs ? "R1" : root.isSwitch ? "R" : "RB"; on: root.pressed(root.tables.bumperR); artSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "r")) }
+    Bumper { xPos: root.geo.bumpers[0]; yPos: 34; label: root.isPs ? "L1" : root.isSwitch ? "L" : "LB"; on: root.pressed(root.tables.bumperL); artSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "l")) }
+    Bumper { xPos: root.geo.bumpers[1]; yPos: 34; label: root.isPs ? "R1" : root.isSwitch ? "R" : "RB"; on: root.pressed(root.tables.bumperR); artSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "r")) }
 
     // ---------------- left stick ----------------------------------------
     Stick {
@@ -301,10 +307,10 @@ Item {
     }
 
     // ---------------- face buttons --------------------------------------
-    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] - 20; label: root.faceLabel("top");    pos: "top";    on: root.pressed(root.tables.faceTop);    artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "top")) }
-    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] + 20; label: root.faceLabel("bottom"); pos: "bottom"; on: root.pressed(root.tables.faceBottom); artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "bottom")) }
-    FaceButton { cx: root.geo.face[0] - 20; cy: root.geo.face[1];      label: root.faceLabel("left");   pos: "left";   on: root.pressed(root.tables.faceLeft);   artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "left")) }
-    FaceButton { cx: root.geo.face[0] + 20; cy: root.geo.face[1];      label: root.faceLabel("right");  pos: "right";  on: root.pressed(root.tables.faceRight);  artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "right")) }
+    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] - 18; label: root.faceLabel("top");    pos: "top";    on: root.pressed(root.tables.faceTop);    artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "top")) }
+    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] + 18; label: root.faceLabel("bottom"); pos: "bottom"; on: root.pressed(root.tables.faceBottom); artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "bottom")) }
+    FaceButton { cx: root.geo.face[0] - 18; cy: root.geo.face[1];      label: root.faceLabel("left");   pos: "left";   on: root.pressed(root.tables.faceLeft);   artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "left")) }
+    FaceButton { cx: root.geo.face[0] + 18; cy: root.geo.face[1];      label: root.faceLabel("right");  pos: "right";  on: root.pressed(root.tables.faceRight);  artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "right")) }
 
     // ---------------- center cluster ------------------------------------
     Item {
@@ -398,7 +404,6 @@ Item {
         cy: root.isPs ? 36 : 40
         r: 7
         label: root.isSwitch ? "–" : "⧉"
-        artSource: Qt.resolvedUrl(GamepadModel.centerArt(root.layout, "left"))
         on: root.pressed(root.tables.centerLeft)
         accent: root.playerColor
         showLabel: root.showLabels
@@ -410,7 +415,6 @@ Item {
         cy: root.isPs ? 36 : 40
         r: 7
         label: root.isSwitch ? "+" : "☰"
-        artSource: Qt.resolvedUrl(GamepadModel.centerArt(root.layout, "right"))
         on: root.pressed(root.tables.centerRight)
         accent: root.playerColor
         showLabel: root.showLabels
@@ -420,9 +424,10 @@ Item {
       CircleKey {
         visible: root.isSwitch || root.isXbox
         cx: parent.width * 0.5
-        cy: root.isXbox ? 54 : 56
-        r: 6
+        cy: root.isXbox ? 50 : 56
+        r: 5
         label: "▣"
+        labelSize: 6
         on: root.pressed(root.tables.centerExtra)
         accent: root.playerColor
         showLabel: root.showLabels
@@ -574,23 +579,23 @@ Item {
   component TrigBar : Item {
     id: trig
     property real xPos: 0
-    property real yPos: 18
+    property real yPos: 16
     property string side: "l"
     property string labelOverride: ""
 
     x: xPos
     y: yPos
-    width: 50
-    height: 16
+    width: 44
+    height: 15
 
     readonly property real fillAmount: Math.max(0, Math.min(1, root.triggerNorm(side)))
 
     Rectangle {
       anchors.fill: parent
-      radius: 5
+      radius: 4
       color: root.idleFill
-      border.color: trig.fillAmount > 0 ? root.playerColor : root.bodyBorder
-      border.width: trig.fillAmount > 0 ? 1.5 : 1
+      border.color: trig.fillAmount > 0.05 ? root.playerColor : root.bodyBorder
+      border.width: trig.fillAmount > 0.05 ? 1.5 : 1
 
       // Analog Fill Level
       Rectangle {
@@ -599,7 +604,7 @@ Item {
         height: parent.height - 4
         radius: 3
         color: root.playerColor
-        opacity: trig.fillAmount > 0 ? 0.75 : 0.0
+        opacity: trig.fillAmount > 0.05 ? 0.75 : 0.0
         Behavior on opacity { NumberAnimation { duration: 40 } }
       }
 
@@ -609,7 +614,7 @@ Item {
              : root.isPs ? (trig.side === "l" ? "L2" : "R2")
              : root.isSwitch ? (trig.side === "l" ? "ZL" : "ZR")
              : (trig.side === "l" ? "LT" : "RT")
-        color: trig.fillAmount > 0.4 ? Color.popups.background : root.dimGlyph
+        color: trig.fillAmount > 0.45 ? Color.popups.background : root.glyphColor
         font.pixelSize: 8
         font.bold: true
         font.family: Style.font.family
@@ -621,14 +626,14 @@ Item {
   component Bumper : Rectangle {
     id: bump
     property real xPos: 0
-    property real yPos: 38
+    property real yPos: 34
     property bool on: false
     property string label: ""
     property string artSource: ""
 
     x: xPos
     y: yPos
-    width: 58
+    width: 56
     height: 16
     radius: 6
     color: on ? root.playerColor : root.idleFill
@@ -825,18 +830,18 @@ Item {
     property alias dpadDown: dp.down
     property color accent: root.playerColor
 
-    x: cx - 28
-    y: cy - 28
-    width: 56
-    height: 56
+    x: cx - 25
+    y: cy - 25
+    width: 50
+    height: 50
 
     // Circular recessed dish
     Rectangle {
       anchors.centerIn: parent
-      width: 52
-      height: 52
-      radius: 26
-      color: Qt.rgba(0, 0, 0, 0.22)
+      width: 48
+      height: 48
+      radius: 24
+      color: Qt.rgba(0, 0, 0, 0.25)
       border.color: root.bodyBorder
       border.width: 1
     }
@@ -844,8 +849,8 @@ Item {
     // Unified cross body bars
     Rectangle {
       anchors.centerIn: parent
-      width: 18
-      height: 48
+      width: 16
+      height: 44
       radius: 4
       color: root.idleFill
       border.color: root.bodyBorder
@@ -853,8 +858,8 @@ Item {
     }
     Rectangle {
       anchors.centerIn: parent
-      width: 48
-      height: 18
+      width: 44
+      height: 16
       radius: 4
       color: root.idleFill
       border.color: root.bodyBorder
@@ -863,34 +868,34 @@ Item {
     // Center pivot disc
     Rectangle {
       anchors.centerIn: parent
-      width: 14
-      height: 14
-      radius: 7
+      width: 12
+      height: 12
+      radius: 6
       color: root.idleFill
       border.color: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.5)
       border.width: 1
     }
 
-    DpadArm { arm: "up";    on: dp.up;        accent: dp.accent }
-    DpadArm { arm: "down";  on: dp.down;      accent: dp.accent }
-    DpadArm { arm: "left";  on: dp.dpadLeft;  accent: dp.accent }
-    DpadArm { arm: "right"; on: dp.dpadRight; accent: dp.accent }
+    DpadArm { dir: "up";    on: dp.up;        accent: dp.accent }
+    DpadArm { dir: "down";  on: dp.down;      accent: dp.accent }
+    DpadArm { dir: "left";  on: dp.dpadLeft;  accent: dp.accent }
+    DpadArm { dir: "right"; on: dp.dpadRight; accent: dp.accent }
   }
 
   // ------------------------------------------------------------- DpadArm
   component DpadArm : Rectangle {
-    id: arm
-    property string arm: "up"
+    id: dpadArmItem
+    property string dir: "up"
     property bool on: false
     property color accent: root.playerColor
-    width: 18
-    height: 18
-    radius: 4
-    x: arm === "left" ? 4 : arm === "right" ? 34 : 19
-    y: arm === "up" ? 4 : arm === "down" ? 34 : 19
+    width: 16
+    height: 16
+    radius: 3
+    x: dir === "left" ? 3 : dir === "right" ? 31 : 17
+    y: dir === "up" ? 3 : dir === "down" ? 31 : 17
     rotation: 0
-    color: on ? arm.accent : "transparent"
-    border.color: on ? arm.accent : "transparent"
+    color: on ? dpadArmItem.accent : "transparent"
+    border.color: on ? dpadArmItem.accent : "transparent"
     border.width: on ? 2 : 0
     scale: on ? 1.08 : 1.0
     Behavior on color { ColorAnimation { duration: 60 } }
@@ -901,11 +906,11 @@ Item {
       anchors.centerIn: parent
       width: parent.width + 6
       height: parent.height + 6
-      radius: 6
-      color: Qt.rgba(arm.accent.r, arm.accent.g, arm.accent.b, arm.on ? 0.30 : 0)
-      border.color: Qt.rgba(arm.accent.r, arm.accent.g, arm.accent.b, arm.on ? 0.70 : 0)
+      radius: 5
+      color: Qt.rgba(dpadArmItem.accent.r, dpadArmItem.accent.g, dpadArmItem.accent.b, dpadArmItem.on ? 0.30 : 0)
+      border.color: Qt.rgba(dpadArmItem.accent.r, dpadArmItem.accent.g, dpadArmItem.accent.b, dpadArmItem.on ? 0.70 : 0)
       border.width: 2
-      opacity: arm.on ? 1.0 : 0.0
+      opacity: dpadArmItem.on ? 1.0 : 0.0
       z: -1
       Behavior on opacity { NumberAnimation { duration: 60 } }
     }
@@ -914,9 +919,9 @@ Item {
     Text {
       visible: root.showLabels
       anchors.centerIn: parent
-      text: arm.arm === "up" ? "▲" : arm.arm === "down" ? "▼" : arm.arm === "left" ? "◀" : "▶"
-      color: arm.on ? Color.popups.background : root.glyphColor
-      font.pixelSize: 9
+      text: dpadArmItem.dir === "up" ? "▲" : dpadArmItem.dir === "down" ? "▼" : dpadArmItem.dir === "left" ? "◀" : "▶"
+      color: dpadArmItem.on ? Color.popups.background : root.glyphColor
+      font.pixelSize: 8
       font.bold: true
       font.family: Style.font.family
     }

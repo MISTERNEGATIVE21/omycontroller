@@ -192,14 +192,7 @@ BarWidget {
         }
       }
 
-      Text {
-        anchors.verticalCenter: parent.verticalCenter
-        visible: root.pillStyle === "badge" && root.activePad === null && !root.isDemo
-        text: "idle"
-        color: Qt.darker(root.pillText, 1.5)
-        font.family: root.bar ? root.bar.fontFamily : Style.font.family
-        font.pixelSize: Style.font.caption
-      }
+      // Idle state keeps clean icon-only presentation to prevent taskbar text clipping
 
       Item {
         id: connItem
@@ -319,16 +312,6 @@ BarWidget {
           enabled: !root.bar || root.bar.foregroundAnimationEnabled
           ColorAnimation { duration: 160 }
         }
-      }
-
-      Text {
-        anchors.verticalCenter: parent.verticalCenter
-        visible: root.pads.length === 0 && !root.isDemo && root.pillStyle !== "iconOnly"
-        textFormat: Text.PlainText
-        text: "—"
-        color: Qt.rgba(root.pillText.r, root.pillText.g, root.pillText.b, 0.45)
-        font.family: root.bar ? root.bar.fontFamily : Style.font.family
-        font.pixelSize: Style.font.body
       }
     }
   }

@@ -930,7 +930,10 @@ Item {
     }
   }
 
-  Component.onCompleted: envProc.running = true
+  Component.onCompleted: {
+    envProc.running = true
+    if (root.demoMode) root.startSimulator()
+  }
   Component.onDestruction: {
     root.stopSimulator()
     for (var id in _streams) stopStream(id)
