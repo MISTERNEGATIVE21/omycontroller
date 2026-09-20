@@ -2590,7 +2590,7 @@ Panel {
                   text: "Remap " + remapModal.currentLabel
                   color: root.barForeground
                   font.family: Style.font.family
-                  font.pixelSize: Style.font.headingSmall
+                  font.pixelSize: Style.font.subtitle
                   font.bold: true
                 }
 
