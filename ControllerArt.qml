@@ -406,6 +406,56 @@ Item {
       }
     }
 
+    // DualSense Two-Tone Faceplate Collar & Wings (Signature PS5 Styling)
+    Shape {
+      visible: root.isPs
+      anchors.fill: parent
+      layer.enabled: true
+      layer.smooth: true
+      opacity: 0.90
+
+      // Left Outer Wing
+      ShapePath {
+        strokeWidth: 1.2
+        strokeColor: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.40)
+        fillColor: Qt.rgba(Color.popups.text.r, Color.popups.text.g, Color.popups.text.b, 0.10)
+        startX: 126; startY: 18
+        PathCubic { control1X: 114; control1Y: 14; control2X: 86; control2Y: 14; x: 72; y: 18 }
+        PathCubic { control1X: 60; control1Y: 24; control2X: 48; control2Y: 42; x: 42; y: 64 }
+        PathCubic { control1X: 34; control1Y: 88; control2X: 32; control2Y: 106; x: 32; y: 124 }
+        PathCubic { control1X: 32; control1Y: 152; control2X: 42; control2Y: 178; x: 60; y: 196 }
+        PathCubic { control1X: 70; control1Y: 204; control2X: 86; control2Y: 202; x: 98; y: 194 }
+        PathCubic { control1X: 82; control1Y: 170; control2X: 74; control2Y: 130; x: 78; y: 92 }
+        PathCubic { control1X: 82; control1Y: 58; control2X: 98; control2Y: 34; x: 126; y: 18 }
+      }
+
+      // Right Outer Wing
+      ShapePath {
+        strokeWidth: 1.2
+        strokeColor: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.40)
+        fillColor: Qt.rgba(Color.popups.text.r, Color.popups.text.g, Color.popups.text.b, 0.10)
+        startX: 214; startY: 18
+        PathCubic { control1X: 226; control1Y: 14; control2X: 254; control2Y: 14; x: 268; y: 18 }
+        PathCubic { control1X: 280; control1Y: 24; control2X: 292; control2Y: 42; x: 298; y: 64 }
+        PathCubic { control1X: 306; control1Y: 88; control2X: 308; control2Y: 106; x: 308; y: 124 }
+        PathCubic { control1X: 308; control1Y: 152; control2X: 298; control2Y: 178; x: 280; y: 196 }
+        PathCubic { control1X: 270; control1Y: 204; control2X: 254; control2Y: 202; x: 242; y: 194 }
+        PathCubic { control1X: 258; control1Y: 170; control2X: 266; control2Y: 130; x: 262; y: 92 }
+        PathCubic { control1X: 258; control1Y: 58; control2X: 242; control2Y: 34; x: 214; y: 18 }
+      }
+    }
+
+    // Switch Pro Subtle Inner Circuit Accent
+    Rectangle {
+      visible: root.isSwitch
+      anchors.centerIn: parent
+      width: 140; height: 90
+      radius: 45
+      color: "transparent"
+      border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.20)
+      border.width: 1
+    }
+
     // 6. Molded Chassis Trigger Wells & Top Bulkhead
     // Left Trigger Socket Well
     Rectangle {
@@ -583,6 +633,8 @@ Item {
       trigLabel: root.isPs ? "L2" : root.isSwitch ? "ZL" : "LT"
       bumpLabel: root.isPs ? "L1" : root.isSwitch ? "L" : "LB"
       bumpOn: root.pressed(root.tables.bumperL)
+      bumpArtSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "l"))
+      trigArtSource: Qt.resolvedUrl(GamepadModel.triggerArt(root.layout, "l"))
     }
 
     ShoulderUnit {
@@ -591,6 +643,8 @@ Item {
       trigLabel: root.isPs ? "R2" : root.isSwitch ? "ZR" : "RT"
       bumpLabel: root.isPs ? "R1" : root.isSwitch ? "R" : "RB"
       bumpOn: root.pressed(root.tables.bumperR)
+      bumpArtSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "r"))
+      trigArtSource: Qt.resolvedUrl(GamepadModel.triggerArt(root.layout, "r"))
     }
 
     // ---------------- left stick ----------------------------------------
@@ -1041,6 +1095,7 @@ Item {
     property string trigLabel: ""
     property string bumpLabel: ""
     property string bumpArtSource: ""
+    property string trigArtSource: ""
     property bool bumpOn: false
     readonly property real fillAmount: Math.max(0, Math.min(1, root.triggerNorm(side)))
 
@@ -1248,8 +1303,28 @@ Item {
         opacity: 0.95
       }
 
+      // Trigger SVG Cap Art (Kenney Input Prompts)
+      Image {
+        id: trigCapImg
+        visible: su.trigArtSource !== "" && status === Image.Ready
+        anchors.centerIn: parent
+        anchors.verticalCenterOffset: -2
+        width: 22
+        height: 14
+        source: su.trigArtSource
+        fillMode: Image.PreserveAspectFit
+        mipmap: true
+        smooth: true
+        layer.enabled: visible
+        layer.effect: MultiEffect {
+          colorization: 1.0
+          colorizationColor: su.fillAmount > 0.45 ? Color.popups.background : root.glyphColor
+        }
+      }
+
       // Trigger Label
       Text {
+        visible: root.showLabels && (!trigCapImg.visible || trigCapImg.status !== Image.Ready)
         anchors.centerIn: parent
         anchors.verticalCenterOffset: -2
         text: su.trigLabel
@@ -1311,12 +1386,14 @@ Item {
 
       // Cap Art SVG (if provided)
       Image {
-        visible: su.bumpArtSource !== ""
+        id: bumperCapImg
+        visible: su.bumpArtSource !== "" && status === Image.Ready
         anchors.fill: parent
         anchors.margins: 2
         source: su.bumpArtSource
         fillMode: Image.PreserveAspectFit
         mipmap: true
+        smooth: true
         layer.enabled: visible
         layer.effect: MultiEffect {
           colorization: 1.0
@@ -1326,7 +1403,7 @@ Item {
 
       // Bumper Label
       Text {
-        visible: root.showLabels && su.bumpArtSource === ""
+        visible: root.showLabels && (!bumperCapImg.visible || bumperCapImg.status !== Image.Ready)
         anchors.centerIn: parent
         text: su.bumpLabel
         color: su.bumpOn ? Color.popups.background : root.glyphColor
@@ -2032,9 +2109,27 @@ Item {
           color: Qt.rgba(1, 1, 1, 0.16)
         }
 
+        // SVG Cap Art (Kenney Input Prompts)
+        Image {
+          id: faceCapImg
+          visible: fb.artSource !== "" && status === Image.Ready
+          anchors.fill: parent
+          anchors.margins: 1
+          source: fb.artSource
+          fillMode: Image.PreserveAspectFit
+          mipmap: true
+          smooth: true
+          layer.enabled: visible
+          layer.effect: MultiEffect {
+            colorization: 1.0
+            colorizationColor: root.isPs ? (fb.on ? Color.popups.background : fb.buttonAccent)
+                             : ((root.isXbox || fb.on) ? "#FFFFFF" : root.glyphColor)
+          }
+        }
+
         // 3D Engraved Drop Shadow for Button Glyph
         Text {
-          visible: root.showLabels
+          visible: root.showLabels && (!faceCapImg.visible || faceCapImg.status !== Image.Ready)
           anchors.centerIn: parent
           anchors.verticalCenterOffset: 1
           text: fb.label
@@ -2046,7 +2141,7 @@ Item {
 
         // Crisp 3D Button Glyph / Letter (Pure white on Xbox/Switch, vibrant on PlayStation)
         Text {
-          visible: root.showLabels
+          visible: root.showLabels && (!faceCapImg.visible || faceCapImg.status !== Image.Ready)
           anchors.centerIn: parent
           text: fb.label
           color: root.isPs ? (fb.on ? Color.popups.background : fb.buttonAccent)

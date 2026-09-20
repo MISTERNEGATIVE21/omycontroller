@@ -94,11 +94,11 @@ cat > "$APPS_DIR/omycontroller.desktop" <<EOF
 Type=Application
 Name=omycontroller
 GenericName=Pro Gamepad Control Center
-Comment=Gamepadla circularity radar, latency benchmark, battery, deadzones, rumble, and DualSense haptics
+Comment=Precision circularity radar, latency benchmark, battery, deadzones, rumble, and DualSense haptics
 Exec=omarchy-shell shell toggle $PLUGIN_ID '{}'
 Terminal=false
 Categories=Game;Utility;Settings;
-Keywords=gamepad;controller;omycontroller;gamepadla;rumble;deadzone;
+Keywords=gamepad;controller;omycontroller;joystick;rumble;deadzone;diagnostics;
 Icon=omycontroller
 NoDisplay=false
 EOF

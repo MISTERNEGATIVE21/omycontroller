@@ -39,6 +39,7 @@ Rectangle {
 
   // ------------------------------------------------------------- state
   property var history: []
+  property var sectors: ({})
   property real circularityError: 0.0
   property real centerDriftPercent: 0.0
   property real currentR: Math.sqrt(rawX * rawX + rawY * rawY)
@@ -47,6 +48,24 @@ Rectangle {
   readonly property color dimGlyph: Qt.rgba(glyphColor.r, glyphColor.g, glyphColor.b, 0.55)
   readonly property color faintBorder: Qt.rgba(glyphColor.r, glyphColor.g, glyphColor.b, 0.15)
   readonly property color chipBackground: Qt.rgba(glyphColor.r, glyphColor.g, glyphColor.b, 0.07)
+
+  readonly property string qualityRating: {
+    if (circularityError <= 0 && (!history || history.length < 10)) return "Untested"
+    if (circularityError < 3.0) return "Flawless"
+    if (circularityError <= 7.0) return "Excellent"
+    if (circularityError <= 12.0) return "Good"
+    if (circularityError <= 18.0) return "Fair"
+    return "Poor"
+  }
+
+  readonly property color qualityColor: {
+    if (circularityError <= 0 && (!history || history.length < 10)) return dimGlyph
+    if (circularityError < 3.0) return "#34D399"
+    if (circularityError <= 7.0) return "#10B981"
+    if (circularityError <= 12.0) return "#FBBF24"
+    if (circularityError <= 18.0) return "#F97316"
+    return "#EF4444"
+  }
 
   onRawXChanged: pushCoord()
   onRawYChanged: pushCoord()
@@ -65,11 +84,13 @@ Rectangle {
     var m = GamepadModel.circularityMetrics(nx, ny, history)
     history = m.history
     circularityError = m.circularityError
+    sectors = m.sectorMax || {}
     radarCanvas.requestPaint()
   }
 
   function reset() {
     history = []
+    sectors = {}
     circularityError = 0
     var nx = Number(rawX) || 0
     var ny = Number(rawY) || 0
@@ -204,6 +225,30 @@ Rectangle {
           ctx.strokeStyle = Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.45)
           ctx.stroke()
 
+          // 4b. 32-Ray Polar Outer Contour Polygon (Stick Perimeter Envelope)
+          var sectorKeys = Object.keys(root.sectors || {}).map(function(k) { return parseInt(k, 10) })
+          if (sectorKeys.length >= 3) {
+            sectorKeys.sort(function(a, b) { return a - b })
+            ctx.beginPath()
+            for (var k = 0; k < sectorKeys.length; k++) {
+              var sIdx = sectorKeys[k]
+              var sAngle = (sIdx / 32) * 2 * Math.PI - (Math.PI / 2)
+              var sRadius = root.sectors[sIdx]
+              var polyX = cx + sRadius * R1 * Math.cos(sAngle)
+              var polyY = cy + sRadius * R1 * Math.sin(sAngle)
+              if (k === 0) ctx.moveTo(polyX, polyY)
+              else ctx.lineTo(polyX, polyY)
+            }
+            if (sectorKeys.length >= 20) {
+              ctx.closePath()
+              ctx.fillStyle = Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.12)
+              ctx.fill()
+            }
+            ctx.lineWidth = 1.8
+            ctx.strokeStyle = Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.85)
+            ctx.stroke()
+          }
+
           // 5. Deadzone shaded circle
           ctx.beginPath()
           ctx.arc(cx, cy, Rdz, 0, 2 * Math.PI)
@@ -212,6 +257,20 @@ Rectangle {
           ctx.lineWidth = 1.5
           ctx.strokeStyle = Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.45)
           ctx.stroke()
+
+          // 5b. Center Resting Target Crosshair & Drift Ring
+          ctx.beginPath()
+          ctx.arc(cx, cy, 2.5, 0, 2 * Math.PI)
+          ctx.fillStyle = Qt.rgba(root.glyphColor.r, root.glyphColor.g, root.glyphColor.b, 0.45)
+          ctx.fill()
+
+          if (root.centerDriftPercent > 1.5) {
+            ctx.beginPath()
+            ctx.arc(cx, cy, Math.min(Rdz, (root.centerDriftPercent / 100.0) * R1), 0, 2 * Math.PI)
+            ctx.lineWidth = 1
+            ctx.strokeStyle = root.centerDriftPercent > 5 ? "#F87171" : "#FBBF24"
+            ctx.stroke()
+          }
 
           // 6. History trace trail points with fading alpha
           var pts = root.history || []
@@ -337,13 +396,13 @@ Rectangle {
         width: parent.width
         spacing: Style.space(4)
 
-        // Circularity Error Chip
+        // Circularity Error Chip with Quality Rating
         Rectangle {
           width: (parent.width - Style.space(4)) / 2
           height: Style.space(26)
           radius: Math.max(4, Style.cornerRadius)
           color: root.chipBackground
-          border.color: root.circularityError > 15 ? "#F87171" : root.circularityError > 8 ? "#FBBF24" : root.faintBorder
+          border.color: root.qualityColor
           border.width: 1
 
           Column {
@@ -360,11 +419,11 @@ Rectangle {
 
             Text {
               anchors.horizontalCenter: parent.horizontalCenter
-              text: root.circularityError.toFixed(1) + "%"
+              text: root.circularityError.toFixed(1) + "% · " + root.qualityRating
               font.family: Style.font.family
-              font.pixelSize: 10
+              font.pixelSize: 9
               font.bold: true
-              color: root.circularityError > 15 ? "#F87171" : root.circularityError > 8 ? "#FBBF24" : root.playerColor
+              color: root.qualityColor
             }
           }
         }
@@ -392,9 +451,9 @@ Rectangle {
 
             Text {
               anchors.horizontalCenter: parent.horizontalCenter
-              text: root.centerDriftPercent.toFixed(1) + "%"
+              text: root.centerDriftPercent.toFixed(1) + "%" + (root.centerDriftPercent <= 2.5 ? " · Minimal" : root.centerDriftPercent <= 5.0 ? " · Minor" : " · Drift")
               font.family: Style.font.family
-              font.pixelSize: 10
+              font.pixelSize: 9
               font.bold: true
               color: root.centerDriftPercent > 5 ? "#F87171" : root.centerDriftPercent > 2.5 ? "#FBBF24" : root.playerColor
             }

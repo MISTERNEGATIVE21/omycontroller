@@ -8,13 +8,13 @@
 
 ![omycontroller Pro Control Deck](assets/preview.png)
 
-**omycontroller** is a pro-grade gamepad control center, diagnostics deck, and status bar widget designed natively for Omarchy Shell (Quickshell). It bridges the gap between desktop Linux gaming and professional hardware telemetry: offering Gamepadla-standard circularity radar tests, deep hardware and sysfs diagnostics, live sub-millisecond input latency measurement, ControllerImage vector button maps, 1-click button remapping, DualSense adaptive triggers, 6-axis gyro/motion calibration, and an interactive simulation engine.
+**omycontroller** is a pro-grade gamepad control center, diagnostics deck, and status bar widget designed natively for Omarchy Shell (Quickshell). It bridges the gap between desktop Linux gaming and professional hardware telemetry: offering precision polar circularity radar tests, deep hardware and sysfs diagnostics, live sub-millisecond input latency measurement, vector button maps, 1-click button remapping, DualSense adaptive triggers, 6-axis gyro/motion calibration, and an interactive simulation engine.
 
 ```
 ┌ omycontroller ──────────────────────────────────────── P1 · Xbox Series pad ─┐
 │ [Overview] [Sticks & Triggers] [Haptics] [Motion] [Device Specs]              │
 ├───────────────────────────────────────────────────────────────────────────────┤
-│  🎯 CIRCULARITY RADAR (Gamepadla Benchmark)                                   │
+│  🎯 PRECISION CIRCULARITY RADAR (Polar 32-Ray Diagnostic)                     │
 │     Avg Error: 4.8%  ·  Max: 8.2%  ·  Quality: EXCELLENT                      │
 │     [● Polar 32-point contour polygon vs 1.00 unit circle]                   │
 │                                                                               │
@@ -39,7 +39,7 @@
 
 - [Features](#features)
 - [The 5-Tab Pro Control Deck](#the-5-tab-pro-control-deck)
-- [Gamepadla Circularity Radar](#gamepadla-circularity-radar)
+- [Precision Circularity Radar](#precision-circularity-radar)
 - [Status Bar Widget](#status-bar-widget)
 - [Interactive Simulator Mode](#interactive-simulator-mode)
 - [Installation](#installation)
@@ -50,6 +50,7 @@
 - [Hardware & Driver Matrix](#hardware--driver-matrix)
 - [Optional Dependencies](#optional-dependencies)
 - [Troubleshooting](#troubleshooting)
+- [Credits & Attributions](#credits--attributions)
 - [License](#license)
 
 ---
@@ -57,7 +58,7 @@
 ## ✨ Features
 
 - **5-Tab Segmented Pro Deck**: Dedicated tab views for *Overview*, *Sticks & Triggers*, *Haptics*, *Motion*, and *Device Specs*.
-- **Gamepadla Circularity Radar**: Live 32-ray polar radar displaying stick travel contours, average circularity error %, min/max deviation, and benchmark ratings (Flawless, Excellent, Good, Fair, Poor).
+- **Precision Circularity Radar**: Live 32-ray polar radar displaying stick travel contours, average circularity error %, min/max deviation, and benchmark ratings (Flawless, Excellent, Good, Fair, Poor).
 - **Sub-Millisecond Input Latency**: True rolling evdev interval monitoring with live, minimum, maximum latency in milliseconds and real effective polling frequency (Hz).
 - **Hardware Diagnostics Sheet**: Instant sysfs inspection showing device nodes (`/dev/input/js*`, `/dev/input/event*`), vendor/product IDs, kernel drivers, bus types, button/axis caps, and rumble features.
 - **Advanced Response Curves & Deadzones**: Real-time non-linear filtering (**Linear**, **Dynamic**, **Smooth**, **Aggressive**) and custom axial deadzones persisted per gamepad model.
@@ -76,7 +77,7 @@ The popout deck is segmented into five focused tabs:
 ### 1. Overview
 - **Model-Accurate Silhouette**: Live vector artwork for Xbox Series/One, DualSense/DualShock 4, Nintendo Switch Pro/Joy-Cons, Arcade Sticks, and HOTAS flight controllers.
 - **Prompt-Accurate Cap Art**: Vendored Kenney Input Prompts on every face, shoulder, and center key — bright at rest, player-colored on press.
-- **Gamepadla Database Match**: Detects the connected model against the bundled 256-entry Gamepadla catalog and shows the full controller photo (letterboxed, never cropped), a benchmark verdict, and live polling/latency figures.
+- **Hardware Catalog & Database Match**: Detects the connected model against the bundled 256-entry hardware catalog and shows the full controller photo (letterboxed, never cropped), verified benchmark verdict, and live polling/latency figures.
 - **Live Button & Axis Illumination**: Real-time visual feedback as sticks, triggers, bumpers, face buttons, and D-pad are pressed.
 - **Multi-Pad Slot Switcher**: Switch between Player 1 through Player 4 with persistent status and slot indicators.
 - **Connection & Power Telemetry**: Hardware bus detection (Wired USB, Bluetooth, 2.4GHz Dongle) and battery health status.
@@ -84,7 +85,7 @@ The popout deck is segmented into five focused tabs:
 
 ### 2. Sticks & Triggers (with Button Remapping & Controller GUI)
 - **Circularity Radar**: Polar coordinates mapped against ideal 1.0 unit circle.
-- **Circularity Error Metrics**: Average error percentage and max error rating based on Gamepadla benchmark standards.
+- **Circularity Error Metrics**: Average error percentage and quality rating based on standardized polar benchmark metrics.
 - **Stick Coordinates**: Real-time normalized readout `(X, Y, Magnitude)` for both Left and Right analog sticks.
 - **Response Curve Selector**: Switch between Linear, Dynamic, Smooth, and Aggressive response curves.
 - **Deadzone Sliders**: Per-stick radial deadzone configuration (0% to 50%) with live deadzone preview rings and outer boundary limits.
@@ -116,7 +117,7 @@ The popout deck is segmented into five focused tabs:
 
 ---
 
-## 🎯 Gamepadla Circularity Radar
+## 🎯 Precision Circularity Radar
 
 Circularity testing assesses the mechanical and firmware precision of analog thumbsticks.
 
@@ -141,7 +142,7 @@ The status bar widget (`BarWidget.qml`) integrates into the Omarchy panel:
 
 - **Vector Silhouette Icon**: Renders the active controller's layout silhouette in the bar.
 - **Plugin Icon Glyph**: The `iconOnly` style swaps in the bundled plugin icon (`assets/icon.svg`, tinted per-theme and per-player-color when connected).
-- **Connection Glyphs**: Gamepadla SVG icons for Wired USB, Bluetooth, and 2.4GHz Dongle.
+- **Connection Glyphs**: Dedicated vector SVG icons for Wired USB, Bluetooth, and 2.4GHz Dongle.
 - **Battery Pill**: Shows lowest battery percentage across connected pads; paints in `urgent` color when below threshold and `accent` when charging.
 - **Configurable Styles**:
   - `badge`: Mini silhouette + connection icon + battery/status badge.
@@ -157,7 +158,7 @@ No controller at hand? omycontroller includes a full **interactive hardware simu
 
 - Simulates an Xbox Series controller connected over 2.4GHz Wireless Dongle.
 - Simulates realistic 600 Hz polling with sub-2 ms synthetic latency jitter.
-- Animates analog sticks through orbiting Gamepadla circularity tests.
+- Animates analog sticks through orbiting polar circularity diagnostic tests.
 - Simulates sinusoidal 6-axis gyro motion and live button presses.
 - Fully accessible via the Overview tab header button or the IPC command line.
 
@@ -292,9 +293,9 @@ omycontroller/
 ├── BarWidget.qml            # Status bar pill, tooltip, connection icons & deck host
 ├── Panel.qml                # 5-Tab Segmented Pro Control Deck popout window
 ├── ControllerArt.qml        # Procedural vector controller rendering (5 layouts)
-├── CircularityRadar.qml     # Gamepadla 32-sample polar circularity radar canvas
+├── CircularityRadar.qml     # Precision 32-sample polar circularity radar canvas
 ├── GamepadModel.js          # Pure classification, circularity math & curve functions
-├── assets/                  # Official Gamepadla connection & spec SVGs
+├── assets/                  # Dedicated connection & specification SVGs
 │   ├── icon_cable.svg       # Wired connection icon
 │   ├── icon_bt.svg          # Bluetooth connection icon
 │   ├── icon_dongle.svg      # 2.4GHz wireless dongle icon
@@ -359,6 +360,23 @@ sudo pacman -S --needed linuxconsole python-evdev
 - **Rumble yields permission error**: Check permissions on `/dev/input/event*`. Run `sudo usermod -aG input $USER` and log back in.
 - **Adaptive triggers not engaging**: DualSense adaptive triggers require a wired USB connection (the Linux Bluetooth kernel driver blocks userspace effect reports).
 - **No gyro section displayed**: Controller does not feature an IMU (e.g., standard Xbox pads) or companion motion node was not paired.
+
+---
+
+## 🎖️ Credits & Attributions
+
+**omycontroller** is built on the shoulders of remarkable open-source projects, hardware testers, and design communities:
+
+- **[Kenney](https://kenney.nl/)** ([@KenneyNL](https://twitter.com/KenneyNL)):
+  - Controller input button prompt assets and SVG vector glyphs ([CC0 1.0 Universal](https://creativecommons.org/publicdomain/zero/1.0/)).
+- **[Gamepadla](https://gamepadla.com/)** (John Punch & Contributors):
+  - Joystick circularity test methodology, polar error algorithms, connection type iconography, and the comprehensive 256-controller community benchmark dataset.
+- **[Quickshell](https://outfoxxed.me/quickshell/)**:
+  - The ultra-fast, modern reactive desktop shell framework and QtQuick Linux runtime powering our interface and services.
+- **[Omarchy](https://github.com/omarchy)**:
+  - The Linux desktop distribution, system architecture, unified design tokens (`qs.Commons`, `Color`, `Style`), and plugin ecosystem.
+- **Linux Input Subsystem & linuxconsole developers**:
+  - The Linux kernel `evdev`, `joydev`, `hidraw`, and `jstest` contributors who make zero-overhead hardware controller telemetry possible on Linux.
 
 ---
 

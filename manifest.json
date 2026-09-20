@@ -4,7 +4,7 @@
   "name": "omycontroller",
   "version": "2.0.0",
   "author": "misternegative21",
-  "description": "Pro gamepad control center & diagnostics: Gamepadla circularity radar, latency benchmark, battery, deadzones, rumble, and DualSense haptics.",
+  "description": "Pro gamepad control center & diagnostics: Precision circularity radar, latency benchmark, battery, deadzones, rumble, and DualSense haptics.",
   "icon": "assets/icon.svg",
   "homepage": "https://github.com/misternegative21/omycontroller",
   "kinds": [

@@ -85,7 +85,7 @@ Panel {
   readonly property string matchTitle: matched
     ? (matched.entry.n + (matched.entry.b ? " · " + matched.entry.b : "")) : ""
   readonly property string matchVerdict: matched
-    ? ("gamepadla reviewed" + (matched.entry.plats && matched.entry.plats.length
+    ? ("benchmark verified" + (matched.entry.plats && matched.entry.plats.length
         ? " for " + matched.entry.plats.slice(0, 3).join(" · ") : "") +
       " · " + Math.round(matched.score * 100) + "% match")
     : ""
@@ -1884,7 +1884,7 @@ Panel {
                   spacing: Style.space(6)
 
                   PanelSectionHeader {
-                    text: "Gamepadla Hardware Specification Sheet"
+                    text: "Hardware Diagnostic Specification Sheet"
                     foreground: root.barForeground
                     font.family: root.bar ? root.bar.fontFamily : Style.font.family
                   }
@@ -1896,7 +1896,7 @@ Panel {
                   }
 
                   SpecRow {
-                    label: "Gamepadla Database"
+                    label: "Hardware Catalog"
                     value: root.matched
                       ? (root.matched.entry.n + (root.matched.entry.b ? " · " + root.matched.entry.b : "") + " (" + Math.round(root.matched.score * 100) + "% match)")
                       : "no catalog entry — generic rendering"
@@ -1904,7 +1904,7 @@ Panel {
                   }
 
                   SpecRow {
-                    label: "Gamepadla Benchmark"
+                    label: "Verified Benchmark"
                     value: root.matched ? GamepadlaCatalog.benchmarkLabel(root.matched.entry) : "not benchmarked"
                     foreground: root.barForeground
                   }

@@ -683,7 +683,8 @@ function circularityMetrics(x, y, history) {
     centerDriftPercent: centerDrift,
     circularityError: circError,
     error: circError,
-    history: pts
+    history: pts,
+    sectorMax: sectorMax
   }
 }
 
