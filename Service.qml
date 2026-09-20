@@ -65,20 +65,9 @@ Item {
       root.rescan()
     }
 
-    function setRumble(target: string, weakOrValue: real, strong: real): bool {
-      return root.setRumble(target, weakOrValue, strong)
-    }
-
-    function calibrateGyro(target: string): bool {
-      return root.calibrateGyro(target)
-    }
-
-    function setDeadzone(target: string, key: string, value: real): bool {
-      return root.setDeadzone(target, key, value)
-    }
-
-    function toggleDemo(): bool {
-      return root.toggleDemo()
+    function toggleDemo(): string {
+      root.toggleDemo()
+      return root.simulatorActive ? "active" : "inactive"
     }
 
     function cycleDemoLayout(): string {
