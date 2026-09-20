@@ -65,23 +65,23 @@ Item {
       root.rescan()
     }
 
-    function setRumble(target, weakOrValue, strong) {
+    function setRumble(target: string, weakOrValue: real, strong: real): bool {
       return root.setRumble(target, weakOrValue, strong)
     }
 
-    function calibrateGyro(target) {
+    function calibrateGyro(target: string): bool {
       return root.calibrateGyro(target)
     }
 
-    function setDeadzone(target, key, value) {
+    function setDeadzone(target: string, key: string, value: real): bool {
       return root.setDeadzone(target, key, value)
     }
 
-    function toggleDemo() {
+    function toggleDemo(): bool {
       return root.toggleDemo()
     }
 
-    function cycleDemoLayout() {
+    function cycleDemoLayout(): string {
       return root.cycleDemoLayout()
     }
   }
