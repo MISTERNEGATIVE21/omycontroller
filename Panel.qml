@@ -160,6 +160,16 @@ Panel {
       remapModal.open(role, idx, label)
       return "modal opened"
     }
+
+    function closeModal(): string {
+      remapModal.close()
+      return "modal closed"
+    }
+
+    function scrollContentY(y: int): string {
+      tabFlick.contentY = y
+      return "scrolled"
+    }
   }
 
   onSelChanged: root.refreshLive()
