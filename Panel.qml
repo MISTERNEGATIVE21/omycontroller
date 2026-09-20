@@ -170,6 +170,11 @@ Panel {
       tabFlick.contentY = y
       return "scrolled"
     }
+
+    function applyRemap(role: string, targetIdx: int): string {
+      root.applyButtonRemap(role, targetIdx)
+      return "remapped"
+    }
   }
 
   onSelChanged: root.refreshLive()
