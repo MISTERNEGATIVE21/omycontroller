@@ -150,6 +150,16 @@ Panel {
       root.currentTab = tabIdx
       return "tab set"
     }
+
+    function setRemapMode(active: bool): string {
+      root.remapModeActive = active
+      return "remapMode set"
+    }
+
+    function testOpenModal(role: string, idx: int, label: string): string {
+      remapModal.open(role, idx, label)
+      return "modal opened"
+    }
   }
 
   onSelChanged: root.refreshLive()
