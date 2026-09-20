@@ -137,6 +137,20 @@ Panel {
     }
   }
 
+  IpcHandler {
+    target: "omycontroller"
+
+    function toggleDemo(): string {
+      if (root.svc) root.svc.toggleDemo()
+      return "toggled"
+    }
+
+    function setTab(tabIdx): string {
+      root.currentTab = Number(tabIdx) || 0
+      return "tab set"
+    }
+  }
+
   onSelChanged: root.refreshLive()
   onOpenedChanged: {
     if (!opened) {
@@ -442,12 +456,24 @@ Panel {
             }
           }
 
-          // Right Controls: Rescan Hardware Button
+          // Right Controls: Simulator & Rescan Hardware Buttons
           Row {
             id: headerRightRow
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: Style.space(6)
+
+            Button {
+              id: simBtn
+              anchors.verticalCenter: parent.verticalCenter
+              text: (root.svc && root.svc.simulatorActive) ? "⏹ Stop Sim" : "▶ Simulator"
+              focusable: true
+              foreground: root.barForeground
+              accent: Color.accent
+              onClicked: {
+                if (root.svc) root.svc.toggleDemo()
+              }
+            }
 
             Button {
               id: rescanBtn
@@ -529,13 +555,25 @@ Panel {
             wrapMode: Text.WordWrap
           }
 
-          Button {
+          Row {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "↻ Rescan Hardware"
-            focusable: true
-            foreground: root.barForeground
-            accent: Color.accent
-            onClicked: if (root.svc) root.svc.runScan()
+            spacing: Style.space(8)
+
+            Button {
+              text: (root.svc && root.svc.simulatorActive) ? "⏹ Stop Sim" : "▶ Start Simulator Bench"
+              focusable: true
+              foreground: root.barForeground
+              accent: Color.accent
+              onClicked: if (root.svc) root.svc.toggleDemo()
+            }
+
+            Button {
+              text: "↻ Rescan Hardware"
+              focusable: true
+              foreground: root.barForeground
+              accent: Color.accent
+              onClicked: if (root.svc) root.svc.runScan()
+            }
           }
 
           Item { height: Style.space(6); width: 1 }
