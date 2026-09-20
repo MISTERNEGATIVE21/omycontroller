@@ -139,15 +139,15 @@ Panel {
   }
 
   IpcHandler {
-    target: "omycontroller"
+    target: "omycontroller-panel"
 
     function toggleDemo(): string {
       if (root.svc) root.svc.toggleDemo()
       return "toggled"
     }
 
-    function setTab(tabIdx): string {
-      root.currentTab = Number(tabIdx) || 0
+    function setTab(tabIdx: int): string {
+      root.currentTab = tabIdx
       return "tab set"
     }
   }
