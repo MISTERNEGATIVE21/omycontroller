@@ -252,10 +252,54 @@ Panel {
     root.refreshLive()
   }
 
+  function handleVirtualButton(idx, pressed) {
+    if (idx < 0) return
+    var b = Object.assign({}, root.liveButtons)
+    if (pressed) {
+      b[idx] = true
+    } else {
+      delete b[idx]
+    }
+    root.liveButtons = b
+  }
+
+  function handleVirtualStick(side, sx, sy, active) {
+    var axes = (root.liveAxes || []).slice()
+    while (axes.length < 6) axes.push(0)
+    var layout = root.sel ? root.sel.layout : "xbox"
+    var axisNames = root.sel ? root.sel.axisNames : []
+    var am = GamepadModel.axesMap(layout, axes.length, axisNames)
+    if (side === "l") {
+      if (am.lx >= 0 && am.lx < axes.length) axes[am.lx] = sx
+      if (am.ly >= 0 && am.ly < axes.length) axes[am.ly] = sy
+    } else {
+      if (am.rx >= 0 && am.rx < axes.length) axes[am.rx] = sx
+      if (am.ry >= 0 && am.ry < axes.length) axes[am.ry] = sy
+    }
+    root.liveAxes = axes
+  }
+
+  function handleVirtualTrigger(side, val) {
+    var axes = (root.liveAxes || []).slice()
+    while (axes.length < 6) axes.push(0)
+    var layout = root.sel ? root.sel.layout : "xbox"
+    var axisNames = root.sel ? root.sel.axisNames : []
+    var am = GamepadModel.axesMap(layout, axes.length, axisNames)
+    var isXbox = layout === "xbox"
+    var raw = isXbox ? (val * 2.0 - 1.0) : val
+    if (side === "l") {
+      if (am.lt >= 0 && am.lt < axes.length) axes[am.lt] = raw
+    } else {
+      if (am.rt >= 0 && am.rt < axes.length) axes[am.rt] = raw
+    }
+    root.liveAxes = axes
+  }
+
   function stickX(side) {
-    if (!root.sel) return 0
     var axes = root.liveAxes
-    var axisMap = GamepadModel.axesMap(root.sel.layout, axes ? axes.length : 0, root.sel.axisNames)
+    var layout = root.sel ? root.sel.layout : "xbox"
+    var axisNames = root.sel ? root.sel.axisNames : []
+    var axisMap = GamepadModel.axesMap(layout, axes ? axes.length : 0, axisNames)
     var idx = side === "l" ? axisMap.lx : axisMap.rx
     if (idx === -1 || !axes || idx >= axes.length) return 0
     var v = Number(axes[idx])
@@ -263,9 +307,10 @@ Panel {
   }
 
   function stickY(side) {
-    if (!root.sel) return 0
     var axes = root.liveAxes
-    var axisMap = GamepadModel.axesMap(root.sel.layout, axes ? axes.length : 0, root.sel.axisNames)
+    var layout = root.sel ? root.sel.layout : "xbox"
+    var axisNames = root.sel ? root.sel.axisNames : []
+    var axisMap = GamepadModel.axesMap(layout, axes ? axes.length : 0, axisNames)
     var idx = side === "l" ? axisMap.ly : axisMap.ry
     if (idx === -1 || !axes || idx >= axes.length) return 0
     var v = Number(axes[idx])
@@ -284,17 +329,18 @@ Panel {
   }
 
   function triggerNorm(side) {
-    if (!root.sel) return 0
+    var layout = root.sel ? root.sel.layout : "xbox"
     var axes = root.liveAxes
-    var axisMap = GamepadModel.axesMap(root.sel.layout, axes ? axes.length : 0, root.sel.axisNames)
-    var tables = GamepadModel.buttonTables(root.sel.layout)
+    var axisNames = root.sel ? root.sel.axisNames : []
+    var axisMap = GamepadModel.axesMap(layout, axes ? axes.length : 0, axisNames)
+    var tables = GamepadModel.buttonTables(layout)
     var idx = side === "l" ? axisMap.lt : axisMap.rt
     var btnPressed = side === "l"
       ? !!(root.liveButtons && root.liveButtons[tables.triggerL])
       : !!(root.liveButtons && root.liveButtons[tables.triggerR])
     var fallback = btnPressed ? 1 : 0
     var raw = (idx !== -1 && axes && idx < axes.length && isFinite(Number(axes[idx]))) ? Number(axes[idx]) : fallback
-    return GamepadModel.triggerNorm(root.sel.layout, raw)
+    return GamepadModel.triggerNorm(layout, raw)
   }
 
   // ------------------------------------------------------------ lifecycle
@@ -417,9 +463,24 @@ Panel {
               mini: false
               layout: "xbox"
               playerColor: Color.accent
+              buttons: root.liveButtons
+              axes: root.liveAxes
               width: Style.space(280)
               height: Style.space(170)
               showLabels: true
+
+              onButtonClicked: function(index, pressed) {
+                root.handleVirtualButton(index, pressed)
+              }
+              onStickMoved: function(side, sx, sy) {
+                root.handleVirtualStick(side, sx, sy, true)
+              }
+              onStickReleased: function(side) {
+                root.handleVirtualStick(side, 0, 0, false)
+              }
+              onTriggerMoved: function(side, val) {
+                root.handleVirtualTrigger(side, val)
+              }
             }
           }
 
@@ -789,6 +850,19 @@ Panel {
                     gyro: root.liveGyro
                     width: Style.space(310)
                     height: Style.space(190)
+
+                    onButtonClicked: function(index, pressed) {
+                      root.handleVirtualButton(index, pressed)
+                    }
+                    onStickMoved: function(side, sx, sy) {
+                      root.handleVirtualStick(side, sx, sy, true)
+                    }
+                    onStickReleased: function(side) {
+                      root.handleVirtualStick(side, 0, 0, false)
+                    }
+                    onTriggerMoved: function(side, val) {
+                      root.handleVirtualTrigger(side, val)
+                    }
                   }
 
                   // Matched gamepadla database entry card — photo shown fully

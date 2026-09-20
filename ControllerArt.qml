@@ -43,6 +43,24 @@ Item {
   property var gyro: null                // live 6-DOF gyro telemetry { ax, ay, az, gx, gy, gz, pitch, roll, yaw }
   property bool mini: false              // tiny silhouette for menu rows / slot selector
   property bool showLabels: true
+  property bool interactive: !mini       // enables mouse/touch clicking and dragging
+
+  // Virtual interactive state (allows direct mouse/touch interaction)
+  property var virtualButtons: ({})
+  property var virtualSticks: ({
+    "l": { x: 0.0, y: 0.0, active: false },
+    "r": { x: 0.0, y: 0.0, active: false }
+  })
+  property var virtualTriggers: ({
+    "l": 0.0,
+    "r": 0.0
+  })
+
+  // Interactive pad signals
+  signal buttonClicked(int index, bool pressed)
+  signal stickMoved(string side, real x, real y)
+  signal stickReleased(string side)
+  signal triggerMoved(string side, real value)
 
   // Live motion telemetry derivations with automatic fallbacks
   readonly property real rawPitch: {
@@ -87,14 +105,53 @@ Item {
   readonly property var tables: GamepadModel.buttonTables(layout, profile)
   readonly property var axisMap: GamepadModel.axesMap(layout, axes ? axes.length : 0, axisNames)
 
-  function pressed(idx) { return !!(buttons && buttons[idx]) }
+  function pressed(idx) {
+    if (idx < 0) return false
+    if (virtualButtons && virtualButtons[idx]) return true
+    return !!(buttons && buttons[idx])
+  }
+
+  function setVirtualButton(idx, isDown) {
+    if (idx < 0) return
+    var copy = Object.assign({}, virtualButtons)
+    if (isDown) {
+      copy[idx] = true
+    } else {
+      delete copy[idx]
+    }
+    virtualButtons = copy
+    buttonClicked(idx, isDown)
+  }
+
+  function setVirtualStick(side, sx, sy, isActive) {
+    var copy = Object.assign({}, virtualSticks)
+    copy[side] = { x: sx, y: sy, active: isActive }
+    virtualSticks = copy
+    if (isActive) {
+      stickMoved(side, sx, sy)
+    } else {
+      stickReleased(side)
+    }
+  }
+
+  function setVirtualTrigger(side, val) {
+    var copy = Object.assign({}, virtualTriggers)
+    copy[side] = val
+    virtualTriggers = copy
+    triggerMoved(side, val)
+  }
+
   function axisValue(idx, fallback) {
     if (idx === -1) return fallback
     if (!axes || idx >= axes.length) return fallback
     var v = Number(axes[idx])
     return isFinite(v) ? v : fallback
   }
+
   function triggerNorm(side) {
+    if (virtualTriggers && isFinite(Number(virtualTriggers[side])) && Number(virtualTriggers[side]) > 0) {
+      return Number(virtualTriggers[side])
+    }
     if (!axes || axes.length === 0) {
       return (side === "l" ? pressed(tables.triggerL) : pressed(tables.triggerR)) ? 1.0 : 0.0
     }
@@ -102,8 +159,21 @@ Item {
     var raw = axisValue(side === "l" ? axisMap.lt : axisMap.rt, fallback)
     return GamepadModel.triggerNorm(layout, raw)
   }
-  function stickX(side) { return axisValue(side === "l" ? axisMap.lx : axisMap.rx, 0) }
-  function stickY(side) { return axisValue(side === "l" ? axisMap.ly : axisMap.ry, 0) }
+
+  function stickX(side) {
+    if (virtualSticks && virtualSticks[side] && virtualSticks[side].active) {
+      return virtualSticks[side].x
+    }
+    return axisValue(side === "l" ? axisMap.lx : axisMap.rx, 0)
+  }
+
+  function stickY(side) {
+    if (virtualSticks && virtualSticks[side] && virtualSticks[side].active) {
+      return virtualSticks[side].y
+    }
+    return axisValue(side === "l" ? axisMap.ly : axisMap.ry, 0)
+  }
+
   function dzFor(side) {
     var p = profile || {}
     var v = Number(side === "l" ? p.stickL : p.stickR)
@@ -124,6 +194,11 @@ Item {
 
   // Any button actively pressed
   readonly property bool anyPress: {
+    if (virtualButtons) {
+      for (var vk in virtualButtons) {
+        if (virtualButtons[vk]) return true
+      }
+    }
     if (!buttons) return false
     for (var k in buttons) {
       if (buttons[k]) return true
@@ -632,6 +707,8 @@ Item {
       xPos: root.geo.bumpers[0]
       trigLabel: root.isPs ? "L2" : root.isSwitch ? "ZL" : "LT"
       bumpLabel: root.isPs ? "L1" : root.isSwitch ? "L" : "LB"
+      bumpIndex: root.tables.bumperL
+      trigIndex: root.tables.triggerL
       bumpOn: root.pressed(root.tables.bumperL)
       bumpArtSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "l"))
       trigArtSource: Qt.resolvedUrl(GamepadModel.triggerArt(root.layout, "l"))
@@ -642,6 +719,8 @@ Item {
       xPos: root.geo.bumpers[1]
       trigLabel: root.isPs ? "R2" : root.isSwitch ? "ZR" : "RT"
       bumpLabel: root.isPs ? "R1" : root.isSwitch ? "R" : "RB"
+      bumpIndex: root.tables.bumperR
+      trigIndex: root.tables.triggerR
       bumpOn: root.pressed(root.tables.bumperR)
       bumpArtSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "r"))
       trigArtSource: Qt.resolvedUrl(GamepadModel.triggerArt(root.layout, "r"))
@@ -649,22 +728,26 @@ Item {
 
     // ---------------- left stick ----------------------------------------
     Stick {
+      side: "l"
       cx: root.geo.stickL[0]
       cy: root.geo.stickL[1]
       rawX: root.stickX("l"); rawY: root.stickY("l")
       dz: root.dzFor("l")
       on: root.pressed(root.tables.stickL)
-      accent: root.playerColor
+      stickIndex: root.tables.stickL
+      accent: "#C084FC" // Figma pastel lavender
     }
 
     // ---------------- right stick ---------------------------------------
     Stick {
+      side: "r"
       cx: root.geo.stickR[0]
       cy: root.geo.stickR[1]
       rawX: root.stickX("r"); rawY: root.stickY("r")
       dz: root.dzFor("r")
       on: root.pressed(root.tables.stickR)
-      accent: root.playerColor
+      stickIndex: root.tables.stickR
+      accent: "#34D399" // Figma pastel mint
     }
 
     // ---------------- dpad ----------------------------------------------
@@ -675,14 +758,18 @@ Item {
       down: root.pressed(root.tables.dpadDown)
       dpadLeft: root.pressed(root.tables.dpadLeft)
       dpadRight: root.pressed(root.tables.dpadRight)
+      idxUp: root.tables.dpadUp
+      idxDown: root.tables.dpadDown
+      idxLeft: root.tables.dpadLeft
+      idxRight: root.tables.dpadRight
       accent: root.playerColor
     }
 
     // ---------------- face buttons --------------------------------------
-    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] - 18; label: root.faceLabel("top");    pos: "top";    on: root.pressed(root.tables.faceTop);    artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "top")) }
-    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] + 18; label: root.faceLabel("bottom"); pos: "bottom"; on: root.pressed(root.tables.faceBottom); artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "bottom")) }
-    FaceButton { cx: root.geo.face[0] - 18; cy: root.geo.face[1];      label: root.faceLabel("left");   pos: "left";   on: root.pressed(root.tables.faceLeft);   artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "left")) }
-    FaceButton { cx: root.geo.face[0] + 18; cy: root.geo.face[1];      label: root.faceLabel("right");  pos: "right";  on: root.pressed(root.tables.faceRight);  artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "right")) }
+    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] - 18; label: root.faceLabel("top");    pos: "top";    buttonIndex: root.tables.faceTop;    on: root.pressed(root.tables.faceTop);    artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "top")) }
+    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] + 18; label: root.faceLabel("bottom"); pos: "bottom"; buttonIndex: root.tables.faceBottom; on: root.pressed(root.tables.faceBottom); artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "bottom")) }
+    FaceButton { cx: root.geo.face[0] - 18; cy: root.geo.face[1];      label: root.faceLabel("left");   pos: "left";   buttonIndex: root.tables.faceLeft;   on: root.pressed(root.tables.faceLeft);   artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "left")) }
+    FaceButton { cx: root.geo.face[0] + 18; cy: root.geo.face[1];      label: root.faceLabel("right");  pos: "right";  buttonIndex: root.tables.faceRight;  on: root.pressed(root.tables.faceRight);  artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "right")) }
 
     // ---------------- center cluster ------------------------------------
     Item {
@@ -747,8 +834,21 @@ Item {
             : Qt.rgba(root.bodyColor.r, root.bodyColor.g, root.bodyColor.b, 0.90)
           border.color: root.pressed(root.tables.centerExtra) ? root.playerColor : root.bodyBorder
           border.width: root.pressed(root.tables.centerExtra) ? 2 : 1
+          scale: root.pressed(root.tables.centerExtra) ? 0.97 : (psTouchMouse.containsMouse ? 1.02 : 1.0)
           Behavior on color { ColorAnimation { duration: 50 } }
           Behavior on y { NumberAnimation { duration: 40 } }
+          Behavior on scale { NumberAnimation { duration: 40 } }
+
+          MouseArea {
+            id: psTouchMouse
+            anchors.fill: parent
+            enabled: root.interactive
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onPressed: root.setVirtualButton(root.tables.centerExtra, true)
+            onReleased: root.setVirtualButton(root.tables.centerExtra, false)
+            onCanceled: root.setVirtualButton(root.tables.centerExtra, false)
+          }
 
           // Top chamfer specular highlight
           Rectangle {
@@ -796,6 +896,7 @@ Item {
         r: root.isPs ? 12 : 11
         label: root.isPs ? "PS" : root.isSwitch ? "HOME" : "XBOX"
         labelSize: 6
+        buttonIndex: root.tables.centerTop
         on: root.pressed(root.tables.centerTop)
         accent: root.playerColor
         showLabel: root.showLabels
@@ -807,6 +908,7 @@ Item {
         cy: root.isPs ? 36 : 40
         r: 7
         label: root.isSwitch ? "–" : "⧉"
+        buttonIndex: root.tables.centerLeft
         on: root.pressed(root.tables.centerLeft)
         accent: root.playerColor
         showLabel: root.showLabels
@@ -818,6 +920,7 @@ Item {
         cy: root.isPs ? 36 : 40
         r: 7
         label: root.isSwitch ? "+" : "☰"
+        buttonIndex: root.tables.centerRight
         on: root.pressed(root.tables.centerRight)
         accent: root.playerColor
         showLabel: root.showLabels
@@ -831,6 +934,7 @@ Item {
         r: 5
         label: "▣"
         labelSize: 6
+        buttonIndex: root.tables.centerExtra
         on: root.pressed(root.tables.centerExtra)
         accent: root.playerColor
         showLabel: root.showLabels
@@ -985,11 +1089,22 @@ Item {
         color: root.pressed(root.tables.triggerL) ? root.playerColor : Qt.darker(root.bodyColor, 1.15)
         border.color: root.pressed(root.tables.triggerL) ? root.playerColor : root.bodyBorder
         border.width: root.pressed(root.tables.triggerL) ? 1.5 : 1
-        scale: root.pressed(root.tables.triggerL) ? 0.97 : 1.0
+        scale: root.pressed(root.tables.triggerL) ? 0.97 : (jtrigMouse.containsMouse ? 1.04 : 1.0)
 
         Behavior on anchors.verticalCenterOffset { NumberAnimation { duration: 35 } }
         Behavior on color { ColorAnimation { duration: 50 } }
         Behavior on scale { NumberAnimation { duration: 35 } }
+
+        MouseArea {
+          id: jtrigMouse
+          anchors.fill: parent
+          enabled: root.interactive
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onPressed: root.setVirtualButton(root.tables.triggerL, true)
+          onReleased: root.setVirtualButton(root.tables.triggerL, false)
+          onCanceled: root.setVirtualButton(root.tables.triggerL, false)
+        }
 
         // Glow halo
         Rectangle {
@@ -1028,10 +1143,12 @@ Item {
 
     // Main flight stick + deadzone preview ring
     Stick {
+      side: "l"
       cx: 118; cy: 112
       rawX: root.stickX("l"); rawY: root.stickY("l")
       dz: root.dzFor("l")
       on: root.pressed(root.tables.stickL)
+      stickIndex: root.tables.stickL
       accent: root.playerColor
     }
 
@@ -1046,18 +1163,18 @@ Item {
     }
 
     // Base button cluster 1..4
-    FaceButton { cx: 198; cy: 128; label: "1"; on: root.pressed(root.tables.faceBottom) }
-    FaceButton { cx: 224; cy: 128; label: "2"; on: root.pressed(root.tables.faceTop) }
-    FaceButton { cx: 198; cy: 154; label: "3"; on: root.pressed(root.tables.faceLeft) }
-    FaceButton { cx: 224; cy: 154; label: "4"; on: root.pressed(root.tables.faceRight) }
+    FaceButton { cx: 198; cy: 128; label: "1"; buttonIndex: root.tables.faceBottom; on: root.pressed(root.tables.faceBottom) }
+    FaceButton { cx: 224; cy: 128; label: "2"; buttonIndex: root.tables.faceTop; on: root.pressed(root.tables.faceTop) }
+    FaceButton { cx: 198; cy: 154; label: "3"; buttonIndex: root.tables.faceLeft; on: root.pressed(root.tables.faceLeft) }
+    FaceButton { cx: 224; cy: 154; label: "4"; buttonIndex: root.tables.faceRight; on: root.pressed(root.tables.faceRight) }
 
     // Extra base buttons 5/6
-    CircleKey { cx: 258; cy: 128; r: 9; label: "5"; on: root.pressed(root.tables.bumperL); accent: root.playerColor; showLabel: root.showLabels }
-    CircleKey { cx: 258; cy: 154; r: 9; label: "6"; on: root.pressed(root.tables.bumperR); accent: root.playerColor; showLabel: root.showLabels }
+    CircleKey { cx: 258; cy: 128; r: 9; label: "5"; buttonIndex: root.tables.bumperL; on: root.pressed(root.tables.bumperL); accent: root.playerColor; showLabel: root.showLabels }
+    CircleKey { cx: 258; cy: 154; r: 9; label: "6"; buttonIndex: root.tables.bumperR; on: root.pressed(root.tables.bumperR); accent: root.playerColor; showLabel: root.showLabels }
 
     // Spare keys 7/8
-    CircleKey { cx: 146; cy: 62; r: 8; label: "7"; on: root.pressed(root.tables.centerTop); accent: root.playerColor; showLabel: root.showLabels }
-    CircleKey { cx: 146; cy: 90; r: 8; label: "8"; on: root.pressed(root.tables.centerExtra); accent: root.playerColor; showLabel: root.showLabels }
+    CircleKey { cx: 146; cy: 62; r: 8; label: "7"; buttonIndex: root.tables.centerTop; on: root.pressed(root.tables.centerTop); accent: root.playerColor; showLabel: root.showLabels }
+    CircleKey { cx: 146; cy: 90; r: 8; label: "8"; buttonIndex: root.tables.centerExtra; on: root.pressed(root.tables.centerExtra); accent: root.playerColor; showLabel: root.showLabels }
 
     // Throttle lever bar
     TrigBar { x: 292; y: 76; side: "l"; labelOverride: "THR" }
@@ -1097,7 +1214,28 @@ Item {
     property string bumpArtSource: ""
     property string trigArtSource: ""
     property bool bumpOn: false
+    property int bumpIndex: -1
+    property int trigIndex: -1
+    property real dragPull: 0
     readonly property real fillAmount: Math.max(0, Math.min(1, root.triggerNorm(side)))
+
+    NumberAnimation {
+      id: trigReleaseAnim
+      target: su
+      property: "dragPull"
+      to: 0
+      duration: 180
+      easing.type: Easing.OutQuad
+      onFinished: {
+        root.setVirtualTrigger(su.side, 0.0)
+        root.setVirtualButton(su.trigIndex, false)
+      }
+    }
+    onDragPullChanged: {
+      if (trigReleaseAnim.running) {
+        root.setVirtualTrigger(su.side, dragPull)
+      }
+    }
 
     x: xPos
     y: yPos
@@ -1251,12 +1389,43 @@ Item {
       radius: 4
       color: su.fillAmount > 0.05
         ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.28)
-        : Qt.darker(root.bodyColor, 1.25)
-      border.color: su.fillAmount > 0.05 ? root.playerColor : root.bodyBorder
+        : (trigMouse.containsMouse ? Qt.lighter(Qt.darker(root.bodyColor, 1.25), 1.15) : Qt.darker(root.bodyColor, 1.25))
+      border.color: su.fillAmount > 0.05 ? root.playerColor : (trigMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.5) : root.bodyBorder)
       border.width: su.fillAmount > 0.05 ? 1.5 : 1
 
       Behavior on y { NumberAnimation { duration: 40 } }
       Behavior on color { ColorAnimation { duration: 50 } }
+
+      MouseArea {
+        id: trigMouse
+        anchors.fill: parent
+        enabled: root.interactive
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        preventStealing: true
+
+        onPressed: function(mouse) {
+          trigReleaseAnim.stop()
+          var pull = Math.max(0.25, Math.min(1.0, (mouse.y + 4) / parent.height))
+          su.dragPull = pull
+          root.setVirtualTrigger(su.side, pull)
+          root.setVirtualButton(su.trigIndex, true)
+        }
+        onPositionChanged: function(mouse) {
+          if (pressed) {
+            var pull = Math.max(0.0, Math.min(1.0, (mouse.y + 4) / parent.height))
+            su.dragPull = pull
+            root.setVirtualTrigger(su.side, pull)
+            root.setVirtualButton(su.trigIndex, pull > 0.1)
+          }
+        }
+        onReleased: {
+          trigReleaseAnim.restart()
+        }
+        onCanceled: {
+          trigReleaseAnim.restart()
+        }
+      }
 
       // 2.5D Isometric Sidewall Facet (Gives physical depth to the trigger edge)
       Rectangle {
@@ -1346,12 +1515,37 @@ Item {
       height: 20
       // Outer corner is rounded to match the controller shoulder curvature
       radius: 6
-      color: su.bumpOn ? root.playerColor : Qt.darker(root.bodyColor, 1.12)
-      border.color: su.bumpOn ? root.playerColor : root.bodyBorder
+      color: su.bumpOn ? root.playerColor : (bumpMouse.containsMouse ? Qt.lighter(Qt.darker(root.bodyColor, 1.12), 1.15) : Qt.darker(root.bodyColor, 1.12))
+      border.color: su.bumpOn ? root.playerColor : (bumpMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.60) : root.bodyBorder)
       border.width: su.bumpOn ? 1.5 : 1
+      scale: su.bumpOn ? 0.97 : (bumpMouse.containsMouse ? 1.03 : 1.0)
 
       Behavior on y { NumberAnimation { duration: 35 } }
       Behavior on color { ColorAnimation { duration: 50 } }
+      Behavior on scale { NumberAnimation { duration: 35 } }
+
+      MouseArea {
+        id: bumpMouse
+        anchors.fill: parent
+        enabled: root.interactive
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onPressed: root.setVirtualButton(su.bumpIndex, true)
+        onReleased: root.setVirtualButton(su.bumpIndex, false)
+        onCanceled: root.setVirtualButton(su.bumpIndex, false)
+      }
+
+      // Ergonomic Curved Contour Wing Flank (hugs the shoulder horn)
+      Rectangle {
+        x: su.side === "l" ? -3 : parent.width - 5
+        y: 2
+        width: 8
+        height: parent.height - 4
+        radius: 4
+        color: su.bumpOn ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, bumpMouse.containsMouse ? 0.35 : 0.15)
+        border.color: su.bumpOn ? root.playerColor : Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.45)
+        border.width: 1
+      }
 
       // 2.5D Bumper Glow Halo on Press
       Rectangle {
@@ -1362,7 +1556,7 @@ Item {
         color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.30 : 0)
         border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.70 : 0)
         border.width: 1.5
-        opacity: su.bumpOn ? 1.0 : 0.0
+        opacity: (su.bumpOn || bumpMouse.containsMouse) ? 1.0 : 0.0
         z: -1
         Behavior on opacity { NumberAnimation { duration: 50 } }
       }
@@ -1573,6 +1767,35 @@ Item {
     property real dz: 0.1
     property bool on: false
     property color accent: root.playerColor
+    property string side: "l"
+    property int stickIndex: -1
+    property real dragX: 0
+    property real dragY: 0
+    property bool isDragging: false
+
+    ParallelAnimation {
+      id: springReturnAnim
+      NumberAnimation { target: st; property: "dragX"; to: 0; duration: 220; easing.type: Easing.OutBack; easing.overshoot: 1.3 }
+      NumberAnimation { target: st; property: "dragY"; to: 0; duration: 220; easing.type: Easing.OutBack; easing.overshoot: 1.3 }
+      onFinished: {
+        st.isDragging = false
+        root.setVirtualStick(st.side, 0, 0, false)
+      }
+    }
+
+    onDragXChanged: {
+      if (isDragging) root.setVirtualStick(st.side, dragX, dragY, true)
+    }
+    onDragYChanged: {
+      if (isDragging) root.setVirtualStick(st.side, dragX, dragY, true)
+    }
+
+    Timer {
+      id: l3ReleaseTimer
+      interval: 180
+      repeat: false
+      onTriggered: root.setVirtualButton(st.stickIndex, false)
+    }
 
     x: cx - 26
     y: cy - 26
@@ -1692,7 +1915,7 @@ Item {
       y: 26 - 10 + st.corrected.y * 18 + (st.on ? 1.5 : 0)
       width: 20
       height: 20
-      scale: st.on ? 0.94 : 1.0
+      scale: st.on ? 0.94 : (stickMouse.containsMouse && !st.isDragging ? 1.05 : 1.0)
 
       Behavior on x { NumberAnimation { duration: 25 } }
       Behavior on y { NumberAnimation { duration: 25 } }
@@ -1707,14 +1930,14 @@ Item {
         z: -1
       }
 
-      // Outer glow aura when deflected or clicked
+      // Outer glow aura when deflected, hovered, or clicked
       Rectangle {
         anchors.centerIn: parent
         width: 28; height: 28; radius: 14
         color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.40 : (st.dispDist > 2 ? 0.22 : 0))
         border.color: Qt.rgba(st.accent.r, st.accent.g, st.accent.b, st.on ? 0.80 : (st.dispDist > 2 ? 0.50 : 0))
         border.width: 1.5
-        opacity: (st.on || st.dispDist > 2) ? 1.0 : 0.0
+        opacity: (st.on || st.dispDist > 2 || (stickMouse.containsMouse && !st.isDragging)) ? 1.0 : 0.0
         Behavior on opacity { NumberAnimation { duration: 50 } }
       }
 
@@ -1751,7 +1974,7 @@ Item {
           anchors.centerIn: parent
           width: 15; height: 15; radius: 7.5
           color: "transparent"
-          border.color: st.on ? st.accent : (st.dispDist > 1 ? Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.65) : Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.25))
+          border.color: st.on ? st.accent : (st.dispDist > 1 ? Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.65) : Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.35))
           border.width: 1.5
         }
 
@@ -1759,7 +1982,7 @@ Item {
         Rectangle {
           anchors.centerIn: parent
           width: 12; height: 12; radius: 6
-          color: Qt.rgba(0.08, 0.09, 0.11, 1.0)
+          color: Qt.rgba(st.accent.r * 0.16, st.accent.g * 0.16, st.accent.b * 0.16, 0.95)
           border.color: Qt.rgba(0, 0, 0, 0.60)
           border.width: 1
 
@@ -1781,8 +2004,73 @@ Item {
           Rectangle {
             anchors.centerIn: parent
             width: 4; height: 4; radius: 2
-            color: st.on ? st.accent : Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.40)
+            color: st.on ? st.accent : Qt.rgba(st.accent.r, st.accent.g, st.accent.b, 0.65)
           }
+        }
+      }
+
+      // Full-surface interactive drag mouse area
+      MouseArea {
+        id: stickMouse
+        anchors.fill: parent
+        enabled: root.interactive
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        preventStealing: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+
+        onPressed: function(mouse) {
+          if (mouse.button === Qt.RightButton) {
+            root.setVirtualButton(st.stickIndex, !st.on)
+            return
+          }
+          springReturnAnim.stop()
+          st.isDragging = true
+          var dx = mouse.x - 26
+          var dy = mouse.y - 26
+          var maxDist = 18.0
+          var nx = dx / maxDist
+          var ny = dy / maxDist
+          var r = Math.sqrt(nx * nx + ny * ny)
+          if (r > 1.0) {
+            nx /= r
+            ny /= r
+          }
+          st.dragX = nx
+          st.dragY = ny
+          root.setVirtualStick(st.side, nx, ny, true)
+        }
+
+        onPositionChanged: function(mouse) {
+          if (st.isDragging) {
+            var dx = mouse.x - 26
+            var dy = mouse.y - 26
+            var maxDist = 18.0
+            var nx = dx / maxDist
+            var ny = dy / maxDist
+            var r = Math.sqrt(nx * nx + ny * ny)
+            if (r > 1.0) {
+              nx /= r
+              ny /= r
+            }
+            st.dragX = nx
+            st.dragY = ny
+            root.setVirtualStick(st.side, nx, ny, true)
+          }
+        }
+
+        onReleased: function(mouse) {
+          if (mouse.button === Qt.RightButton) return
+          springReturnAnim.restart()
+        }
+
+        onCanceled: {
+          springReturnAnim.restart()
+        }
+
+        onDoubleClicked: function(mouse) {
+          root.setVirtualButton(st.stickIndex, true)
+          l3ReleaseTimer.restart()
         }
       }
     }
@@ -1799,6 +2087,10 @@ Item {
     property bool dpadRight: false
     property alias dpadUp: dp.up
     property alias dpadDown: dp.down
+    property int idxUp: -1
+    property int idxDown: -1
+    property int idxLeft: -1
+    property int idxRight: -1
     property color accent: root.playerColor
 
     x: cx - 26
@@ -1860,10 +2152,10 @@ Item {
     }
 
     // 4. Directional Arms with 3D Facets & Tactile Rocker Motion
-    DpadArm { dir: "up";    on: dp.up;        accent: dp.accent }
-    DpadArm { dir: "down";  on: dp.down;      accent: dp.accent }
-    DpadArm { dir: "left";  on: dp.dpadLeft;  accent: dp.accent }
-    DpadArm { dir: "right"; on: dp.dpadRight; accent: dp.accent }
+    DpadArm { dir: "up";    on: dp.up;        buttonIndex: dp.idxUp;    accent: dp.accent }
+    DpadArm { dir: "down";  on: dp.down;      buttonIndex: dp.idxDown;  accent: dp.accent }
+    DpadArm { dir: "left";  on: dp.dpadLeft;  buttonIndex: dp.idxLeft;  accent: dp.accent }
+    DpadArm { dir: "right"; on: dp.dpadRight; buttonIndex: dp.idxRight; accent: dp.accent }
 
     // 5. Ergonomic Center Pivot Dish (Concave Thumb Bowl)
     Rectangle {
@@ -1894,6 +2186,7 @@ Item {
     id: dpadArmItem
     property string dir: "up"
     property bool on: false
+    property int buttonIndex: -1
     property color accent: root.playerColor
     width: 16
     height: 16
@@ -1904,14 +2197,25 @@ Item {
 
     rotation: 0
     color: on ? dpadArmItem.accent : (dir === "up" ? Qt.rgba(1, 1, 1, 0.08) : dir === "down" ? Qt.rgba(0, 0, 0, 0.20) : "transparent")
-    border.color: on ? dpadArmItem.accent : "transparent"
-    border.width: on ? 2 : 0
-    scale: on ? 0.96 : 1.0
+    border.color: on ? dpadArmItem.accent : (dpadMouse.containsMouse ? Qt.rgba(dpadArmItem.accent.r, dpadArmItem.accent.g, dpadArmItem.accent.b, 0.50) : "transparent")
+    border.width: on ? 2 : (dpadMouse.containsMouse ? 1 : 0)
+    scale: on ? 0.94 : (dpadMouse.containsMouse ? 1.08 : 1.0)
 
     Behavior on y { NumberAnimation { duration: 35 } }
     Behavior on x { NumberAnimation { duration: 35 } }
     Behavior on color { ColorAnimation { duration: 50 } }
     Behavior on scale { NumberAnimation { duration: 35 } }
+
+    MouseArea {
+      id: dpadMouse
+      anchors.fill: parent
+      enabled: root.interactive
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onPressed: root.setVirtualButton(dpadArmItem.buttonIndex, true)
+      onReleased: root.setVirtualButton(dpadArmItem.buttonIndex, false)
+      onCanceled: root.setVirtualButton(dpadArmItem.buttonIndex, false)
+    }
 
     // Glow halo
     Rectangle {
@@ -1922,7 +2226,7 @@ Item {
       color: Qt.rgba(dpadArmItem.accent.r, dpadArmItem.accent.g, dpadArmItem.accent.b, dpadArmItem.on ? 0.35 : 0)
       border.color: Qt.rgba(dpadArmItem.accent.r, dpadArmItem.accent.g, dpadArmItem.accent.b, dpadArmItem.on ? 0.75 : 0)
       border.width: 2
-      opacity: dpadArmItem.on ? 1.0 : 0.0
+      opacity: (dpadArmItem.on || dpadMouse.containsMouse) ? 1.0 : 0.0
       z: -1
       Behavior on opacity { NumberAnimation { duration: 50 } }
     }
@@ -1990,23 +2294,34 @@ Item {
     property string pos: "bottom"
     property string artSource: ""
     property bool on: false
+    property int buttonIndex: -1
 
-    // Canonical button colors:
-    // Xbox: Y=yellow (#F1C40F), A=green (#2ECC71), X=blue (#3498DB), B=red (#E74C3C)
-    // PS: △=emerald (#40E2A0), ×=blue/purple (#7C66E8), □=pink (#FF69F8), ○=red (#F34545)
+    // Figma Community Design Palette (Option B):
+    // Warm Amber (#FBBF24), Mint Green (#34D399), Cyan Azure (#38BDF8), Coral Rose (#F43F5E)
+    // PS: △ (#40E2A0), × (#A78BFA), □ (#F472B6), ○ (#F87171)
     readonly property color buttonAccent: {
       if (root.isXbox) {
-        if (fb.pos === "top") return "#F1C40F"
-        if (fb.pos === "bottom") return "#2ECC71"
-        if (fb.pos === "left") return "#3498DB"
-        if (fb.pos === "right") return "#E74C3C"
+        if (fb.pos === "top") return "#FBBF24"    // Y - warm amber
+        if (fb.pos === "bottom") return "#34D399" // A - mint green
+        if (fb.pos === "left") return "#38BDF8"   // X - cyan azure
+        if (fb.pos === "right") return "#F43F5E"  // B - coral rose
+      }
+      if (root.isSwitch) {
+        if (fb.pos === "top") return "#FBBF24"    // X - warm amber
+        if (fb.pos === "bottom") return "#34D399" // B - mint green
+        if (fb.pos === "left") return "#38BDF8"   // Y - cyan azure
+        if (fb.pos === "right") return "#F43F5E"  // A - coral rose
       }
       if (root.isPs) {
-        if (fb.pos === "top") return "#40E2A0"
-        if (fb.pos === "bottom") return "#7C66E8"
-        if (fb.pos === "left") return "#FF69F8"
-        if (fb.pos === "right") return "#F34545"
+        if (fb.pos === "top") return "#40E2A0"    // △ - emerald
+        if (fb.pos === "bottom") return "#A78BFA" // × - lavender
+        if (fb.pos === "left") return "#F472B6"   // □ - pink
+        if (fb.pos === "right") return "#F87171"  // ○ - coral crimson
       }
+      if (fb.pos === "top") return "#FBBF24"
+      if (fb.pos === "bottom") return "#34D399"
+      if (fb.pos === "left") return "#38BDF8"
+      if (fb.pos === "right") return "#F43F5E"
       return root.playerColor
     }
 
@@ -2059,21 +2374,32 @@ Item {
       y: fb.on ? 4.0 : 2.0
       width: 24
       height: 24
-      scale: fb.on ? 0.96 : 1.0
+      scale: fb.on ? 0.94 : (fbMouse.containsMouse ? 1.06 : 1.0)
 
       Behavior on y { NumberAnimation { duration: 40 } }
       Behavior on scale { NumberAnimation { duration: 40 } }
 
-      // Glow halo bloom on press
+      MouseArea {
+        id: fbMouse
+        anchors.fill: parent
+        enabled: root.interactive
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onPressed: root.setVirtualButton(fb.buttonIndex, true)
+        onReleased: root.setVirtualButton(fb.buttonIndex, false)
+        onCanceled: root.setVirtualButton(fb.buttonIndex, false)
+      }
+
+      // Glow halo bloom on press or hover
       Rectangle {
         anchors.centerIn: parent
         width: parent.width + 8
         height: parent.height + 8
         radius: width / 2
         color: Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, fb.on ? 0.40 : 0)
-        border.color: Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, fb.on ? 0.85 : 0)
-        border.width: 2
-        opacity: fb.on ? 1.0 : 0.0
+        border.color: Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, fb.on ? 0.85 : 0.45)
+        border.width: fb.on ? 2 : 1
+        opacity: (fb.on || fbMouse.containsMouse) ? 1.0 : 0.0
         z: -1
         Behavior on opacity { NumberAnimation { duration: 50 } }
       }
@@ -2164,6 +2490,7 @@ Item {
     property string label: ""
     property string artSource: ""
     property bool on: false
+    property int buttonIndex: -1
     property color accent: root.playerColor
     property bool showLabel: true
     property int labelSize: 7
@@ -2202,14 +2529,25 @@ Item {
       width: ck.r * 2
       height: ck.r * 2
       radius: ck.r
-      color: ck.on ? ck.accent : root.idleFill
-      border.color: ck.on ? ck.accent : root.bodyBorder
+      color: ck.on ? ck.accent : (ckMouse.containsMouse ? Qt.lighter(root.idleFill, 1.20) : root.idleFill)
+      border.color: ck.on ? ck.accent : (ckMouse.containsMouse ? Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, 0.60) : root.bodyBorder)
       border.width: ck.on ? 2 : 1
-      scale: ck.on ? 0.94 : 1.0
+      scale: ck.on ? 0.94 : (ckMouse.containsMouse ? 1.08 : 1.0)
 
       Behavior on y { NumberAnimation { duration: 35 } }
       Behavior on color { ColorAnimation { duration: 50 } }
       Behavior on scale { NumberAnimation { duration: 35 } }
+
+      MouseArea {
+        id: ckMouse
+        anchors.fill: parent
+        enabled: root.interactive
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onPressed: root.setVirtualButton(ck.buttonIndex, true)
+        onReleased: root.setVirtualButton(ck.buttonIndex, false)
+        onCanceled: root.setVirtualButton(ck.buttonIndex, false)
+      }
 
       // Glow halo
       Rectangle {
@@ -2220,7 +2558,7 @@ Item {
         color: Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, ck.on ? 0.30 : 0)
         border.color: Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, ck.on ? 0.70 : 0)
         border.width: 1.5
-        opacity: ck.on ? 1.0 : 0.0
+        opacity: (ck.on || ckMouse.containsMouse) ? 1.0 : 0.0
         z: -1
         Behavior on opacity { NumberAnimation { duration: 50 } }
       }
