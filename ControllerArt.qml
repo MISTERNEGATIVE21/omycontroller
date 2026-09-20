@@ -369,13 +369,13 @@ Item {
       }
     }
 
-    // 2. Layer 1: Contact Drop Shadow (Tighter ground-plane proximity)
+    // 2. Layer 1: Contact Drop Shadow (Soft proximity ground occlusion)
     Shape {
       anchors.fill: parent
       anchors.topMargin: 4
       layer.enabled: true
       layer.smooth: true
-      opacity: 0.28
+      opacity: 0.18
 
       ShapePath {
         strokeWidth: 0
@@ -400,52 +400,21 @@ Item {
       }
     }
 
-    // 3. Layer 2: 3D Lower Hull Clamshell Extrusion (Molded underside visible at bottom horns & rear cowl)
-    Shape {
-      anchors.fill: parent
-      anchors.topMargin: 4.5
-      layer.enabled: true
-      layer.smooth: true
-
-      ShapePath {
-        strokeWidth: 1.5
-        strokeColor: Qt.rgba(0, 0, 0, 0.70)
-        fillColor: Qt.darker(root.bodyColor, 1.45)
-        startX: 170; startY: 24
-        PathCubic { control1X: 192; control1Y: 24; control2X: 202; control2Y: 22; x: 214; y: 18 }
-        PathCubic { control1X: 226; control1Y: 14; control2X: 254; control2Y: 14; x: 268; y: 18 }
-        PathCubic { control1X: 280; control1Y: 24; control2X: 292; control2Y: 42; x: 298; y: 64 }
-        PathCubic { control1X: 306; control1Y: 88; control2X: 308; control2Y: 106; x: 308; y: 124 }
-        PathCubic { control1X: 308; control1Y: 152; control2X: 298; control2Y: 178; x: 280; y: 196 }
-        PathCubic { control1X: 270; control1Y: 204; control2X: 254; control2Y: 202; x: 242; y: 194 }
-        PathCubic { control1X: 226; control1Y: 184; control2X: 214; control2Y: 176; x: 204; y: 168 }
-        PathCubic { control1X: 194; control1Y: 160; control2X: 182; control2Y: 158; x: 170; y: 158 }
-        PathCubic { control1X: 158; control1Y: 158; control2X: 146; control2Y: 160; x: 136; y: 168 }
-        PathCubic { control1X: 126; control1Y: 176; control2X: 114; control2Y: 184; x: 98; y: 194 }
-        PathCubic { control1X: 86; control1Y: 202; control2X: 70; control2Y: 204; x: 60; y: 196 }
-        PathCubic { control1X: 42; control1Y: 178; control2X: 32; control2Y: 152; x: 32; y: 124 }
-        PathCubic { control1X: 32; control1Y: 106; control2X: 34; control2Y: 88; x: 42; y: 64 }
-        PathCubic { control1X: 48; control1Y: 42; control2X: 60; control2Y: 24; x: 72; y: 18 }
-        PathCubic { control1X: 86; control1Y: 14; control2X: 114; control2Y: 14; x: 126; y: 18 }
-        PathCubic { control1X: 138; control1Y: 22; control2X: 148; control2Y: 24; x: 170; y: 24 }
-      }
-    }
-
-    // 4. Layer 3: Top Deck Plate (Solid sculpted controller body)
+    // 3. Top Deck Plate (Solid sculpted Xbox Series controller body)
     Shape {
       anchors.fill: parent
       layer.enabled: true
       layer.smooth: true
 
       ShapePath {
-        strokeWidth: root.anyPress ? 2 : 1.5
+        strokeWidth: root.anyPress ? 2 : 1.2
         strokeColor: root.bodyBorder
         fillGradient: LinearGradient {
           x1: 170; y1: 18; x2: 170; y2: 200
           GradientStop { position: 0.0; color: Qt.lighter(root.bodyColor, 1.15) }
           GradientStop { position: 0.35; color: root.bodyColor }
-          GradientStop { position: 0.85; color: Qt.darker(root.bodyColor, 1.18) }
-          GradientStop { position: 1.0; color: Qt.darker(root.bodyColor, 1.35) }
+          GradientStop { position: 0.85; color: Qt.darker(root.bodyColor, 1.14) }
+          GradientStop { position: 1.0; color: Qt.darker(root.bodyColor, 1.26) }
         }
         startX: 170; startY: 24
         PathCubic { control1X: 192; control1Y: 24; control2X: 202; control2Y: 22; x: 214; y: 18 }
@@ -464,6 +433,26 @@ Item {
         PathCubic { control1X: 48; control1Y: 42; control2X: 60; control2Y: 24; x: 72; y: 18 }
         PathCubic { control1X: 86; control1Y: 14; control2X: 114; control2Y: 14; x: 126; y: 18 }
         PathCubic { control1X: 138; control1Y: 22; control2X: 148; control2Y: 24; x: 170; y: 24 }
+      }
+
+      // Subtle top crown specular ridge catching ambient light on left shoulder
+      ShapePath {
+        strokeWidth: 1.2
+        strokeColor: Qt.rgba(1, 1, 1, 0.16)
+        fillColor: "transparent"
+        capStyle: ShapePath.RoundCap
+        startX: 72; startY: 19
+        PathCubic { control1X: 86; control1Y: 15; control2X: 114; control2Y: 15; x: 126; y: 19 }
+      }
+
+      // Subtle top crown specular ridge catching ambient light on right shoulder
+      ShapePath {
+        strokeWidth: 1.2
+        strokeColor: Qt.rgba(1, 1, 1, 0.16)
+        fillColor: "transparent"
+        capStyle: ShapePath.RoundCap
+        startX: 214; startY: 19
+        PathCubic { control1X: 226; control1Y: 15; control2X: 254; control2Y: 15; x: 268; y: 19 }
       }
     }
 
@@ -543,130 +532,113 @@ Item {
       border.width: 1
     }
 
-    // 6. Sculpted 3D Ergonomic Rubber Flank Grips (Standard Xbox Curved Outer Contour)
-    // Slender rubber grip pads naturally bended around the outer horn curvature and corners,
-    // maintaining generous clearance around thumbsticks and face buttons.
+    // 6. Sculpted Ergonomic Outer Palm Grip Flanks (Standard Xbox Series Contour)
+    // Refined vulcanized rubber flank zones hugging the outer horn curvature without
+    // cluttering face buttons or thumbsticks, finished with laser-etched micro-dot stippling.
     Shape {
       anchors.fill: parent
       layer.enabled: true
       layer.smooth: true
 
-      // --- Left Grip Pad: Inset Recessed Housing Well / Drop Shadow ---
+      // --- Left Grip Flank Base ---
       ShapePath {
-        strokeWidth: 1.5
-        strokeColor: Qt.rgba(0, 0, 0, 0.50)
-        fillColor: Qt.rgba(0, 0, 0, 0.38)
-        startX: 43; startY: 81
-        PathCubic { control1X: 37; control1Y: 103; control2X: 35; control2Y: 127; x: 36; y: 147 }
-        PathCubic { control1X: 37; control1Y: 163; control2X: 45; control2Y: 179; x: 59; y: 191 }
-        PathCubic { control1X: 65; control1Y: 193; control2X: 71; control2Y: 191; x: 75; y: 185 }
-        PathCubic { control1X: 67; control1Y: 177; control2X: 55; control2Y: 161; x: 49; y: 143 }
-        PathCubic { control1X: 47; control1Y: 125; control2X: 49; control2Y: 103; x: 53; y: 85 }
-        PathCubic { control1X: 49; control1Y: 81; control2X: 46; control2Y: 81; x: 43; y: 81 }
-      }
-
-      // --- Right Grip Pad: Inset Recessed Housing Well / Drop Shadow ---
-      ShapePath {
-        strokeWidth: 1.5
-        strokeColor: Qt.rgba(0, 0, 0, 0.50)
-        fillColor: Qt.rgba(0, 0, 0, 0.38)
-        startX: 297; startY: 81
-        PathCubic { control1X: 303; control1Y: 103; control2X: 305; control2Y: 127; x: 304; y: 147 }
-        PathCubic { control1X: 303; control1Y: 163; control2X: 295; control2Y: 179; x: 281; y: 191 }
-        PathCubic { control1X: 275; control1Y: 193; control2X: 269; control2Y: 191; x: 265; y: 185 }
-        PathCubic { control1X: 273; control1Y: 177; control2X: 285; control2Y: 161; x: 291; y: 143 }
-        PathCubic { control1X: 293; control1Y: 125; control2X: 291; control2Y: 103; x: 287; y: 85 }
-        PathCubic { control1X: 291; control1Y: 81; control2X: 294; control2Y: 81; x: 297; y: 81 }
-      }
-
-      // --- Left Grip Pad: Multi-Shade 3D Molded Vulcanized Rubber ---
-      ShapePath {
-        strokeWidth: 1.2
-        strokeColor: Qt.rgba(0, 0, 0, 0.85)
+        strokeWidth: 1.0
+        strokeColor: Qt.rgba(0, 0, 0, 0.40)
         fillGradient: LinearGradient {
-          x1: 34; y1: 130; x2: 56; y2: 135
-          GradientStop { position: 0.0; color: "#2d323e" }   // Outer convex specular catch
-          GradientStop { position: 0.25; color: "#1c1f27" }  // Rich vulcanized rubber
-          GradientStop { position: 0.70; color: "#111319" }  // Deep charcoal tone
-          GradientStop { position: 1.0; color: "#06070a" }   // Inner seam recess shadow
+          x1: 30; y1: 120; x2: 56; y2: 135
+          GradientStop { position: 0.0; color: "#1e222b" }
+          GradientStop { position: 0.45; color: "#13161c" }
+          GradientStop { position: 1.0; color: "#0a0c10" }
         }
-        startX: 42; startY: 80
-        // Outer flank - hugging the outer contour of the handle
-        PathCubic { control1X: 36; control1Y: 102; control2X: 34; control2Y: 126; x: 35; y: 146 }
-        // Bottom corner bend - organically sweeping around the lower horn tip
-        PathCubic { control1X: 36; control1Y: 162; control2X: 44; control2Y: 178; x: 58; y: 190 }
-        PathCubic { control1X: 64; control1Y: 192; control2X: 70; control2Y: 190; x: 74; y: 184 }
-        // Inner flank - slender contour (keeps clear of thumbstick well)
-        PathCubic { control1X: 66; control1Y: 176; control2X: 54; control2Y: 160; x: 48; y: 142 }
-        PathCubic { control1X: 46; control1Y: 124; control2X: 48; control2Y: 102; x: 52; y: 84 }
-        // Upper crown bend
-        PathCubic { control1X: 48; control1Y: 80; control2X: 45; control2Y: 80; x: 42; y: 80 }
+        startX: 40; startY: 74
+        PathCubic { control1X: 33; control1Y: 96; control2X: 31; control2Y: 122; x: 32; y: 140 }
+        PathCubic { control1X: 33; control1Y: 158; control2X: 42; control2Y: 178; x: 58; y: 194 }
+        PathCubic { control1X: 64; control1Y: 196; control2X: 72; control2Y: 194; x: 78; y: 188 }
+        PathCubic { control1X: 72; control1Y: 176; control2X: 58; control2Y: 156; x: 52; y: 136 }
+        PathCubic { control1X: 48; control1Y: 116; control2X: 48; control2Y: 94; x: 50; y: 76 }
+        PathCubic { control1X: 47; control1Y: 74; control2X: 43; control2Y: 74; x: 40; y: 74 }
       }
 
-      // --- Right Grip Pad: Multi-Shade 3D Molded Vulcanized Rubber ---
+      // --- Right Grip Flank Base ---
       ShapePath {
-        strokeWidth: 1.2
-        strokeColor: Qt.rgba(0, 0, 0, 0.85)
+        strokeWidth: 1.0
+        strokeColor: Qt.rgba(0, 0, 0, 0.40)
         fillGradient: LinearGradient {
-          x1: 306; y1: 130; x2: 284; y2: 135
-          GradientStop { position: 0.0; color: "#2d323e" }   // Outer convex specular catch
-          GradientStop { position: 0.25; color: "#1c1f27" }  // Rich vulcanized rubber
-          GradientStop { position: 0.70; color: "#111319" }  // Deep charcoal tone
-          GradientStop { position: 1.0; color: "#06070a" }   // Inner seam recess shadow
+          x1: 310; y1: 120; x2: 284; y2: 135
+          GradientStop { position: 0.0; color: "#1e222b" }
+          GradientStop { position: 0.45; color: "#13161c" }
+          GradientStop { position: 1.0; color: "#0a0c10" }
         }
-        startX: 298; startY: 80
-        // Outer flank - hugging outer contour
-        PathCubic { control1X: 304; control1Y: 102; control2X: 306; control2Y: 126; x: 305; y: 146 }
-        // Bottom corner bend
-        PathCubic { control1X: 304; control1Y: 162; control2X: 296; control2Y: 178; x: 282; y: 190 }
-        PathCubic { control1X: 276; control1Y: 192; control2X: 270; control2Y: 190; x: 266; y: 184 }
-        // Inner flank - slender contour (keeps clear of face buttons & stick)
-        PathCubic { control1X: 274; control1Y: 176; control2X: 286; control2Y: 160; x: 292; y: 142 }
-        PathCubic { control1X: 294; control1Y: 124; control2X: 292; control2Y: 102; x: 288; y: 84 }
-        // Upper crown bend
-        PathCubic { control1X: 292; control1Y: 80; control2X: 295; control2Y: 80; x: 298; y: 80 }
+        startX: 300; startY: 74
+        PathCubic { control1X: 307; control1Y: 96; control2X: 309; control2Y: 122; x: 308; y: 140 }
+        PathCubic { control1X: 307; control1Y: 158; control2X: 298; control2Y: 178; x: 282; y: 194 }
+        PathCubic { control1X: 276; control1Y: 196; control2X: 268; control2Y: 194; x: 262; y: 188 }
+        PathCubic { control1X: 268; control1Y: 176; control2X: 282; control2Y: 156; x: 288; y: 136 }
+        PathCubic { control1X: 292; control1Y: 116; control2X: 292; control2Y: 94; x: 290; y: 76 }
+        PathCubic { control1X: 293; control1Y: 74; control2X: 297; control2Y: 74; x: 300; y: 74 }
       }
 
-      // --- Left Grip Pad: Outer Curvature Specular Ridge Highlight ---
-      ShapePath {
-        strokeWidth: 1.5
-        strokeColor: Qt.rgba(1, 1, 1, 0.18)
-        fillColor: "transparent"
-        capStyle: ShapePath.RoundCap
-        startX: 41; startY: 88
-        PathCubic { control1X: 35; control1Y: 110; control2X: 35; control2Y: 132; x: 42; y: 156 }
-      }
-
-      // --- Right Grip Pad: Outer Curvature Specular Ridge Highlight ---
-      ShapePath {
-        strokeWidth: 1.5
-        strokeColor: Qt.rgba(1, 1, 1, 0.18)
-        fillColor: "transparent"
-        capStyle: ShapePath.RoundCap
-        startX: 299; startY: 88
-        PathCubic { control1X: 305; control1Y: 110; control2X: 305; control2Y: 132; x: 298; y: 156 }
-      }
-
-      // --- Left Grip Pad: Bottom Corner Wrap-Around Highlight ---
+      // --- Left Flank Specular Ridge Catch ---
       ShapePath {
         strokeWidth: 1.2
-        strokeColor: Qt.rgba(1, 1, 1, 0.14)
+        strokeColor: Qt.rgba(1, 1, 1, 0.12)
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
-        startX: 44; startY: 170
-        PathCubic { control1X: 48; control1Y: 180; control2X: 56; control2Y: 186; x: 68; y: 186 }
+        startX: 39; startY: 82
+        PathCubic { control1X: 33; control1Y: 104; control2X: 33; control2Y: 126; x: 38; y: 150 }
       }
 
-      // --- Right Grip Pad: Bottom Corner Wrap-Around Highlight ---
+      // --- Right Flank Specular Ridge Catch ---
       ShapePath {
         strokeWidth: 1.2
-        strokeColor: Qt.rgba(1, 1, 1, 0.14)
+        strokeColor: Qt.rgba(1, 1, 1, 0.12)
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
-        startX: 296; startY: 170
-        PathCubic { control1X: 292; control1Y: 180; control2X: 284; control2Y: 186; x: 272; y: 186 }
+        startX: 301; startY: 82
+        PathCubic { control1X: 307; control1Y: 104; control2X: 307; control2Y: 126; x: 302; y: 150 }
+      }
+    }
+
+    // Micro-Stippled Tactile Texture Overlay on Palm Grips
+    Item {
+      anchors.fill: parent
+      opacity: 0.32
+
+      // Left Flank Stippling Dots
+      Column {
+        x: 41; y: 104
+        spacing: 5
+        Repeater {
+          model: 8
+          required property int index
+          Row {
+            spacing: 4
+            x: index > 4 ? (index - 4) * 2 : 0
+            Repeater {
+              model: (index >= 2 && index <= 6) ? 3 : 2
+              Rectangle { width: 1.5; height: 1.5; radius: 0.75; color: "#FFFFFF" }
+            }
+          }
+        }
       }
 
+      // Right Flank Stippling Dots
+      Column {
+        x: 291; y: 104
+        spacing: 5
+        Repeater {
+          model: 8
+          required property int index
+          Row {
+            spacing: 4
+            x: index > 4 ? -(index - 4) * 2 : 0
+            Repeater {
+              model: (index >= 2 && index <= 6) ? 3 : 2
+              Rectangle { width: 1.5; height: 1.5; radius: 0.75; color: "#FFFFFF" }
+            }
+          }
+        }
+      }
     }
 
     // Integrated Player Slot LEDs on lower center bridge
@@ -1188,14 +1160,14 @@ Item {
   // ============================================================ components
 
   // -------------------------------------------------------- ShoulderUnit
-  // Standard Xbox Sculpted Ergonomic Shoulder & Trigger Assembly
-  // Aerodynamic contoured bumper and recessed analog trigger blade with
-  // natural 3D depth, specular bevels, and interactive travel.
+  // Standard Xbox Series Sculpted Ergonomic Shoulder & Trigger Assembly
+  // Aerodynamic contoured bumper wing and recessed analog trigger blade with
+  // natural 3D depth, specular chamfers, and interactive analog travel.
   component ShoulderUnit : Item {
     id: su
     property string side: "l" // "l" or "r"
     property real xPos: 0
-    property real yPos: 8
+    property real yPos: 6
     property string trigLabel: ""
     property string bumpLabel: ""
     property string bumpArtSource: ""
@@ -1205,6 +1177,7 @@ Item {
     property int trigIndex: -1
     property real dragPull: 0
     readonly property real fillAmount: Math.max(0, Math.min(1, root.triggerNorm(side)))
+    readonly property bool isLeft: side === "l"
 
     NumberAnimation {
       id: trigReleaseAnim
@@ -1226,46 +1199,51 @@ Item {
 
     x: xPos
     y: yPos
-    width: 62
+    width: 64
     height: 36
 
-    // 1. Recessed Chassis Shoulder Well Pocket (Negative Z-Depth)
+    // Subtle ergonomic shoulder angle matching the downward contour of the Xbox body
+    rotation: isLeft ? -3.5 : 3.5
+    transformOrigin: isLeft ? Item.BottomRight : Item.BottomLeft
+
+    // 1. Recessed 3D Chassis Socket Well (Negative Z-depth in top cowl)
     Rectangle {
-      x: 0; y: 6
+      x: 0; y: 4
       width: parent.width
-      height: 28
+      height: 30
       radius: 6
-      color: Qt.darker(root.bodyColor, 1.45)
-      border.color: Qt.rgba(0, 0, 0, 0.50)
+      color: Qt.darker(root.bodyColor, 1.60)
+      border.color: Qt.rgba(0, 0, 0, 0.65)
       border.width: 1
       z: -1
 
-      // Subtle inner shadow
+      // Top socket chamfer edge
       Rectangle {
-        x: 1; y: 1
-        width: parent.width - 2
-        height: parent.height - 2
-        radius: 5
-        color: Qt.rgba(0.02, 0.03, 0.05, 0.90)
+        x: 2; y: 1
+        width: parent.width - 4
+        height: 1
+        color: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.35)
       }
     }
 
-    // 2. Standard Xbox Ergonomic Trigger Blade (LT / RT / L2 / R2)
-    // Sits directly behind the bumper, curving up and backwards from behind the bumper
+    // 2. Xbox Series Sculpted Analog Trigger Blade (LT / RT / L2 / R2 / ZL / ZR)
+    // Sits in the upper chamber behind the bumper, smoothly depressing on analog pull
     Rectangle {
       id: trigBlade
-      x: su.side === "l" ? 8 : 6
-      y: 1 + su.fillAmount * 4.0
-      width: parent.width - 14
-      height: 18
-      radius: 6
+      x: su.isLeft ? 6 : 4
+      // Sinks downward as trigger is pulled
+      y: 1 + su.fillAmount * 4.5
+      width: parent.width - 10
+      height: 20
+      radius: 5
       z: 0
+
       color: su.fillAmount > 0.05
-        ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.32)
+        ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.35)
         : (trigMouse.containsMouse ? Qt.lighter(Qt.darker(root.bodyColor, 1.25), 1.15) : Qt.darker(root.bodyColor, 1.25))
       border.color: su.fillAmount > 0.05
         ? root.playerColor
-        : (trigMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.50) : Qt.rgba(0, 0, 0, 0.65))
+        : (trigMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.60) : Qt.rgba(0, 0, 0, 0.70))
       border.width: su.fillAmount > 0.05 ? 1.5 : 1
 
       Behavior on y { NumberAnimation { duration: 40 } }
@@ -1294,24 +1272,36 @@ Item {
             root.setVirtualButton(su.trigIndex, pull > 0.1)
           }
         }
-        onReleased: {
-          trigReleaseAnim.restart()
-        }
-        onCanceled: {
-          trigReleaseAnim.restart()
+        onReleased: trigReleaseAnim.restart()
+        onCanceled: trigReleaseAnim.restart()
+      }
+
+      // 3 Tactile Micro-Ridge Grip Lines (Xbox Series Trigger Grip Texture)
+      Column {
+        anchors.top: parent.top
+        anchors.topMargin: 2
+        anchors.horizontalCenter: parent.horizontalCenter
+        spacing: 2
+        opacity: su.fillAmount > 0.05 ? 0.40 : 0.65
+
+        Repeater {
+          model: 3
+          Rectangle {
+            width: 24; height: 1; radius: 0.5
+            color: Qt.rgba(1, 1, 1, 0.18)
+          }
         }
       }
 
-      // 2.5D Top Crown Bevel (Reflective Upper Ridge)
+      // Top Specular Crown Chamfer Highlight
       Rectangle {
         x: 3; y: 1
         width: parent.width - 6
-        height: 1.5
-        radius: 0.75
-        color: Qt.rgba(1, 1, 1, su.fillAmount > 0.05 ? 0.35 : 0.15)
+        height: 1
+        color: su.fillAmount > 0.05 ? Qt.rgba(1, 1, 1, 0.60) : Qt.rgba(1, 1, 1, 0.20)
       }
 
-      // Analog Precision Travel Fill Indicator along top edge
+      // Precision Glowing Travel Fill Line along top edge
       Rectangle {
         x: 2; y: 1
         width: Math.max(0, (parent.width - 4) * su.fillAmount)
@@ -1322,52 +1312,37 @@ Item {
         opacity: 0.95
       }
 
-      // Trigger SVG Cap Art (Kenney Input Prompts)
-      Image {
-        id: trigCapImg
-        visible: su.trigArtSource !== "" && status === Image.Ready
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        anchors.topMargin: 1
-        width: 18
-        height: 10
-        source: su.trigArtSource
-        fillMode: Image.PreserveAspectFit
-        mipmap: true
-        smooth: true
-        layer.enabled: visible
-        layer.effect: MultiEffect {
-          colorization: 1.0
-          colorizationColor: su.fillAmount > 0.45 ? Color.popups.background : root.glyphColor
-        }
-      }
-
-      // Trigger Label (Tucked cleanly at the top of the trigger blade so it's always visible above the bumper)
+      // Trigger Label (Tucked cleanly at the top of the trigger blade)
       Text {
-        visible: root.showLabels && (!trigCapImg.visible || trigCapImg.status !== Image.Ready)
+        visible: root.showLabels
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.topMargin: 1
         text: su.trigLabel
-        color: su.fillAmount > 0.45 ? Color.popups.background : root.glyphColor
+        color: su.fillAmount > 0.40 ? Color.popups.background : root.glyphColor
         font.pixelSize: 8
         font.bold: true
         font.family: Style.font.family
       }
     }
 
-    // 3. Standard Xbox Sculpted Aerodynamic Bumper (LB / RB / L1 / R1)
-    // Positioned directly in front of the trigger, overlapping the trigger blade's base
+    // 3. Xbox Series Sculpted Ergonomic Bumper Wing (LB / RB / L1 / R1 / L / R)
+    // Seamlessly overlaps the trigger base and seats into the front top contour of the shell
     Rectangle {
       id: bumperPlate
       x: 0
-      y: su.bumpOn ? 14.5 : 12.5
+      y: su.bumpOn ? 14 : 12
       width: parent.width
-      height: 18
-      radius: 5
+      height: 19
+      radius: 6
       z: 1
-      color: su.bumpOn ? root.playerColor : (bumpMouse.containsMouse ? Qt.lighter(Qt.darker(root.bodyColor, 1.15), 1.15) : Qt.darker(root.bodyColor, 1.15))
-      border.color: su.bumpOn ? root.playerColor : (bumpMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.60) : Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.35))
+
+      color: su.bumpOn
+        ? root.playerColor
+        : (bumpMouse.containsMouse ? Qt.lighter(Qt.darker(root.bodyColor, 1.12), 1.15) : Qt.darker(root.bodyColor, 1.12))
+      border.color: su.bumpOn
+        ? root.playerColor
+        : (bumpMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.65) : Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.40))
       border.width: su.bumpOn ? 1.5 : 1
       scale: su.bumpOn ? 0.97 : (bumpMouse.containsMouse ? 1.02 : 1.0)
 
@@ -1386,67 +1361,41 @@ Item {
         onCanceled: root.setVirtualButton(su.bumpIndex, false)
       }
 
-      // Bumper Glow Halo on Press
+      // Reactive Glow Bloom Halo on Click or Hover
       Rectangle {
         anchors.centerIn: parent
         width: parent.width + 6
         height: parent.height + 6
-        radius: 7
-        color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.30 : 0)
-        border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.70 : 0)
+        radius: 8
+        color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.35 : 0)
+        border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.75 : 0)
         border.width: 1.5
         opacity: (su.bumpOn || bumpMouse.containsMouse) ? 1.0 : 0.0
         z: -1
         Behavior on opacity { NumberAnimation { duration: 50 } }
       }
 
-      // Top Highlight Bevel (Specular upper edge)
+      // Top Specular Crown Bevel (Reflective Upper Chamfer)
       Rectangle {
         x: 3; y: 1
         width: parent.width - 6
-        height: 1.5
-        radius: 0.75
-        color: su.bumpOn ? Qt.rgba(1, 1, 1, 0.50) : Qt.rgba(1, 1, 1, 0.22)
+        height: 1.2
+        radius: 0.6
+        color: su.bumpOn ? Qt.rgba(1, 1, 1, 0.65) : Qt.rgba(1, 1, 1, 0.25)
       }
 
-      // Ergonomic Upper Surface Reflection Gradient Band
+      // Subtle Upper Surface Horizon Reflection
       Rectangle {
-        x: 3; y: 2
-        width: parent.width - 6
+        x: 4; y: 2.5
+        width: parent.width - 8
         height: 4
         radius: 2
-        color: Qt.rgba(1, 1, 1, 0.06)
+        color: Qt.rgba(1, 1, 1, 0.05)
         visible: !su.bumpOn
-      }
-
-      // Parting Seam Line (clearance partition joint with chassis)
-      Rectangle {
-        x: 0; y: parent.height - 1
-        width: parent.width
-        height: 1
-        color: Qt.rgba(0, 0, 0, 0.85)
-      }
-
-      // Cap Art SVG (if provided)
-      Image {
-        id: bumperCapImg
-        visible: su.bumpArtSource !== "" && status === Image.Ready
-        anchors.fill: parent
-        anchors.margins: 2
-        source: su.bumpArtSource
-        fillMode: Image.PreserveAspectFit
-        mipmap: true
-        smooth: true
-        layer.enabled: visible
-        layer.effect: MultiEffect {
-          colorization: 1.0
-          colorizationColor: su.bumpOn ? root.playerColor : root.glyphColor
-        }
       }
 
       // Bumper Label
       Text {
-        visible: root.showLabels && (!bumperCapImg.visible || bumperCapImg.status !== Image.Ready)
         anchors.centerIn: parent
         text: su.bumpLabel
         color: su.bumpOn ? Color.popups.background : root.glyphColor
@@ -2217,11 +2166,15 @@ Item {
       Rectangle {
         anchors.fill: parent
         radius: 12
-        color: root.isPs ? (fb.on ? fb.buttonAccent : Qt.rgba(0.12, 0.13, 0.16, 0.95))
-             : (root.isXbox ? (fb.on ? Qt.lighter(fb.buttonAccent, 1.25) : fb.buttonAccent)
-             : (fb.on ? fb.buttonAccent : root.idleFill))
-        border.color: fb.on ? Qt.rgba(1, 1, 1, 0.70) : Qt.rgba(0, 0, 0, 0.45)
-        border.width: 1
+        color: fb.on
+          ? Qt.lighter(fb.buttonAccent, 1.15)
+          : (fbMouse.containsMouse
+              ? Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.35)
+              : Qt.rgba(0.12, 0.14, 0.18, 0.95))
+        border.color: fb.on
+          ? "#FFFFFF"
+          : (fbMouse.containsMouse ? fb.buttonAccent : Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.65))
+        border.width: fb.on ? 1.5 : 1.2
 
         // Glossy 3D Acrylic Specular Crescent Highlight (The glass dome reflection)
         Rectangle {
@@ -2279,8 +2232,7 @@ Item {
           visible: root.showLabels && (!faceCapImg.visible || faceCapImg.status !== Image.Ready)
           anchors.centerIn: parent
           text: fb.label
-          color: root.isPs ? (fb.on ? Color.popups.background : fb.buttonAccent)
-               : ((root.isXbox || fb.on) ? "#FFFFFF" : root.glyphColor)
+          color: fb.on ? "#000000" : fb.buttonAccent
           font.pixelSize: root.isPs ? 13 : 11
           font.bold: true
           font.family: Style.font.family
