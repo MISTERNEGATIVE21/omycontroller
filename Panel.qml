@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import Quickshell
 import qs.Commons
 import qs.Ui
@@ -250,6 +251,30 @@ Panel {
       root.sel.profile[key] = value
     }
     root.refreshLive()
+  }
+
+  property bool remapModeActive: false
+
+  function applyButtonRemap(role, targetIdx) {
+    if (!root.sel) return
+    var cur = {}
+    if (root.sel.profile && root.sel.profile.buttonMap) {
+      for (var k in root.sel.profile.buttonMap) {
+        cur[k] = root.sel.profile.buttonMap[k]
+      }
+    }
+    if (targetIdx === undefined || targetIdx === null || targetIdx < -1) {
+      delete cur[role]
+    } else {
+      cur[role] = targetIdx
+    }
+    root.setProfileVal("buttonMap", cur)
+  }
+
+  function resetAllRemaps() {
+    if (!root.sel) return
+    root.setProfileVal("buttonMap", {})
+    root.setProfileVal("remapPreset", "standard")
   }
 
   function handleVirtualButton(idx, pressed) {
@@ -840,6 +865,7 @@ Panel {
                   // Interactive Vector Controller Art (kenney-cap enhanced;
                   // the live deck stays vector so overlays always align)
                   ControllerArt {
+                    id: overviewArt
                     anchors.horizontalCenter: parent.horizontalCenter
                     layout: root.sel ? root.sel.layout : "generic"
                     playerColor: root.playerColor
@@ -848,9 +874,13 @@ Panel {
                     axisNames: root.sel && root.sel.axisNames ? root.sel.axisNames : []
                     profile: root.sel && root.sel.profile ? root.sel.profile : null
                     gyro: root.liveGyro
+                    remapMode: root.remapModeActive
                     width: Style.space(310)
                     height: Style.space(190)
 
+                    onRequestRemap: function(role, index, label) {
+                      remapModal.open(role, index, label)
+                    }
                     onButtonClicked: function(index, pressed) {
                       root.handleVirtualButton(index, pressed)
                     }
@@ -862,6 +892,76 @@ Panel {
                     }
                     onTriggerMoved: function(side, val) {
                       root.handleVirtualTrigger(side, val)
+                    }
+                  }
+
+                  // Mode Selector: Test Mode vs Remap Mode
+                  Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: Math.min(parent.width - Style.space(16), Style.space(310))
+                    height: Style.space(28)
+                    radius: height / 2
+                    color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.05)
+                    border.color: root.remapModeActive
+                      ? root.playerColor
+                      : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                    border.width: 1
+
+                    Row {
+                      anchors.centerIn: parent
+                      spacing: Style.space(6)
+
+                      Rectangle {
+                        width: (parent.parent.width - Style.space(12)) / 2
+                        height: Style.space(22)
+                        radius: height / 2
+                        color: !root.remapModeActive
+                          ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22)
+                          : "transparent"
+                        border.color: !root.remapModeActive ? root.playerColor : "transparent"
+                        border.width: 1
+
+                        Text {
+                          anchors.centerIn: parent
+                          text: "🎮 Test Inputs"
+                          color: !root.remapModeActive ? root.playerColor : Qt.darker(root.barForeground, 1.4)
+                          font.family: Style.font.family
+                          font.pixelSize: Style.font.caption
+                          font.bold: !root.remapModeActive
+                        }
+
+                        MouseArea {
+                          anchors.fill: parent
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: root.remapModeActive = false
+                        }
+                      }
+
+                      Rectangle {
+                        width: (parent.parent.width - Style.space(12)) / 2
+                        height: Style.space(22)
+                        radius: height / 2
+                        color: root.remapModeActive
+                          ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.30)
+                          : "transparent"
+                        border.color: root.remapModeActive ? root.playerColor : "transparent"
+                        border.width: 1
+
+                        Text {
+                          anchors.centerIn: parent
+                          text: "⚙️ Remap SVG Buttons"
+                          color: root.remapModeActive ? root.playerColor : Qt.darker(root.barForeground, 1.4)
+                          font.family: Style.font.family
+                          font.pixelSize: Style.font.caption
+                          font.bold: root.remapModeActive
+                        }
+
+                        MouseArea {
+                          anchors.fill: parent
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: root.remapModeActive = true
+                        }
+                      }
                     }
                   }
 
@@ -1415,15 +1515,53 @@ Panel {
                       y: Style.space(8)
                       spacing: Style.space(6)
 
-                      Text {
-                        text: "Live Button Map (Active Physical Press Highlight)"
-                        color: Qt.darker(root.barForeground, 1.4)
-                        font.family: Style.font.family
-                        font.pixelSize: 8
-                        font.bold: true
+                      // Header Row with Title and Reset Button
+                      Row {
+                        width: parent.width
+                        spacing: Style.space(8)
+
+                        Text {
+                          anchors.verticalCenter: parent.verticalCenter
+                          width: parent.width - resetRemapBtn.width - Style.space(8)
+                          text: "Button Remapper & SVG Badges (Click to Remap)"
+                          color: Qt.darker(root.barForeground, 1.4)
+                          font.family: Style.font.family
+                          font.pixelSize: 8
+                          font.bold: true
+                          elide: Text.ElideRight
+                        }
+
+                        Rectangle {
+                          id: resetRemapBtn
+                          width: resetTxt.implicitWidth + Style.space(12)
+                          height: Style.space(18)
+                          radius: height / 2
+                          color: resetMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.20) : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.06)
+                          border.color: resetMouse.containsMouse ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.15)
+                          border.width: 1
+                          visible: !!(root.sel && root.sel.profile && ((root.sel.profile.buttonMap && Object.keys(root.sel.profile.buttonMap).length > 0) || root.sel.profile.remapPreset === "nintendo_swap"))
+
+                          Text {
+                            id: resetTxt
+                            anchors.centerIn: parent
+                            text: "↺ Reset Remaps"
+                            color: resetMouse.containsMouse ? root.playerColor : root.barForeground
+                            font.family: Style.font.family
+                            font.pixelSize: 7
+                            font.bold: true
+                          }
+
+                          MouseArea {
+                            id: resetMouse
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.resetAllRemaps()
+                          }
+                        }
                       }
 
-                      // 4 face buttons
+                      // Row 1: 4 face buttons
                       Row {
                         width: parent.width
                         spacing: Style.space(6)
@@ -1431,46 +1569,58 @@ Panel {
 
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "faceBottom"
                           role: "South / Bottom"
-                          label: root.sel && root.sel.layout === "ps" ? "×" : (root.sel && root.sel.profile && root.sel.profile.remapPreset === "nintendo_swap" ? "B" : "A")
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "faceBottom", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "faceBottom", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.faceBottom
                           active: root.liveButtons && !!root.liveButtons[parent.t.faceBottom]
                           accent: root.playerColor
                           foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
                         }
 
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "faceRight"
                           role: "East / Right"
-                          label: root.sel && root.sel.layout === "ps" ? "○" : (root.sel && root.sel.profile && root.sel.profile.remapPreset === "nintendo_swap" ? "A" : "B")
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "faceRight", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "faceRight", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.faceRight
                           active: root.liveButtons && !!root.liveButtons[parent.t.faceRight]
                           accent: root.playerColor
                           foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
                         }
 
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "faceLeft"
                           role: "West / Left"
-                          label: root.sel && root.sel.layout === "ps" ? "□" : (root.sel && root.sel.profile && root.sel.profile.remapPreset === "nintendo_swap" ? "Y" : "X")
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "faceLeft", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "faceLeft", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.faceLeft
                           active: root.liveButtons && !!root.liveButtons[parent.t.faceLeft]
                           accent: root.playerColor
                           foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
                         }
 
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "faceTop"
                           role: "North / Top"
-                          label: root.sel && root.sel.layout === "ps" ? "△" : (root.sel && root.sel.profile && root.sel.profile.remapPreset === "nintendo_swap" ? "X" : "Y")
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "faceTop", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "faceTop", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.faceTop
                           active: root.liveButtons && !!root.liveButtons[parent.t.faceTop]
                           accent: root.playerColor
                           foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
                         }
                       }
 
-                      // Shoulder and stick click buttons
+                      // Row 2: Shoulders and Triggers
                       Row {
                         width: parent.width
                         spacing: Style.space(6)
@@ -1478,42 +1628,172 @@ Panel {
 
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "bumperL"
                           role: "Left Shoulder"
-                          label: root.sel && root.sel.layout === "ps" ? "L1" : "LB"
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "bumperL", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "bumperL", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.bumperL
                           active: root.liveButtons && !!root.liveButtons[parent.t.bumperL]
                           accent: root.playerColor
                           foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
                         }
 
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "bumperR"
                           role: "Right Shoulder"
-                          label: root.sel && root.sel.layout === "ps" ? "R1" : "RB"
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "bumperR", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "bumperR", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.bumperR
                           active: root.liveButtons && !!root.liveButtons[parent.t.bumperR]
                           accent: root.playerColor
                           foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
                         }
 
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "triggerL"
+                          role: "Left Trigger"
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "triggerL", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "triggerL", root.sel ? root.sel.profile : null))
+                          btnIdx: parent.t.triggerL
+                          active: root.triggerNorm("l") > 0.15
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
+                        }
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "triggerR"
+                          role: "Right Trigger"
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "triggerR", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "triggerR", root.sel ? root.sel.profile : null))
+                          btnIdx: parent.t.triggerR
+                          active: root.triggerNorm("r") > 0.15
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
+                        }
+                      }
+
+                      // Row 3: D-Pad Directions
+                      Row {
+                        width: parent.width
+                        spacing: Style.space(6)
+                        readonly property var t: GamepadModel.buttonTables(root.sel ? root.sel.layout : "generic", root.sel ? root.sel.profile : null)
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "dpadUp"
+                          role: "D-Pad Up"
+                          label: "▲"
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "dpadUp", root.sel ? root.sel.profile : null))
+                          btnIdx: parent.t.dpadUp
+                          active: root.liveButtons && !!root.liveButtons[parent.t.dpadUp]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
+                        }
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "dpadDown"
+                          role: "D-Pad Down"
+                          label: "▼"
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "dpadDown", root.sel ? root.sel.profile : null))
+                          btnIdx: parent.t.dpadDown
+                          active: root.liveButtons && !!root.liveButtons[parent.t.dpadDown]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
+                        }
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "dpadLeft"
+                          role: "D-Pad Left"
+                          label: "◀"
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "dpadLeft", root.sel ? root.sel.profile : null))
+                          btnIdx: parent.t.dpadLeft
+                          active: root.liveButtons && !!root.liveButtons[parent.t.dpadLeft]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
+                        }
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "dpadRight"
+                          role: "D-Pad Right"
+                          label: "▶"
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "dpadRight", root.sel ? root.sel.profile : null))
+                          btnIdx: parent.t.dpadRight
+                          active: root.liveButtons && !!root.liveButtons[parent.t.dpadRight]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
+                        }
+                      }
+
+                      // Row 4: Stick Clicks and Center Buttons
+                      Row {
+                        width: parent.width
+                        spacing: Style.space(6)
+                        readonly property var t: GamepadModel.buttonTables(root.sel ? root.sel.layout : "generic", root.sel ? root.sel.profile : null)
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "stickL"
                           role: "Left Stick Click"
-                          label: "L3 / LS"
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "stickL", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "stickL", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.stickL
                           active: root.liveButtons && !!root.liveButtons[parent.t.stickL]
                           accent: root.playerColor
                           foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
                         }
 
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "stickR"
                           role: "Right Stick Click"
-                          label: "R3 / RS"
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "stickR", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "stickR", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.stickR
                           active: root.liveButtons && !!root.liveButtons[parent.t.stickR]
                           accent: root.playerColor
                           foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
+                        }
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "centerLeft"
+                          role: "Back / View"
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "centerLeft", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "centerLeft", root.sel ? root.sel.profile : null))
+                          btnIdx: parent.t.centerLeft
+                          active: root.liveButtons && !!root.liveButtons[parent.t.centerLeft]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
+                        }
+
+                        RemapPill {
+                          width: (parent.width - 3 * Style.space(6)) / 4
+                          roleKey: "centerRight"
+                          role: "Start / Menu"
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "centerRight", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "centerRight", root.sel ? root.sel.profile : null))
+                          btnIdx: parent.t.centerRight
+                          active: root.liveButtons && !!root.liveButtons[parent.t.centerRight]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
                         }
                       }
                     }
@@ -2221,6 +2501,301 @@ Panel {
           elide: Text.ElideRight
         }
       }
+
+      // ---------------------------------------------------- Button Remap Modal Overlay
+      Rectangle {
+        id: remapModal
+        visible: false
+        z: 200
+        anchors.fill: parent
+        color: Qt.rgba(0, 0, 0, 0.72)
+
+        property string targetRole: ""
+        property int currentBtnIdx: -1
+        property string currentLabel: ""
+
+        function open(role, btnIdx, label) {
+          targetRole = role
+          currentBtnIdx = btnIdx
+          currentLabel = label
+          visible = true
+        }
+
+        function close() {
+          visible = false
+        }
+
+        // Dismiss when clicking outside modal box
+        MouseArea {
+          anchors.fill: parent
+          onClicked: remapModal.close()
+        }
+
+        // Modal Dialog Box
+        Rectangle {
+          anchors.centerIn: parent
+          width: Math.min(parent.width - Style.space(24), Style.space(420))
+          height: Math.min(parent.height - Style.space(32), remapDialogCol.implicitHeight + Style.space(28))
+          radius: Style.cornerRadius + 2
+          color: Color.popups.background
+          border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.45)
+          border.width: 1.5
+          clip: true
+
+          MouseArea {
+            anchors.fill: parent
+            // Absorb clicks inside dialog
+          }
+
+          Column {
+            id: remapDialogCol
+            width: parent.width - Style.space(24)
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: Style.space(14)
+            spacing: Style.space(8)
+
+            // Header Row
+            Row {
+              width: parent.width
+              spacing: Style.space(8)
+
+              Rectangle {
+                width: Style.space(28)
+                height: Style.space(28)
+                radius: width / 2
+                color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.20)
+                border.color: root.playerColor
+                border.width: 1
+
+                Image {
+                  anchors.centerIn: parent
+                  width: 18; height: 18
+                  source: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", remapModal.targetRole, root.sel ? root.sel.profile : null))
+                  fillMode: Image.PreserveAspectFit
+                  mipmap: true
+                  visible: status === Image.Ready
+                  layer.enabled: visible
+                  layer.effect: MultiEffect {
+                    colorization: 1.0
+                    colorizationColor: root.playerColor
+                  }
+                }
+              }
+
+              Column {
+                width: parent.width - Style.space(68)
+                spacing: 1
+
+                Text {
+                  text: "Remap " + remapModal.currentLabel
+                  color: root.barForeground
+                  font.family: Style.font.family
+                  font.pixelSize: Style.font.headingSmall
+                  font.bold: true
+                }
+
+                Text {
+                  text: "Target Role: " + remapModal.targetRole + (remapModal.currentBtnIdx >= 0 ? (" (Physical Btn " + remapModal.currentBtnIdx + ")") : "")
+                  color: Qt.darker(root.barForeground, 1.4)
+                  font.family: Style.font.family
+                  font.pixelSize: 8
+                }
+              }
+
+              // Close button
+              Rectangle {
+                width: Style.space(24)
+                height: Style.space(24)
+                radius: width / 2
+                color: closeMouse.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.15) : "transparent"
+
+                Text {
+                  anchors.centerIn: parent
+                  text: "✕"
+                  color: root.barForeground
+                  font.pixelSize: Style.font.caption
+                }
+
+                MouseArea {
+                  id: closeMouse
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: remapModal.close()
+                }
+              }
+            }
+
+            Rectangle {
+              width: parent.width
+              height: 1
+              color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.10)
+            }
+
+            Text {
+              text: "Choose a physical button or action to trigger this control:"
+              color: Qt.darker(root.barForeground, 1.3)
+              font.family: Style.font.family
+              font.pixelSize: Style.font.caption
+            }
+
+            // Action Selection Grid
+            Grid {
+              width: parent.width
+              columns: 2
+              spacing: Style.space(6)
+
+              readonly property var actions: [
+                { role: "faceBottom", label: root.sel && root.sel.layout === "ps" ? "×" : "A", name: "A / Cross", idx: 0 },
+                { role: "faceRight", label: root.sel && root.sel.layout === "ps" ? "○" : "B", name: "B / Circle", idx: 1 },
+                { role: "faceLeft", label: root.sel && root.sel.layout === "ps" ? "□" : "X", name: "X / Square", idx: 2 },
+                { role: "faceTop", label: root.sel && root.sel.layout === "ps" ? "△" : "Y", name: "Y / Triangle", idx: 3 },
+                { role: "bumperL", label: root.sel && root.sel.layout === "ps" ? "L1" : "LB", name: "Left Bumper", idx: root.sel && root.sel.layout === "ps" ? 10 : 4 },
+                { role: "bumperR", label: root.sel && root.sel.layout === "ps" ? "R1" : "RB", name: "Right Bumper", idx: root.sel && root.sel.layout === "ps" ? 11 : 5 },
+                { role: "stickL", label: root.sel && root.sel.layout === "ps" ? "L3" : "LS", name: "L3 / Left Stick", idx: root.sel && root.sel.layout === "ps" ? 8 : 9 },
+                { role: "stickR", label: root.sel && root.sel.layout === "ps" ? "R3" : "RS", name: "R3 / Right Stick", idx: root.sel && root.sel.layout === "ps" ? 9 : 10 },
+                { role: "dpadUp", label: "▲", name: "D-Pad Up", idx: 11 },
+                { role: "dpadDown", label: "▼", name: "D-Pad Down", idx: 12 },
+                { role: "dpadLeft", label: "◀", name: "D-Pad Left", idx: 13 },
+                { role: "dpadRight", label: "▶", name: "D-Pad Right", idx: 14 },
+                { role: "centerLeft", label: root.sel && root.sel.layout === "ps" ? "Create" : "View", name: "Back / View", idx: root.sel && root.sel.layout === "ps" ? 4 : 6 },
+                { role: "centerRight", label: root.sel && root.sel.layout === "ps" ? "Options" : "Menu", name: "Start / Menu", idx: root.sel && root.sel.layout === "ps" ? 5 : 7 }
+              ]
+
+              Repeater {
+                model: parent.actions
+
+                Rectangle {
+                  id: optCard
+                  width: (remapDialogCol.width - Style.space(6)) / 2
+                  height: Style.space(34)
+                  radius: Math.max(3, Style.cornerRadius - 1)
+                  readonly property bool isCur: remapModal.currentBtnIdx === modelData.idx
+                  color: isCur
+                    ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.28)
+                    : (optMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.12) : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.05))
+                  border.color: isCur ? root.playerColor : (optMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.50) : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12))
+                  border.width: isCur || optMouse.containsMouse ? 1.5 : 1
+
+                  Row {
+                    anchors.centerIn: parent
+                    spacing: Style.space(6)
+
+                    Image {
+                      width: 16; height: 16
+                      anchors.verticalCenter: parent.verticalCenter
+                      source: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", modelData.role))
+                      fillMode: Image.PreserveAspectFit
+                      mipmap: true
+                      visible: status === Image.Ready
+                      layer.enabled: visible
+                      layer.effect: MultiEffect {
+                        colorization: 1.0
+                        colorizationColor: optCard.isCur ? root.playerColor : (optMouse.containsMouse ? root.playerColor : root.barForeground)
+                      }
+                    }
+
+                    Column {
+                      anchors.verticalCenter: parent.verticalCenter
+                      spacing: 0
+
+                      Text {
+                        text: modelData.name
+                        color: optCard.isCur ? root.playerColor : (optMouse.containsMouse ? root.playerColor : root.barForeground)
+                        font.family: Style.font.family
+                        font.pixelSize: Style.font.caption
+                        font.bold: optCard.isCur
+                      }
+
+                      Text {
+                        text: "Btn " + modelData.idx
+                        color: optCard.isCur ? root.playerColor : Qt.darker(root.barForeground, 1.6)
+                        font.family: Style.font.family
+                        font.pixelSize: 7
+                      }
+                    }
+                  }
+
+                  MouseArea {
+                    id: optMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                      root.applyButtonRemap(remapModal.targetRole, modelData.idx)
+                      remapModal.close()
+                    }
+                  }
+                }
+              }
+            }
+
+            Rectangle {
+              width: parent.width
+              height: 1
+              color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.10)
+            }
+
+            // Footer Actions
+            Row {
+              width: parent.width
+              spacing: Style.space(8)
+
+              // Restore Default for this role
+              Rectangle {
+                width: (parent.width - Style.space(8)) / 2
+                height: Style.space(26)
+                radius: Math.max(3, Style.cornerRadius - 1)
+                color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.06)
+                border.color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.15)
+                border.width: 1
+
+                Text {
+                  anchors.centerIn: parent
+                  text: "Restore Default"
+                  color: root.barForeground
+                  font.family: Style.font.family
+                  font.pixelSize: Style.font.caption
+                }
+
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: {
+                    root.applyButtonRemap(remapModal.targetRole, null)
+                    remapModal.close()
+                  }
+                }
+              }
+
+              // Done / Cancel button
+              Rectangle {
+                width: (parent.width - Style.space(8)) / 2
+                height: Style.space(26)
+                radius: Math.max(3, Style.cornerRadius - 1)
+                color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.18)
+                border.color: root.playerColor
+                border.width: 1
+
+                Text {
+                  anchors.centerIn: parent
+                  text: "Done / Cancel"
+                  color: root.playerColor
+                  font.family: Style.font.family
+                  font.pixelSize: Style.font.caption
+                  font.bold: true
+                }
+
+                MouseArea {
+                  anchors.fill: parent
+                  cursorShape: Qt.PointingHandCursor
+                  onClicked: remapModal.close()
+                }
+              }
+            }
+          }
+        }
+      }
     }
   }
 
@@ -2346,40 +2921,103 @@ Panel {
   component RemapPill : Rectangle {
     id: rp
     property string role: ""
+    property string roleKey: ""
     property string label: ""
+    property string svgSource: ""
     property int btnIdx: -1
     property bool active: false
     property color accent: root.playerColor
     property color foreground: root.barForeground
+    signal clicked()
 
-    height: Style.space(40)
-    radius: Math.max(3, Style.cornerRadius - 1)
-    color: active ? Qt.rgba(accent.r, accent.g, accent.b, 0.28) : Qt.rgba(foreground.r, foreground.g, foreground.b, 0.04)
-    border.color: active ? accent : Qt.rgba(foreground.r, foreground.g, foreground.b, 0.12)
-    border.width: active ? 1.5 : 1
+    height: Style.space(46)
+    radius: Math.max(4, Style.cornerRadius - 1)
+    color: active
+      ? Qt.rgba(accent.r, accent.g, accent.b, 0.28)
+      : (pillMouse.containsMouse
+          ? Qt.rgba(accent.r, accent.g, accent.b, 0.12)
+          : Qt.rgba(foreground.r, foreground.g, foreground.b, 0.04))
+    border.color: active
+      ? accent
+      : (pillMouse.containsMouse ? Qt.rgba(accent.r, accent.g, accent.b, 0.55) : Qt.rgba(foreground.r, foreground.g, foreground.b, 0.12))
+    border.width: active || pillMouse.containsMouse ? 1.5 : 1
     clip: true
 
     Behavior on color { ColorAnimation { duration: 40 } }
+    Behavior on border.color { ColorAnimation { duration: 40 } }
 
-    Column {
+    MouseArea {
+      id: pillMouse
+      anchors.fill: parent
+      hoverEnabled: true
+      cursorShape: Qt.PointingHandCursor
+      onClicked: rp.clicked()
+    }
+
+    Row {
       anchors.centerIn: parent
-      spacing: 1
+      spacing: Style.space(5)
 
-      Text {
-        anchors.horizontalCenter: parent.horizontalCenter
-        text: rp.label
-        color: rp.active ? rp.accent : rp.foreground
-        font.family: Style.font.family
-        font.pixelSize: Style.font.caption
-        font.bold: true
+      // Dynamic SVG Badge for this button
+      Item {
+        width: 18
+        height: 18
+        anchors.verticalCenter: parent.verticalCenter
+        visible: rp.svgSource !== ""
+
+        Image {
+          id: pillSvgImg
+          anchors.fill: parent
+          source: rp.svgSource
+          fillMode: Image.PreserveAspectFit
+          mipmap: true
+          smooth: true
+          visible: rp.svgSource !== "" && status === Image.Ready
+          layer.enabled: visible
+          layer.effect: MultiEffect {
+            colorization: 1.0
+            colorizationColor: rp.active ? rp.accent : (pillMouse.containsMouse ? rp.accent : rp.foreground)
+          }
+        }
       }
 
+      Column {
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: 1
+
+        Text {
+          text: rp.label
+          color: rp.active ? rp.accent : (pillMouse.containsMouse ? rp.accent : rp.foreground)
+          font.family: Style.font.family
+          font.pixelSize: Style.font.caption
+          font.bold: true
+        }
+
+        Text {
+          text: rp.btnIdx >= 0 ? ("Btn " + rp.btnIdx) : "Unmapped"
+          color: rp.active ? rp.accent : Qt.darker(rp.foreground, 1.6)
+          font.family: Style.font.family
+          font.pixelSize: 8
+        }
+      }
+    }
+
+    // Remap edit pencil badge in top-right corner on hover
+    Rectangle {
+      anchors.top: parent.top
+      anchors.right: parent.right
+      anchors.margins: 2
+      width: 9
+      height: 9
+      radius: 4.5
+      color: Qt.rgba(accent.r, accent.g, accent.b, 0.25)
+      visible: pillMouse.containsMouse
+
       Text {
-        anchors.horizontalCenter: parent.horizontalCenter
-        text: rp.btnIdx >= 0 ? ("Btn " + rp.btnIdx) : "Axis"
-        color: rp.active ? rp.accent : Qt.darker(rp.foreground, 1.6)
-        font.family: Style.font.family
-        font.pixelSize: 8
+        anchors.centerIn: parent
+        text: "✎"
+        font.pixelSize: 6
+        color: rp.accent
       }
     }
   }

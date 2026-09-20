@@ -44,6 +44,7 @@ Item {
   property bool mini: false              // tiny silhouette for menu rows / slot selector
   property bool showLabels: true
   property bool interactive: !mini       // enables mouse/touch clicking and dragging
+  property bool remapMode: false         // when true, clicks open button remapping dialog
 
   // Virtual interactive state (allows direct mouse/touch interaction)
   property var virtualButtons: ({})
@@ -61,6 +62,7 @@ Item {
   signal stickMoved(string side, real x, real y)
   signal stickReleased(string side)
   signal triggerMoved(string side, real value)
+  signal requestRemap(string role, int buttonIndex, string currentLabel)
 
   // Live motion telemetry derivations with automatic fallbacks
   readonly property real rawPitch: {
@@ -666,25 +668,29 @@ Item {
     ShoulderUnit {
       side: "l"
       xPos: root.geo.bumpers[0]
-      trigLabel: root.isPs ? "L2" : root.isSwitch ? "ZL" : "LT"
-      bumpLabel: root.isPs ? "L1" : root.isSwitch ? "L" : "LB"
+      trigRole: "triggerL"
+      bumpRole: "bumperL"
+      trigLabel: GamepadModel.buttonLabel(root.layout, "triggerL", root.profile)
+      bumpLabel: GamepadModel.buttonLabel(root.layout, "bumperL", root.profile)
       bumpIndex: root.tables.bumperL
       trigIndex: root.tables.triggerL
       bumpOn: root.pressed(root.tables.bumperL)
-      bumpArtSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "l"))
-      trigArtSource: Qt.resolvedUrl(GamepadModel.triggerArt(root.layout, "l"))
+      bumpArtSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.layout, "bumperL", root.profile))
+      trigArtSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.layout, "triggerL", root.profile))
     }
 
     ShoulderUnit {
       side: "r"
       xPos: root.geo.bumpers[1]
-      trigLabel: root.isPs ? "R2" : root.isSwitch ? "ZR" : "RT"
-      bumpLabel: root.isPs ? "R1" : root.isSwitch ? "R" : "RB"
+      trigRole: "triggerR"
+      bumpRole: "bumperR"
+      trigLabel: GamepadModel.buttonLabel(root.layout, "triggerR", root.profile)
+      bumpLabel: GamepadModel.buttonLabel(root.layout, "bumperR", root.profile)
       bumpIndex: root.tables.bumperR
       trigIndex: root.tables.triggerR
       bumpOn: root.pressed(root.tables.bumperR)
-      bumpArtSource: Qt.resolvedUrl(GamepadModel.bumperArt(root.layout, "r"))
-      trigArtSource: Qt.resolvedUrl(GamepadModel.triggerArt(root.layout, "r"))
+      bumpArtSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.layout, "bumperR", root.profile))
+      trigArtSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.layout, "triggerR", root.profile))
     }
 
     // ---------------- left stick ----------------------------------------
@@ -727,10 +733,10 @@ Item {
     }
 
     // ---------------- face buttons --------------------------------------
-    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] - 18; label: root.faceLabel("top");    pos: "top";    buttonIndex: root.tables.faceTop;    on: root.pressed(root.tables.faceTop);    artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "top")) }
-    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] + 18; label: root.faceLabel("bottom"); pos: "bottom"; buttonIndex: root.tables.faceBottom; on: root.pressed(root.tables.faceBottom); artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "bottom")) }
-    FaceButton { cx: root.geo.face[0] - 18; cy: root.geo.face[1];      label: root.faceLabel("left");   pos: "left";   buttonIndex: root.tables.faceLeft;   on: root.pressed(root.tables.faceLeft);   artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "left")) }
-    FaceButton { cx: root.geo.face[0] + 18; cy: root.geo.face[1];      label: root.faceLabel("right");  pos: "right";  buttonIndex: root.tables.faceRight;  on: root.pressed(root.tables.faceRight);  artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "right")) }
+    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] - 18; label: root.faceLabel("top");    pos: "top";    role: "faceTop";    buttonIndex: root.tables.faceTop;    on: root.pressed(root.tables.faceTop);    artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "top", root.profile)) }
+    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] + 18; label: root.faceLabel("bottom"); pos: "bottom"; role: "faceBottom"; buttonIndex: root.tables.faceBottom; on: root.pressed(root.tables.faceBottom); artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "bottom", root.profile)) }
+    FaceButton { cx: root.geo.face[0] - 18; cy: root.geo.face[1];      label: root.faceLabel("left");   pos: "left";   role: "faceLeft";   buttonIndex: root.tables.faceLeft;   on: root.pressed(root.tables.faceLeft);   artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "left", root.profile)) }
+    FaceButton { cx: root.geo.face[0] + 18; cy: root.geo.face[1];      label: root.faceLabel("right");  pos: "right";  role: "faceRight";  buttonIndex: root.tables.faceRight;  on: root.pressed(root.tables.faceRight);  artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "right", root.profile)) }
 
     // ---------------- center cluster ------------------------------------
     Item {
@@ -869,6 +875,7 @@ Item {
         cy: root.isPs ? 36 : 40
         r: 7
         label: root.isSwitch ? "–" : "⧉"
+        role: "centerLeft"
         buttonIndex: root.tables.centerLeft
         on: root.pressed(root.tables.centerLeft)
         accent: root.playerColor
@@ -881,6 +888,7 @@ Item {
         cy: root.isPs ? 36 : 40
         r: 7
         label: root.isSwitch ? "+" : "☰"
+        role: "centerRight"
         buttonIndex: root.tables.centerRight
         on: root.pressed(root.tables.centerRight)
         accent: root.playerColor
@@ -895,6 +903,7 @@ Item {
         r: 5
         label: "▣"
         labelSize: 6
+        role: "centerExtra"
         buttonIndex: root.tables.centerExtra
         on: root.pressed(root.tables.centerExtra)
         accent: root.playerColor
@@ -1153,10 +1162,8 @@ Item {
   }
 
   function faceLabel(pos) {
-    if (root.isPs) return { top: "△", bottom: "×", left: "□", right: "○" }[pos]
-    if (root.isSwitch) return { top: "X", bottom: "B", left: "Y", right: "A" }[pos]
-    if (root.isXbox) return { top: "Y", bottom: "A", left: "X", right: "B" }[pos]
-    return { top: "4", bottom: "1", left: "3", right: "2" }[pos]
+    var role = pos === "top" ? "faceTop" : pos === "bottom" ? "faceBottom" : pos === "left" ? "faceLeft" : "faceRight"
+    return GamepadModel.buttonLabel(root.layout, role, root.profile)
   }
 
   // ============================================================ components
@@ -1172,6 +1179,8 @@ Item {
     property real yPos: 6
     property string trigLabel: ""
     property string bumpLabel: ""
+    property string trigRole: isLeft ? "triggerL" : "triggerR"
+    property string bumpRole: isLeft ? "bumperL" : "bumperR"
     property string bumpArtSource: ""
     property string trigArtSource: ""
     property bool bumpOn: false
@@ -1256,10 +1265,15 @@ Item {
         anchors.fill: parent
         enabled: root.interactive
         hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
         preventStealing: true
 
         onPressed: function(mouse) {
+          if (mouse.button === Qt.RightButton || root.remapMode) {
+            root.requestRemap(su.trigRole, su.trigIndex, su.trigLabel)
+            return
+          }
           trigReleaseAnim.stop()
           var pull = Math.max(0.25, Math.min(1.0, (mouse.y + 4) / parent.height))
           su.dragPull = pull
@@ -1267,14 +1281,18 @@ Item {
           root.setVirtualButton(su.trigIndex, true)
         }
         onPositionChanged: function(mouse) {
-          if (pressed) {
+          if (pressed && !root.remapMode) {
             var pull = Math.max(0.0, Math.min(1.0, (mouse.y + 4) / parent.height))
             su.dragPull = pull
             root.setVirtualTrigger(su.side, pull)
             root.setVirtualButton(su.trigIndex, pull > 0.1)
           }
         }
-        onReleased: trigReleaseAnim.restart()
+        onReleased: function(mouse) {
+          if (mouse.button === Qt.LeftButton && !root.remapMode) {
+            trigReleaseAnim.restart()
+          }
+        }
         onCanceled: trigReleaseAnim.restart()
       }
 
@@ -1357,9 +1375,20 @@ Item {
         anchors.fill: parent
         enabled: root.interactive
         hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
-        onPressed: root.setVirtualButton(su.bumpIndex, true)
-        onReleased: root.setVirtualButton(su.bumpIndex, false)
+        onPressed: function(mouse) {
+          if (mouse.button === Qt.RightButton || root.remapMode) {
+            root.requestRemap(su.bumpRole, su.bumpIndex, su.bumpLabel)
+          } else {
+            root.setVirtualButton(su.bumpIndex, true)
+          }
+        }
+        onReleased: function(mouse) {
+          if (mouse.button === Qt.LeftButton && !root.remapMode) {
+            root.setVirtualButton(su.bumpIndex, false)
+          }
+        }
         onCanceled: root.setVirtualButton(su.bumpIndex, false)
       }
 
@@ -1780,6 +1809,10 @@ Item {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
 
         onPressed: function(mouse) {
+          if (root.remapMode) {
+            root.requestRemap(st.side === "l" ? "stickL" : "stickR", st.stickIndex, st.side === "l" ? "LS / L3" : "RS / R3")
+            return
+          }
           if (mouse.button === Qt.RightButton) {
             root.setVirtualButton(st.stickIndex, !st.on)
             return
@@ -1945,6 +1978,8 @@ Item {
   component DpadArm : Rectangle {
     id: dpadArmItem
     property string dir: "up"
+    property string role: dir === "up" ? "dpadUp" : dir === "down" ? "dpadDown" : dir === "left" ? "dpadLeft" : "dpadRight"
+    property string label: GamepadModel.buttonLabel(root.layout, role, root.profile)
     property bool on: false
     property int buttonIndex: -1
     property color accent: root.playerColor
@@ -1971,9 +2006,20 @@ Item {
       anchors.fill: parent
       enabled: root.interactive
       hoverEnabled: true
+      acceptedButtons: Qt.LeftButton | Qt.RightButton
       cursorShape: Qt.PointingHandCursor
-      onPressed: root.setVirtualButton(dpadArmItem.buttonIndex, true)
-      onReleased: root.setVirtualButton(dpadArmItem.buttonIndex, false)
+      onPressed: function(mouse) {
+        if (mouse.button === Qt.RightButton || root.remapMode) {
+          root.requestRemap(dpadArmItem.role, dpadArmItem.buttonIndex, dpadArmItem.label)
+          return
+        }
+        root.setVirtualButton(dpadArmItem.buttonIndex, true)
+      }
+      onReleased: function(mouse) {
+        if (mouse.button === Qt.LeftButton && !root.remapMode) {
+          root.setVirtualButton(dpadArmItem.buttonIndex, false)
+        }
+      }
       onCanceled: root.setVirtualButton(dpadArmItem.buttonIndex, false)
     }
 
@@ -2052,6 +2098,7 @@ Item {
     property real cy: 0
     property string label: ""
     property string pos: "bottom"
+    property string role: pos === "top" ? "faceTop" : pos === "bottom" ? "faceBottom" : pos === "left" ? "faceLeft" : "faceRight"
     property string artSource: ""
     property bool on: false
     property int buttonIndex: -1
@@ -2144,9 +2191,20 @@ Item {
         anchors.fill: parent
         enabled: root.interactive
         hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
-        onPressed: root.setVirtualButton(fb.buttonIndex, true)
-        onReleased: root.setVirtualButton(fb.buttonIndex, false)
+        onPressed: function(mouse) {
+          if (mouse.button === Qt.RightButton || root.remapMode) {
+            root.requestRemap(fb.role, fb.buttonIndex, fb.label)
+            return
+          }
+          root.setVirtualButton(fb.buttonIndex, true)
+        }
+        onReleased: function(mouse) {
+          if (mouse.button === Qt.LeftButton && !root.remapMode) {
+            root.setVirtualButton(fb.buttonIndex, false)
+          }
+        }
         onCanceled: root.setVirtualButton(fb.buttonIndex, false)
       }
 
@@ -2251,6 +2309,7 @@ Item {
     property real cy: 0
     property real r: 8
     property string label: ""
+    property string role: ""
     property string artSource: ""
     property bool on: false
     property int buttonIndex: -1
@@ -2306,9 +2365,22 @@ Item {
         anchors.fill: parent
         enabled: root.interactive
         hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: Qt.PointingHandCursor
-        onPressed: root.setVirtualButton(ck.buttonIndex, true)
-        onReleased: root.setVirtualButton(ck.buttonIndex, false)
+        onPressed: function(mouse) {
+          if (mouse.button === Qt.RightButton || root.remapMode) {
+            if (ck.role !== "") {
+              root.requestRemap(ck.role, ck.buttonIndex, ck.label)
+              return
+            }
+          }
+          root.setVirtualButton(ck.buttonIndex, true)
+        }
+        onReleased: function(mouse) {
+          if (mouse.button === Qt.LeftButton && !root.remapMode) {
+            root.setVirtualButton(ck.buttonIndex, false)
+          }
+        }
         onCanceled: root.setVirtualButton(ck.buttonIndex, false)
       }
 

@@ -283,6 +283,9 @@ var DEFAULT_PROFILE = {
 function normalizeProfile(p) {
   var out = {}
   var src = (p && typeof p === "object") ? p : {}
+  for (var prop in src) {
+    out[prop] = src[prop]
+  }
   var keys = ["stickL", "stickR", "trigL", "trigR"]
   for (var i = 0; i < keys.length; i++) {
     var k = keys[i]
@@ -504,10 +507,134 @@ function artPath(set, name) {
 }
 
 // Face cap for a diamond position ("top"/"bottom"/"left"/"right").
-function faceArt(layout, pos) {
+function faceArt(layout, pos, profile) {
   if (layout !== "xbox" && layout !== "ps") return ""
   var map = { top: "n", bottom: "s", left: "w", right: "e" }
+  if (profile) {
+    if (profile.remapPreset === "nintendo_swap" || profile.swapFace) {
+      map = { top: "w", bottom: "e", left: "n", right: "s" }
+    }
+    if (profile.buttonMap && typeof profile.buttonMap === "object") {
+      var tBase = buttonTables(layout, null)
+      var tRemapped = buttonTables(layout, profile)
+      var targetRole = pos === "top" ? "faceTop" : pos === "bottom" ? "faceBottom" : pos === "left" ? "faceLeft" : "faceRight"
+      var physIdx = tRemapped[targetRole]
+      for (var r in tBase) {
+        if (r.indexOf("face") === 0 && tBase[r] === physIdx) {
+          if (r === "faceTop") map[pos] = "n"
+          else if (r === "faceBottom") map[pos] = "s"
+          else if (r === "faceLeft") map[pos] = "w"
+          else if (r === "faceRight") map[pos] = "e"
+          break
+        }
+      }
+    }
+  }
   return artPath(artSet(layout), map[pos])
+}
+
+// Generic button SVG art resolver for any role ("faceBottom", "bumperL", etc.)
+function buttonArt(layout, role, profile) {
+  var set = artSet(layout || "xbox") || "xbox360"
+  var activeRole = role
+  if (profile && profile.buttonMap && typeof profile.buttonMap === "object") {
+    var tBase = buttonTables(layout, null)
+    var tRemapped = buttonTables(layout, profile)
+    var physIdx = tRemapped[role]
+    if (physIdx !== undefined && physIdx !== -1) {
+      for (var r in tBase) {
+        if (tBase[r] === physIdx) {
+          activeRole = r
+          break
+        }
+      }
+    }
+  }
+
+  var roleMap = {
+    faceBottom: "s",
+    faceRight: "e",
+    faceLeft: "w",
+    faceTop: "n",
+    bumperL: "leftshoulder",
+    bumperR: "rightshoulder",
+    triggerL: "lefttrigger",
+    triggerR: "righttrigger",
+    stickL: set === "ps3" ? "leftstick" : "",
+    stickR: set === "ps3" ? "rightstick" : "",
+    dpadUp: "dpup",
+    dpadDown: "dpdown",
+    dpadLeft: "dpleft",
+    dpadRight: "dpright",
+    centerLeft: "back",
+    centerRight: "start"
+  }
+  if (profile && (profile.remapPreset === "nintendo_swap" || profile.swapFace)) {
+    if (activeRole === "faceBottom") return artPath(set, "e")
+    if (activeRole === "faceRight") return artPath(set, "s")
+    if (activeRole === "faceLeft") return artPath(set, "n")
+    if (activeRole === "faceTop") return artPath(set, "w")
+  }
+  if (roleMap[activeRole]) {
+    return artPath(set, roleMap[activeRole])
+  }
+  return ""
+}
+
+// Logical button label given layout, role and profile
+function buttonLabel(layout, role, profile) {
+  var isPs = layout === "ps"
+  var isSwitch = layout === "switch"
+  var swapped = profile && (profile.remapPreset === "nintendo_swap" || profile.swapFace)
+
+  var activeRole = role
+  if (profile && profile.buttonMap && typeof profile.buttonMap === "object") {
+    var tBase = buttonTables(layout, null)
+    var tRemapped = buttonTables(layout, profile)
+    var physIdx = tRemapped[role]
+    if (physIdx !== undefined && physIdx !== -1) {
+      for (var r in tBase) {
+        if (tBase[r] === physIdx) {
+          activeRole = r
+          break
+        }
+      }
+    }
+  }
+
+  if (activeRole === "faceBottom") {
+    if (isPs) return swapped ? "○" : "×"
+    if (isSwitch) return "B"
+    return swapped ? "B" : "A"
+  }
+  if (activeRole === "faceRight") {
+    if (isPs) return swapped ? "×" : "○"
+    if (isSwitch) return "A"
+    return swapped ? "A" : "B"
+  }
+  if (activeRole === "faceLeft") {
+    if (isPs) return swapped ? "△" : "□"
+    if (isSwitch) return "Y"
+    return swapped ? "Y" : "X"
+  }
+  if (activeRole === "faceTop") {
+    if (isPs) return swapped ? "□" : "△"
+    if (isSwitch) return "X"
+    return swapped ? "X" : "Y"
+  }
+  if (activeRole === "bumperL") return isPs ? "L1" : isSwitch ? "L" : "LB"
+  if (activeRole === "bumperR") return isPs ? "R1" : isSwitch ? "R" : "RB"
+  if (activeRole === "triggerL") return isPs ? "L2" : isSwitch ? "ZL" : "LT"
+  if (activeRole === "triggerR") return isPs ? "R2" : isSwitch ? "ZR" : "RT"
+  if (activeRole === "stickL") return isPs ? "L3" : "LS"
+  if (activeRole === "stickR") return isPs ? "R3" : "RS"
+  if (activeRole === "dpadUp") return "▲"
+  if (activeRole === "dpadDown") return "▼"
+  if (activeRole === "dpadLeft") return "◀"
+  if (activeRole === "dpadRight") return "▶"
+  if (activeRole === "centerLeft") return isPs ? "Create" : isSwitch ? "–" : "View"
+  if (activeRole === "centerRight") return isPs ? "Options" : isSwitch ? "+" : "Menu"
+  return activeRole
 }
 
 // Shoulder (bumper) cap for a side, empty for sets without shoulder art.
@@ -799,6 +926,8 @@ if (typeof module !== "undefined" && module.exports) {
     artSet: artSet,
     artPath: artPath,
     faceArt: faceArt,
+    buttonArt: buttonArt,
+    buttonLabel: buttonLabel,
     bumperArt: bumperArt,
     triggerArt: triggerArt,
     centerArt: centerArt,

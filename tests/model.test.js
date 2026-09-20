@@ -353,3 +353,31 @@ test('Button remapping via profile presets and custom buttonMap', (t) => {
   assert.strictEqual(custom.faceBottom, 0);
 });
 
+test('Dynamic SVG buttonArt and faceArt with button remapping', (t) => {
+  // Standard Xbox face art
+  assert.strictEqual(Model.faceArt('xbox', 'bottom'), 'assets/input/xbox360/s.svg');
+  assert.strictEqual(Model.faceArt('xbox', 'right'), 'assets/input/xbox360/e.svg');
+  assert.strictEqual(Model.faceArt('xbox', 'left'), 'assets/input/xbox360/w.svg');
+  assert.strictEqual(Model.faceArt('xbox', 'top'), 'assets/input/xbox360/n.svg');
+
+  // Remapped with nintendo_swap: bottom becomes B (e.svg), right becomes A (s.svg)
+  const nProfile = { remapPreset: 'nintendo_swap' };
+  assert.strictEqual(Model.faceArt('xbox', 'bottom', nProfile), 'assets/input/xbox360/e.svg');
+  assert.strictEqual(Model.faceArt('xbox', 'right', nProfile), 'assets/input/xbox360/s.svg');
+  assert.strictEqual(Model.faceArt('xbox', 'left', nProfile), 'assets/input/xbox360/n.svg');
+  assert.strictEqual(Model.faceArt('xbox', 'top', nProfile), 'assets/input/xbox360/w.svg');
+
+  // Generic buttonArt resolver
+  assert.strictEqual(Model.buttonArt('xbox', 'faceBottom'), 'assets/input/xbox360/s.svg');
+  assert.strictEqual(Model.buttonArt('xbox', 'bumperL'), 'assets/input/xbox360/leftshoulder.svg');
+  assert.strictEqual(Model.buttonArt('xbox', 'triggerR'), 'assets/input/xbox360/righttrigger.svg');
+  assert.strictEqual(Model.buttonArt('xbox', 'faceBottom', nProfile), 'assets/input/xbox360/e.svg');
+
+  // buttonLabel resolver
+  assert.strictEqual(Model.buttonLabel('xbox', 'faceBottom'), 'A');
+  assert.strictEqual(Model.buttonLabel('xbox', 'faceBottom', nProfile), 'B');
+  assert.strictEqual(Model.buttonLabel('ps', 'faceBottom'), '×');
+  assert.strictEqual(Model.buttonLabel('ps', 'faceBottom', nProfile), '○');
+});
+
+
