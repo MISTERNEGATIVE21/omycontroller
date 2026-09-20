@@ -440,7 +440,13 @@ Item {
       ShapePath {
         strokeWidth: root.anyPress ? 2 : 1.5
         strokeColor: root.bodyBorder
-        fillColor: root.bodyColor
+        fillGradient: LinearGradient {
+          x1: 170; y1: 18; x2: 170; y2: 200
+          GradientStop { position: 0.0; color: Qt.lighter(root.bodyColor, 1.15) }
+          GradientStop { position: 0.35; color: root.bodyColor }
+          GradientStop { position: 0.85; color: Qt.darker(root.bodyColor, 1.18) }
+          GradientStop { position: 1.0; color: Qt.darker(root.bodyColor, 1.35) }
+        }
         startX: 170; startY: 24
         PathCubic { control1X: 192; control1Y: 24; control2X: 202; control2Y: 22; x: 214; y: 18 }
         PathCubic { control1X: 226; control1Y: 14; control2X: 254; control2Y: 14; x: 268; y: 18 }
@@ -661,11 +667,17 @@ Item {
         PathCubic { control1X: 268.5; control1Y: 100; control2X: 282.5; control2Y: 90; x: 294.5; y: 86 }
       }
 
-      // --- Left Grip Pad: Matte Molded Rubber Surface ---
+      // --- Left Grip Pad: Multi-Shade 3D Molded Rubber Surface ---
       ShapePath {
         strokeWidth: 1.5
-        strokeColor: Qt.rgba(0, 0, 0, 0.75)
-        fillColor: Qt.rgba(0.08, 0.09, 0.12, 0.90)
+        strokeColor: Qt.rgba(0, 0, 0, 0.85)
+        fillGradient: LinearGradient {
+          x1: 34; y1: 130; x2: 86; y2: 145
+          GradientStop { position: 0.0; color: "#2d323e" }   // Outer convex highlight catch
+          GradientStop { position: 0.25; color: "#1c1f27" }  // Rich vulcanized rubber
+          GradientStop { position: 0.65; color: "#111319" }  // Deep charcoal tone
+          GradientStop { position: 1.0; color: "#050608" }   // Deep inner recess shadow
+        }
         startX: 44; startY: 84
         // Outer flank - organically curving along the outer horn boundary
         PathCubic { control1X: 35; control1Y: 108; control2X: 34; control2Y: 134; x: 40; y: 158 }
@@ -679,11 +691,17 @@ Item {
         PathCubic { control1X: 70; control1Y: 98; control2X: 56; control2Y: 88; x: 44; y: 84 }
       }
 
-      // --- Right Grip Pad: Matte Molded Rubber Surface ---
+      // --- Right Grip Pad: Multi-Shade 3D Molded Rubber Surface ---
       ShapePath {
         strokeWidth: 1.5
-        strokeColor: Qt.rgba(0, 0, 0, 0.75)
-        fillColor: Qt.rgba(0.08, 0.09, 0.12, 0.90)
+        strokeColor: Qt.rgba(0, 0, 0, 0.85)
+        fillGradient: LinearGradient {
+          x1: 306; y1: 130; x2: 254; y2: 145
+          GradientStop { position: 0.0; color: "#2d323e" }   // Outer convex highlight catch
+          GradientStop { position: 0.25; color: "#1c1f27" }  // Rich vulcanized rubber
+          GradientStop { position: 0.65; color: "#111319" }  // Deep charcoal tone
+          GradientStop { position: 1.0; color: "#050608" }   // Deep inner recess shadow
+        }
         startX: 296; startY: 84
         // Outer flank
         PathCubic { control1X: 305; control1Y: 108; control2X: 306; control2Y: 134; x: 300; y: 158 }
@@ -697,10 +715,30 @@ Item {
         PathCubic { control1X: 270; control1Y: 98; control2X: 284; control2Y: 88; x: 296; y: 84 }
       }
 
+      // --- Left Grip Pad: Soft Convex Palm Apex Highlight ---
+      ShapePath {
+        strokeWidth: 5
+        strokeColor: Qt.rgba(1, 1, 1, 0.06)
+        fillColor: "transparent"
+        capStyle: ShapePath.RoundCap
+        startX: 45; startY: 98
+        PathCubic { control1X: 44; control1Y: 122; control2X: 48; control2Y: 146; x: 62; y: 172 }
+      }
+
+      // --- Right Grip Pad: Soft Convex Palm Apex Highlight ---
+      ShapePath {
+        strokeWidth: 5
+        strokeColor: Qt.rgba(1, 1, 1, 0.06)
+        fillColor: "transparent"
+        capStyle: ShapePath.RoundCap
+        startX: 295; startY: 98
+        PathCubic { control1X: 296; control1Y: 122; control2X: 292; control2Y: 146; x: 278; y: 172 }
+      }
+
       // --- Left Grip Pad: Outer Curvature Specular Ridge ---
       ShapePath {
         strokeWidth: 2
-        strokeColor: Qt.rgba(1, 1, 1, 0.16)
+        strokeColor: Qt.rgba(1, 1, 1, 0.22)
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
         startX: 42; startY: 96
@@ -710,7 +748,7 @@ Item {
       // --- Right Grip Pad: Outer Curvature Specular Ridge ---
       ShapePath {
         strokeWidth: 2
-        strokeColor: Qt.rgba(1, 1, 1, 0.16)
+        strokeColor: Qt.rgba(1, 1, 1, 0.22)
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
         startX: 298; startY: 96
@@ -720,7 +758,7 @@ Item {
       // --- Left Grip Pad: Bottom Corner Wrap-Around Highlight ---
       ShapePath {
         strokeWidth: 1.5
-        strokeColor: Qt.rgba(1, 1, 1, 0.12)
+        strokeColor: Qt.rgba(1, 1, 1, 0.16)
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
         startX: 44; startY: 164
@@ -730,7 +768,7 @@ Item {
       // --- Right Grip Pad: Bottom Corner Wrap-Around Highlight ---
       ShapePath {
         strokeWidth: 1.5
-        strokeColor: Qt.rgba(1, 1, 1, 0.12)
+        strokeColor: Qt.rgba(1, 1, 1, 0.16)
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
         startX: 296; startY: 164
@@ -740,112 +778,112 @@ Item {
       // --- Left Grip Pad: 6 Curved Tactile Ribs (bending with palm contour) ---
       // Rib 1
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.10); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 45; startY: 104; PathQuad { controlX: 58; controlY: 101; x: 74; y: 108 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.45); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 45; startY: 105; PathQuad { controlX: 58; controlY: 102; x: 74; y: 109 }
       }
       // Rib 2
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.10); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 41; startY: 118; PathQuad { controlX: 56; controlY: 114; x: 77; y: 121 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.45); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 41; startY: 119; PathQuad { controlX: 56; controlY: 115; x: 77; y: 122 }
       }
       // Rib 3
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.10); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 39; startY: 132; PathQuad { controlX: 56; controlY: 128; x: 80; y: 135 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.45); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 39; startY: 133; PathQuad { controlX: 56; controlY: 129; x: 80; y: 136 }
       }
       // Rib 4
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.10); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 40; startY: 146; PathQuad { controlX: 58; controlY: 142; x: 81; y: 149 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.45); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 40; startY: 147; PathQuad { controlX: 58; controlY: 143; x: 81; y: 150 }
       }
       // Rib 5
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.10); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 45; startY: 160; PathQuad { controlX: 62; controlY: 156; x: 80; y: 162 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.45); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 45; startY: 161; PathQuad { controlX: 62; controlY: 157; x: 80; y: 163 }
       }
       // Rib 6
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.10); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 52; startY: 172; PathQuad { controlX: 66; controlY: 169; x: 76; y: 173 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.45); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 52; startY: 173; PathQuad { controlX: 66; controlY: 170; x: 76; y: 174 }
       }
 
       // --- Right Grip Pad: 6 Curved Tactile Ribs (bending with palm contour) ---
       // Rib 1
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.10); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 295; startY: 104; PathQuad { controlX: 282; controlY: 101; x: 266; y: 108 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.45); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 295; startY: 105; PathQuad { controlX: 282; controlY: 102; x: 266; y: 109 }
       }
       // Rib 2
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.10); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 299; startY: 118; PathQuad { controlX: 284; controlY: 114; x: 263; y: 121 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.45); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 299; startY: 119; PathQuad { controlX: 284; controlY: 115; x: 263; y: 122 }
       }
       // Rib 3
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.10); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 301; startY: 132; PathQuad { controlX: 284; controlY: 128; x: 260; y: 135 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.45); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 301; startY: 133; PathQuad { controlX: 284; controlY: 129; x: 260; y: 136 }
       }
       // Rib 4
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.10); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 300; startY: 146; PathQuad { controlX: 282; controlY: 142; x: 259; y: 149 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.45); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 300; startY: 147; PathQuad { controlX: 282; controlY: 143; x: 259; y: 150 }
       }
       // Rib 5
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.10); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 295; startY: 160; PathQuad { controlX: 278; controlY: 156; x: 260; y: 162 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.45); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 295; startY: 161; PathQuad { controlX: 278; controlY: 157; x: 260; y: 163 }
       }
       // Rib 6
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.10); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 288; startY: 172; PathQuad { controlX: 274; controlY: 169; x: 264; y: 173 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.45); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
         startX: 288; startY: 173; PathQuad { controlX: 274; controlY: 170; x: 264; y: 174 }
       }
     }
