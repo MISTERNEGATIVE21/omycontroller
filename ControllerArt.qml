@@ -531,25 +531,75 @@ Item {
       border.width: 1
     }
 
-    // 6. Molded Chassis Trigger Wells & Top Bulkhead
-    // Left Trigger Socket Well
-    Rectangle {
-      x: 64; y: 15
-      width: 62; height: 42
-      radius: 7
-      color: Qt.rgba(0, 0, 0, 0.38)
-      border.color: Qt.rgba(0, 0, 0, 0.60)
-      border.width: 1
+    // 6. Molded 3D Chassis Shoulder Sockets & Bulkhead Bezel
+    // Left Shoulder Socket (Outer border rim + recessed trench)
+    Item {
+      x: 63; y: 14
+      width: 64; height: 50
+
+      // Outer raised chassis socket border rim (gives crisp 3D border around shoulder button root)
+      Rectangle {
+        anchors.fill: parent
+        radius: 8
+        color: Qt.darker(root.bodyColor, 1.35)
+        border.color: root.bodyBorder
+        border.width: 1.5
+
+        // Top specular chamfer catch-light
+        Rectangle {
+          x: 4; y: 1
+          width: parent.width - 8
+          height: 1.5
+          radius: 0.75
+          color: Qt.rgba(1, 1, 1, 0.24)
+        }
+      }
+
+      // Deep recessed cavity trench (negative Z-depth pocket)
+      Rectangle {
+        x: 2; y: 2
+        width: parent.width - 4
+        height: parent.height - 4
+        radius: 6
+        color: Qt.rgba(0.04, 0.05, 0.07, 0.92)
+        border.color: Qt.rgba(0, 0, 0, 0.85)
+        border.width: 1
+      }
     }
 
-    // Right Trigger Socket Well
-    Rectangle {
-      x: 216; y: 15
-      width: 62; height: 42
-      radius: 7
-      color: Qt.rgba(0, 0, 0, 0.38)
-      border.color: Qt.rgba(0, 0, 0, 0.60)
-      border.width: 1
+    // Right Shoulder Socket (Outer border rim + recessed trench)
+    Item {
+      x: 215; y: 14
+      width: 64; height: 50
+
+      // Outer raised chassis socket border rim
+      Rectangle {
+        anchors.fill: parent
+        radius: 8
+        color: Qt.darker(root.bodyColor, 1.35)
+        border.color: root.bodyBorder
+        border.width: 1.5
+
+        // Top specular chamfer catch-light
+        Rectangle {
+          x: 4; y: 1
+          width: parent.width - 8
+          height: 1.5
+          radius: 0.75
+          color: Qt.rgba(1, 1, 1, 0.24)
+        }
+      }
+
+      // Deep recessed cavity trench
+      Rectangle {
+        x: 2; y: 2
+        width: parent.width - 4
+        height: parent.height - 4
+        radius: 6
+        color: Qt.rgba(0.04, 0.05, 0.07, 0.92)
+        border.color: Qt.rgba(0, 0, 0, 0.85)
+        border.width: 1
+      }
     }
 
     // USB-C Top Connector Port (Precision Hardware Detail)
@@ -1242,12 +1292,45 @@ Item {
     width: 58
     height: 44
 
-    // 1. Chassis Docking Cradle (Physical socket embedded into gamepad shoulder)
-    // Anchors into the curved top contour of the controller hull, eliminating floating box frames.
+    // 1. 3D Chassis Docking Cradle & Molded Socket Bezel
+    // Provides a raised structural border rim and deep recessed cavity trench at the button root
     Item {
       anchors.fill: parent
 
-      // Internal chassis guide pins extending directly into the hull plate
+      // A. Outer Raised Chassis Socket Border Collar (frames the starting perimeter)
+      Rectangle {
+        x: su.side === "l" ? -3 : -1
+        y: 19
+        width: parent.width + 4
+        height: 25
+        radius: 7
+        color: Qt.darker(root.bodyColor, 1.25)
+        border.color: root.bodyBorder
+        border.width: 1.5
+
+        // Specular catch-light ridge along top socket lip
+        Rectangle {
+          x: 4; y: 1
+          width: parent.width - 8
+          height: 1.5
+          radius: 0.75
+          color: Qt.rgba(1, 1, 1, 0.25)
+        }
+      }
+
+      // B. Deep Recessed Cavity Trench (Z-Depth Pocket underneath bumper)
+      Rectangle {
+        x: su.side === "l" ? -1 : 1
+        y: 21
+        width: parent.width
+        height: 22
+        radius: 5
+        color: Qt.rgba(0.04, 0.05, 0.07, 0.95)
+        border.color: Qt.rgba(0, 0, 0, 0.90)
+        border.width: 1
+      }
+
+      // C. Internal chassis guide pins extending directly into the hull plate
       Rectangle {
         x: su.side === "l" ? 8 : parent.width - 12
         y: 22
@@ -1505,20 +1588,20 @@ Item {
     }
 
     // 6. 2.5D Sculpted Ergonomic Bumper (LB / RB / L1 / R1)
-    // Seated directly on the chassis shoulder with contoured corners and specular highlight
+    // De-bulked, streamlined mechanical bumper seated inside recessed socket collar
     Rectangle {
       id: bumperPlate
-      x: 0
-      // Mechanical click depression: sinks 2px into chassis socket when pressed
-      y: su.bumpOn ? 23.5 : 21.5
-      width: parent.width
-      height: 20
+      x: su.side === "l" ? 2.5 : 1.5
+      // Mechanical click depression: sinks 2.5px into chassis socket when pressed
+      y: su.bumpOn ? 22.5 : 20.0
+      width: parent.width - 4
+      height: 18.5
       // Outer corner is rounded to match the controller shoulder curvature
-      radius: 6
+      radius: 5
       color: su.bumpOn ? root.playerColor : (bumpMouse.containsMouse ? Qt.lighter(Qt.darker(root.bodyColor, 1.12), 1.15) : Qt.darker(root.bodyColor, 1.12))
       border.color: su.bumpOn ? root.playerColor : (bumpMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.60) : root.bodyBorder)
       border.width: su.bumpOn ? 1.5 : 1
-      scale: su.bumpOn ? 0.97 : (bumpMouse.containsMouse ? 1.03 : 1.0)
+      scale: su.bumpOn ? 0.97 : (bumpMouse.containsMouse ? 1.02 : 1.0)
 
       Behavior on y { NumberAnimation { duration: 35 } }
       Behavior on color { ColorAnimation { duration: 50 } }
@@ -1537,11 +1620,11 @@ Item {
 
       // Ergonomic Curved Contour Wing Flank (hugs the shoulder horn)
       Rectangle {
-        x: su.side === "l" ? -3 : parent.width - 5
+        x: su.side === "l" ? -3 : parent.width - 4
         y: 2
-        width: 8
+        width: 7
         height: parent.height - 4
-        radius: 4
+        radius: 3.5
         color: su.bumpOn ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, bumpMouse.containsMouse ? 0.35 : 0.15)
         border.color: su.bumpOn ? root.playerColor : Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.45)
         border.width: 1
@@ -1552,7 +1635,7 @@ Item {
         anchors.centerIn: parent
         width: parent.width + 6
         height: parent.height + 6
-        radius: 8
+        radius: 7
         color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.30 : 0)
         border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, su.bumpOn ? 0.70 : 0)
         border.width: 1.5
@@ -1565,17 +1648,36 @@ Item {
       Rectangle {
         x: 3; y: 1
         width: parent.width - 6
-        height: 2
-        radius: 1
-        color: su.bumpOn ? Qt.rgba(1, 1, 1, 0.45) : Qt.rgba(1, 1, 1, 0.16)
+        height: 1.5
+        radius: 0.75
+        color: su.bumpOn ? Qt.rgba(1, 1, 1, 0.50) : Qt.rgba(1, 1, 1, 0.22)
       }
 
-      // Parting Seam Line (engineered partition joint with chassis)
+      // Ergonomic Upper Surface Reflection Gradient Band (eliminates flat look)
+      Rectangle {
+        x: 3; y: 2
+        width: parent.width - 6
+        height: 5
+        radius: 2.5
+        color: Qt.rgba(1, 1, 1, 0.07)
+        visible: !su.bumpOn
+      }
+
+      // 3D Bottom Undercut Chamfer (Physical sculpted thickness & shadow)
+      Rectangle {
+        x: 1; y: parent.height - 3
+        width: parent.width - 2
+        height: 2.5
+        radius: 1.25
+        color: Qt.rgba(0, 0, 0, 0.65)
+      }
+
+      // Parting Seam Line (engineered clearance partition joint with chassis)
       Rectangle {
         x: 0; y: parent.height - 1
         width: parent.width
         height: 1
-        color: Qt.rgba(0, 0, 0, 0.60)
+        color: Qt.rgba(0, 0, 0, 0.85)
       }
 
       // Cap Art SVG (if provided)
