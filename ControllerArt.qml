@@ -218,9 +218,9 @@ Item {
   // ------------------------------------------------------------- geometry
   // Per-layout element centers inside the 340x208 canvas.
   readonly property var geo: {
-    if (isXbox || isSwitch) return { stickL: [92, 102], stickR: [212, 140], dpad: [128, 140], face: [248, 102], bumpers: [66, 218] }
-    if (isPs) return { stickL: [126, 140], stickR: [214, 140], dpad: [92, 102], face: [248, 102], bumpers: [66, 218] }
-    return { stickL: [92, 102], stickR: [212, 140], dpad: [128, 140], face: [248, 102], bumpers: [66, 218] }
+    if (isXbox || isSwitch) return { stickL: [92, 102], stickR: [212, 140], dpad: [128, 140], face: [248, 102], bumpers: [64, 214] }
+    if (isPs) return { stickL: [126, 140], stickR: [214, 140], dpad: [92, 102], face: [248, 102], bumpers: [64, 214] }
+    return { stickL: [92, 102], stickR: [212, 140], dpad: [128, 140], face: [248, 102], bumpers: [64, 214] }
   }
 
   // ------------------------------------------------------------------ mini
@@ -537,77 +537,6 @@ Item {
       border.width: 1
     }
 
-    // 6. Molded 3D Chassis Shoulder Sockets & Bulkhead Bezel
-    // Left Shoulder Socket (Outer border rim + recessed trench)
-    Item {
-      x: 63; y: 14
-      width: 64; height: 50
-
-      // Outer raised chassis socket border rim (gives crisp 3D border around shoulder button root)
-      Rectangle {
-        anchors.fill: parent
-        radius: 8
-        color: Qt.darker(root.bodyColor, 1.35)
-        border.color: root.bodyBorder
-        border.width: 1.5
-
-        // Top specular chamfer catch-light
-        Rectangle {
-          x: 4; y: 1
-          width: parent.width - 8
-          height: 1.5
-          radius: 0.75
-          color: Qt.rgba(1, 1, 1, 0.24)
-        }
-      }
-
-      // Deep recessed cavity trench (negative Z-depth pocket)
-      Rectangle {
-        x: 2; y: 2
-        width: parent.width - 4
-        height: parent.height - 4
-        radius: 6
-        color: Qt.rgba(0.04, 0.05, 0.07, 0.92)
-        border.color: Qt.rgba(0, 0, 0, 0.85)
-        border.width: 1
-      }
-    }
-
-    // Right Shoulder Socket (Outer border rim + recessed trench)
-    Item {
-      x: 215; y: 14
-      width: 64; height: 50
-
-      // Outer raised chassis socket border rim
-      Rectangle {
-        anchors.fill: parent
-        radius: 8
-        color: Qt.darker(root.bodyColor, 1.35)
-        border.color: root.bodyBorder
-        border.width: 1.5
-
-        // Top specular chamfer catch-light
-        Rectangle {
-          x: 4; y: 1
-          width: parent.width - 8
-          height: 1.5
-          radius: 0.75
-          color: Qt.rgba(1, 1, 1, 0.24)
-        }
-      }
-
-      // Deep recessed cavity trench
-      Rectangle {
-        x: 2; y: 2
-        width: parent.width - 4
-        height: parent.height - 4
-        radius: 6
-        color: Qt.rgba(0.04, 0.05, 0.07, 0.92)
-        border.color: Qt.rgba(0, 0, 0, 0.85)
-        border.width: 1
-      }
-    }
-
     // USB-C Top Connector Port (Precision Hardware Detail)
     Rectangle {
       anchors.horizontalCenter: parent.horizontalCenter
@@ -634,267 +563,205 @@ Item {
       border.width: 1
     }
 
-    // 6. Sculpted 3D Ergonomic Rubber Palm Swells (Left & Right)
-    // Inset rubber grip pads naturally bended around the outer horn curvature and corners
+    // 6. Sculpted 3D Ergonomic Rubber Flank Grips (Standard Xbox Curved Outer Contour)
+    // Slender rubber grip pads naturally bended around the outer horn curvature and corners,
+    // maintaining generous clearance around thumbsticks and face buttons.
     Shape {
       anchors.fill: parent
       layer.enabled: true
       layer.smooth: true
 
-      // --- Left Grip Pad: Drop Shadow & Inset Housing Well ---
-      ShapePath {
-        strokeWidth: 2
-        strokeColor: Qt.rgba(0, 0, 0, 0.45)
-        fillColor: Qt.rgba(0, 0, 0, 0.35)
-        startX: 45.5; startY: 86
-        PathCubic { control1X: 36.5; control1Y: 110; control2X: 35.5; control2Y: 136; x: 41.5; y: 160 }
-        PathCubic { control1X: 45.5; control1Y: 176; control2X: 55.5; control2Y: 186; x: 69.5; y: 190 }
-        PathCubic { control1X: 77.5; control1Y: 190; control2X: 85.5; control2Y: 182; x: 87.5; y: 172 }
-        PathCubic { control1X: 89.5; control1Y: 156; control2X: 85.5; control2Y: 136; x: 79.5; y: 116 }
-        PathCubic { control1X: 71.5; control1Y: 100; control2X: 57.5; control2Y: 90; x: 45.5; y: 86 }
-      }
-
-      // --- Right Grip Pad: Drop Shadow & Inset Housing Well ---
-      ShapePath {
-        strokeWidth: 2
-        strokeColor: Qt.rgba(0, 0, 0, 0.45)
-        fillColor: Qt.rgba(0, 0, 0, 0.35)
-        startX: 294.5; startY: 86
-        PathCubic { control1X: 303.5; control1Y: 110; control2X: 304.5; control2Y: 136; x: 298.5; y: 160 }
-        PathCubic { control1X: 294.5; control1Y: 176; control2X: 284.5; control2Y: 186; x: 270.5; y: 190 }
-        PathCubic { control1X: 262.5; control1Y: 190; control2X: 254.5; control2Y: 182; x: 252.5; y: 172 }
-        PathCubic { control1X: 250.5; control1Y: 156; control2X: 254.5; control2Y: 136; x: 260.5; y: 116 }
-        PathCubic { control1X: 268.5; control1Y: 100; control2X: 282.5; control2Y: 90; x: 294.5; y: 86 }
-      }
-
-      // --- Left Grip Pad: Multi-Shade 3D Molded Rubber Surface ---
+      // --- Left Grip Pad: Inset Recessed Housing Well / Drop Shadow ---
       ShapePath {
         strokeWidth: 1.5
-        strokeColor: Qt.rgba(0, 0, 0, 0.85)
-        fillGradient: LinearGradient {
-          x1: 34; y1: 130; x2: 86; y2: 145
-          GradientStop { position: 0.0; color: "#2d323e" }   // Outer convex highlight catch
-          GradientStop { position: 0.25; color: "#1c1f27" }  // Rich vulcanized rubber
-          GradientStop { position: 0.65; color: "#111319" }  // Deep charcoal tone
-          GradientStop { position: 1.0; color: "#050608" }   // Deep inner recess shadow
-        }
-        startX: 44; startY: 84
-        // Outer flank - organically curving along the outer horn boundary
-        PathCubic { control1X: 35; control1Y: 108; control2X: 34; control2Y: 134; x: 40; y: 158 }
-        // Bottom-outer corner - sweeping bend around the corner of the handle
-        PathCubic { control1X: 44; control1Y: 174; control2X: 54; control2Y: 184; x: 68; y: 188 }
-        // Lower palm wrap-around
-        PathCubic { control1X: 76; control1Y: 188; control2X: 84; control2Y: 180; x: 86; y: 170 }
-        // Inner flank - sweeping upwards along inner horn contour
-        PathCubic { control1X: 88; control1Y: 154; control2X: 84; control2Y: 134; x: 78; y: 114 }
-        // Upper crown - soft ergonomic arch back to start
-        PathCubic { control1X: 70; control1Y: 98; control2X: 56; control2Y: 88; x: 44; y: 84 }
+        strokeColor: Qt.rgba(0, 0, 0, 0.50)
+        fillColor: Qt.rgba(0, 0, 0, 0.38)
+        startX: 43; startY: 81
+        PathCubic { control1X: 37; control1Y: 103; control2X: 35; control2Y: 127; x: 36; y: 147 }
+        PathCubic { control1X: 37; control1Y: 163; control2X: 45; control2Y: 179; x: 59; y: 191 }
+        PathCubic { control1X: 65; control1Y: 193; control2X: 71; control2Y: 191; x: 75; y: 185 }
+        PathCubic { control1X: 67; control1Y: 177; control2X: 55; control2Y: 161; x: 49; y: 143 }
+        PathCubic { control1X: 47; control1Y: 125; control2X: 49; control2Y: 103; x: 53; y: 85 }
+        PathCubic { control1X: 49; control1Y: 81; control2X: 46; control2Y: 81; x: 43; y: 81 }
       }
 
-      // --- Right Grip Pad: Multi-Shade 3D Molded Rubber Surface ---
+      // --- Right Grip Pad: Inset Recessed Housing Well / Drop Shadow ---
       ShapePath {
         strokeWidth: 1.5
+        strokeColor: Qt.rgba(0, 0, 0, 0.50)
+        fillColor: Qt.rgba(0, 0, 0, 0.38)
+        startX: 297; startY: 81
+        PathCubic { control1X: 303; control1Y: 103; control2X: 305; control2Y: 127; x: 304; y: 147 }
+        PathCubic { control1X: 303; control1Y: 163; control2X: 295; control2Y: 179; x: 281; y: 191 }
+        PathCubic { control1X: 275; control1Y: 193; control2X: 269; control2Y: 191; x: 265; y: 185 }
+        PathCubic { control1X: 273; control1Y: 177; control2X: 285; control2Y: 161; x: 291; y: 143 }
+        PathCubic { control1X: 293; control1Y: 125; control2X: 291; control2Y: 103; x: 287; y: 85 }
+        PathCubic { control1X: 291; control1Y: 81; control2X: 294; control2Y: 81; x: 297; y: 81 }
+      }
+
+      // --- Left Grip Pad: Multi-Shade 3D Molded Vulcanized Rubber ---
+      ShapePath {
+        strokeWidth: 1.2
         strokeColor: Qt.rgba(0, 0, 0, 0.85)
         fillGradient: LinearGradient {
-          x1: 306; y1: 130; x2: 254; y2: 145
-          GradientStop { position: 0.0; color: "#2d323e" }   // Outer convex highlight catch
+          x1: 34; y1: 130; x2: 56; y2: 135
+          GradientStop { position: 0.0; color: "#2d323e" }   // Outer convex specular catch
           GradientStop { position: 0.25; color: "#1c1f27" }  // Rich vulcanized rubber
-          GradientStop { position: 0.65; color: "#111319" }  // Deep charcoal tone
-          GradientStop { position: 1.0; color: "#050608" }   // Deep inner recess shadow
+          GradientStop { position: 0.70; color: "#111319" }  // Deep charcoal tone
+          GradientStop { position: 1.0; color: "#06070a" }   // Inner seam recess shadow
         }
-        startX: 296; startY: 84
-        // Outer flank
-        PathCubic { control1X: 305; control1Y: 108; control2X: 306; control2Y: 134; x: 300; y: 158 }
-        // Bottom-outer corner
-        PathCubic { control1X: 296; control1Y: 174; control2X: 286; control2Y: 184; x: 272; y: 188 }
-        // Lower palm wrap-around
-        PathCubic { control1X: 264; control1Y: 188; control2X: 256; control2Y: 180; x: 254; y: 170 }
-        // Inner flank
-        PathCubic { control1X: 252; control1Y: 154; control2X: 256; control2Y: 134; x: 262; y: 114 }
-        // Upper crown
-        PathCubic { control1X: 270; control1Y: 98; control2X: 284; control2Y: 88; x: 296; y: 84 }
+        startX: 42; startY: 80
+        // Outer flank - hugging the outer contour of the handle
+        PathCubic { control1X: 36; control1Y: 102; control2X: 34; control2Y: 126; x: 35; y: 146 }
+        // Bottom corner bend - organically sweeping around the lower horn tip
+        PathCubic { control1X: 36; control1Y: 162; control2X: 44; control2Y: 178; x: 58; y: 190 }
+        PathCubic { control1X: 64; control1Y: 192; control2X: 70; control2Y: 190; x: 74; y: 184 }
+        // Inner flank - slender contour (keeps clear of thumbstick well)
+        PathCubic { control1X: 66; control1Y: 176; control2X: 54; control2Y: 160; x: 48; y: 142 }
+        PathCubic { control1X: 46; control1Y: 124; control2X: 48; control2Y: 102; x: 52; y: 84 }
+        // Upper crown bend
+        PathCubic { control1X: 48; control1Y: 80; control2X: 45; control2Y: 80; x: 42; y: 80 }
       }
 
-      // --- Left Grip Pad: Soft Convex Palm Apex Highlight ---
+      // --- Right Grip Pad: Multi-Shade 3D Molded Vulcanized Rubber ---
       ShapePath {
-        strokeWidth: 5
-        strokeColor: Qt.rgba(1, 1, 1, 0.06)
-        fillColor: "transparent"
-        capStyle: ShapePath.RoundCap
-        startX: 45; startY: 98
-        PathCubic { control1X: 44; control1Y: 122; control2X: 48; control2Y: 146; x: 62; y: 172 }
+        strokeWidth: 1.2
+        strokeColor: Qt.rgba(0, 0, 0, 0.85)
+        fillGradient: LinearGradient {
+          x1: 306; y1: 130; x2: 284; y2: 135
+          GradientStop { position: 0.0; color: "#2d323e" }   // Outer convex specular catch
+          GradientStop { position: 0.25; color: "#1c1f27" }  // Rich vulcanized rubber
+          GradientStop { position: 0.70; color: "#111319" }  // Deep charcoal tone
+          GradientStop { position: 1.0; color: "#06070a" }   // Inner seam recess shadow
+        }
+        startX: 298; startY: 80
+        // Outer flank - hugging outer contour
+        PathCubic { control1X: 304; control1Y: 102; control2X: 306; control2Y: 126; x: 305; y: 146 }
+        // Bottom corner bend
+        PathCubic { control1X: 304; control1Y: 162; control2X: 296; control2Y: 178; x: 282; y: 190 }
+        PathCubic { control1X: 276; control1Y: 192; control2X: 270; control2Y: 190; x: 266; y: 184 }
+        // Inner flank - slender contour (keeps clear of face buttons & stick)
+        PathCubic { control1X: 274; control1Y: 176; control2X: 286; control2Y: 160; x: 292; y: 142 }
+        PathCubic { control1X: 294; control1Y: 124; control2X: 292; control2Y: 102; x: 288; y: 84 }
+        // Upper crown bend
+        PathCubic { control1X: 292; control1Y: 80; control2X: 295; control2Y: 80; x: 298; y: 80 }
       }
 
-      // --- Right Grip Pad: Soft Convex Palm Apex Highlight ---
+      // --- Left Grip Pad: Outer Curvature Specular Ridge Highlight ---
       ShapePath {
-        strokeWidth: 5
-        strokeColor: Qt.rgba(1, 1, 1, 0.06)
+        strokeWidth: 1.5
+        strokeColor: Qt.rgba(1, 1, 1, 0.18)
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
-        startX: 295; startY: 98
-        PathCubic { control1X: 296; control1Y: 122; control2X: 292; control2Y: 146; x: 278; y: 172 }
+        startX: 41; startY: 88
+        PathCubic { control1X: 35; control1Y: 110; control2X: 35; control2Y: 132; x: 42; y: 156 }
       }
 
-      // --- Left Grip Pad: Outer Curvature Specular Ridge ---
+      // --- Right Grip Pad: Outer Curvature Specular Ridge Highlight ---
       ShapePath {
-        strokeWidth: 2
-        strokeColor: Qt.rgba(1, 1, 1, 0.22)
+        strokeWidth: 1.5
+        strokeColor: Qt.rgba(1, 1, 1, 0.18)
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
-        startX: 42; startY: 96
-        PathCubic { control1X: 36; control1Y: 114; control2X: 36; control2Y: 136; x: 42; y: 156 }
-      }
-
-      // --- Right Grip Pad: Outer Curvature Specular Ridge ---
-      ShapePath {
-        strokeWidth: 2
-        strokeColor: Qt.rgba(1, 1, 1, 0.22)
-        fillColor: "transparent"
-        capStyle: ShapePath.RoundCap
-        startX: 298; startY: 96
-        PathCubic { control1X: 304; control1Y: 114; control2X: 304; control2Y: 136; x: 298; y: 156 }
+        startX: 299; startY: 88
+        PathCubic { control1X: 305; control1Y: 110; control2X: 305; control2Y: 132; x: 298; y: 156 }
       }
 
       // --- Left Grip Pad: Bottom Corner Wrap-Around Highlight ---
       ShapePath {
-        strokeWidth: 1.5
-        strokeColor: Qt.rgba(1, 1, 1, 0.16)
+        strokeWidth: 1.2
+        strokeColor: Qt.rgba(1, 1, 1, 0.14)
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
-        startX: 44; startY: 164
-        PathCubic { control1X: 48; control1Y: 176; control2X: 56; control2Y: 184; x: 68; y: 186 }
+        startX: 44; startY: 170
+        PathCubic { control1X: 48; control1Y: 180; control2X: 56; control2Y: 186; x: 68; y: 186 }
       }
 
       // --- Right Grip Pad: Bottom Corner Wrap-Around Highlight ---
       ShapePath {
-        strokeWidth: 1.5
-        strokeColor: Qt.rgba(1, 1, 1, 0.16)
+        strokeWidth: 1.2
+        strokeColor: Qt.rgba(1, 1, 1, 0.14)
         fillColor: "transparent"
         capStyle: ShapePath.RoundCap
-        startX: 296; startY: 164
-        PathCubic { control1X: 292; control1Y: 176; control2X: 284; control2Y: 184; x: 272; y: 186 }
+        startX: 296; startY: 170
+        PathCubic { control1X: 292; control1Y: 180; control2X: 284; control2Y: 186; x: 272; y: 186 }
       }
 
-      // --- Left Grip Pad: 6 Curved Tactile Ribs (bending with palm contour) ---
-      // Rib 1
+      // --- Left Grip Pad: Slender Tactile Micro-Grooves (Bending with Palm Contour) ---
+      // Micro-groove 1
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 45; startY: 104; PathQuad { controlX: 58; controlY: 101; x: 74; y: 108 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(1, 1, 1, 0.12); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 37; startY: 108; PathQuad { controlX: 43; controlY: 107; x: 50; y: 110 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 45; startY: 105; PathQuad { controlX: 58; controlY: 102; x: 74; y: 109 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(0, 0, 0, 0.50); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 37; startY: 109; PathQuad { controlX: 43; controlY: 108; x: 50; y: 111 }
       }
-      // Rib 2
+      // Micro-groove 2
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 41; startY: 118; PathQuad { controlX: 56; controlY: 114; x: 77; y: 121 }
-      }
-      ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 41; startY: 119; PathQuad { controlX: 56; controlY: 115; x: 77; y: 122 }
-      }
-      // Rib 3
-      ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 39; startY: 132; PathQuad { controlX: 56; controlY: 128; x: 80; y: 135 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(1, 1, 1, 0.12); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 35; startY: 124; PathQuad { controlX: 42; controlY: 123; x: 47; y: 126 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 39; startY: 133; PathQuad { controlX: 56; controlY: 129; x: 80; y: 136 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(0, 0, 0, 0.50); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 35; startY: 125; PathQuad { controlX: 42; controlY: 124; x: 47; y: 127 }
       }
-      // Rib 4
+      // Micro-groove 3
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 40; startY: 146; PathQuad { controlX: 58; controlY: 142; x: 81; y: 149 }
-      }
-      ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 40; startY: 147; PathQuad { controlX: 58; controlY: 143; x: 81; y: 150 }
-      }
-      // Rib 5
-      ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 45; startY: 160; PathQuad { controlX: 62; controlY: 156; x: 80; y: 162 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(1, 1, 1, 0.12); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 36; startY: 140; PathQuad { controlX: 42; controlY: 139; x: 47; y: 142 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 45; startY: 161; PathQuad { controlX: 62; controlY: 157; x: 80; y: 163 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(0, 0, 0, 0.50); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 36; startY: 141; PathQuad { controlX: 42; controlY: 140; x: 47; y: 143 }
       }
-      // Rib 6
+      // Micro-groove 4
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 52; startY: 172; PathQuad { controlX: 66; controlY: 169; x: 76; y: 173 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(1, 1, 1, 0.12); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 40; startY: 156; PathQuad { controlX: 46; controlY: 155; x: 52; y: 158 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 52; startY: 173; PathQuad { controlX: 66; controlY: 170; x: 76; y: 174 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(0, 0, 0, 0.50); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 40; startY: 157; PathQuad { controlX: 46; controlY: 156; x: 52; y: 159 }
       }
 
-      // --- Right Grip Pad: 6 Curved Tactile Ribs (bending with palm contour) ---
-      // Rib 1
+      // --- Right Grip Pad: Slender Tactile Micro-Grooves (Bending with Palm Contour) ---
+      // Micro-groove 1
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 295; startY: 104; PathQuad { controlX: 282; controlY: 101; x: 266; y: 108 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(1, 1, 1, 0.12); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 303; startY: 108; PathQuad { controlX: 297; controlY: 107; x: 290; y: 110 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 295; startY: 105; PathQuad { controlX: 282; controlY: 102; x: 266; y: 109 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(0, 0, 0, 0.50); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 303; startY: 109; PathQuad { controlX: 297; controlY: 108; x: 290; y: 111 }
       }
-      // Rib 2
+      // Micro-groove 2
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 299; startY: 118; PathQuad { controlX: 284; controlY: 114; x: 263; y: 121 }
-      }
-      ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 299; startY: 119; PathQuad { controlX: 284; controlY: 115; x: 263; y: 122 }
-      }
-      // Rib 3
-      ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 301; startY: 132; PathQuad { controlX: 284; controlY: 128; x: 260; y: 135 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(1, 1, 1, 0.12); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 305; startY: 124; PathQuad { controlX: 298; controlY: 123; x: 293; y: 126 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 301; startY: 133; PathQuad { controlX: 284; controlY: 129; x: 260; y: 136 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(0, 0, 0, 0.50); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 305; startY: 125; PathQuad { controlX: 298; controlY: 124; x: 293; y: 127 }
       }
-      // Rib 4
+      // Micro-groove 3
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 300; startY: 146; PathQuad { controlX: 282; controlY: 142; x: 259; y: 149 }
-      }
-      ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 300; startY: 147; PathQuad { controlX: 282; controlY: 143; x: 259; y: 150 }
-      }
-      // Rib 5
-      ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 295; startY: 160; PathQuad { controlX: 278; controlY: 156; x: 260; y: 162 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(1, 1, 1, 0.12); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 304; startY: 140; PathQuad { controlX: 298; controlY: 139; x: 293; y: 142 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 295; startY: 161; PathQuad { controlX: 278; controlY: 157; x: 260; y: 163 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(0, 0, 0, 0.50); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 304; startY: 141; PathQuad { controlX: 298; controlY: 140; x: 293; y: 143 }
       }
-      // Rib 6
+      // Micro-groove 4
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(1, 1, 1, 0.18); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 288; startY: 172; PathQuad { controlX: 274; controlY: 169; x: 264; y: 173 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(1, 1, 1, 0.12); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 300; startY: 156; PathQuad { controlX: 294; controlY: 155; x: 288; y: 158 }
       }
       ShapePath {
-        strokeWidth: 1.2; strokeColor: Qt.rgba(0, 0, 0, 0.65); fillColor: "transparent"; capStyle: ShapePath.RoundCap
-        startX: 288; startY: 173; PathQuad { controlX: 274; controlY: 170; x: 264; y: 174 }
+        strokeWidth: 1.0; strokeColor: Qt.rgba(0, 0, 0, 0.50); fillColor: "transparent"; capStyle: ShapePath.RoundCap
+        startX: 300; startY: 157; PathQuad { controlX: 294; controlY: 156; x: 288; y: 159 }
       }
-    }
-
-    // Upper chassis matte bevel reflection
-    Rectangle {
-      visible: !root.isPs
-      x: 80; y: 52; width: 180; height: 20; radius: 10
-      color: Qt.rgba(1, 1, 1, 0.04)
-      border.color: Qt.rgba(1, 1, 1, 0.06)
-      border.width: 1
     }
 
     // Integrated Player Slot LEDs on lower center bridge
@@ -1416,14 +1283,14 @@ Item {
   // ============================================================ components
 
   // -------------------------------------------------------- ShoulderUnit
-  // 2.5D Integrated Shoulder & Trigger Unit with Wireframe Schematics
-  // Anchors the trigger well, trigger blade, and bumper directly to the chassis
-  // with 2.5D perspective bevels, travel depression, and tactile grip ribs.
+  // Standard Xbox Sculpted Ergonomic Shoulder & Trigger Assembly
+  // Aerodynamic contoured bumper and recessed analog trigger blade with
+  // natural 3D depth, specular bevels, and interactive travel.
   component ShoulderUnit : Item {
     id: su
     property string side: "l" // "l" or "r"
     property real xPos: 0
-    property real yPos: 18
+    property real yPos: 14
     property string trigLabel: ""
     property string bumpLabel: ""
     property string bumpArtSource: ""
@@ -1454,191 +1321,44 @@ Item {
 
     x: xPos
     y: yPos
-    width: 58
-    height: 44
+    width: 62
+    height: 36
 
-    // 1. 3D Chassis Docking Cradle & Molded Socket Bezel
-    // Provides a raised structural border rim and deep recessed cavity trench at the button root
-    Item {
-      anchors.fill: parent
-
-      // A. Outer Raised Chassis Socket Border Collar (frames the starting perimeter)
-      Rectangle {
-        x: su.side === "l" ? -3 : -1
-        y: 19
-        width: parent.width + 4
-        height: 25
-        radius: 7
-        color: Qt.darker(root.bodyColor, 1.25)
-        border.color: root.bodyBorder
-        border.width: 1.5
-
-        // Specular catch-light ridge along top socket lip
-        Rectangle {
-          x: 4; y: 1
-          width: parent.width - 8
-          height: 1.5
-          radius: 0.75
-          color: Qt.rgba(1, 1, 1, 0.25)
-        }
-      }
-
-      // B. Deep Recessed Cavity Trench (Z-Depth Pocket underneath bumper)
-      Rectangle {
-        x: su.side === "l" ? -1 : 1
-        y: 21
-        width: parent.width
-        height: 22
-        radius: 5
-        color: Qt.rgba(0.04, 0.05, 0.07, 0.95)
-        border.color: Qt.rgba(0, 0, 0, 0.90)
-        border.width: 1
-      }
-
-      // C. Internal chassis guide pins extending directly into the hull plate
-      Rectangle {
-        x: su.side === "l" ? 8 : parent.width - 12
-        y: 22
-        width: 3
-        height: 24
-        radius: 1.5
-        color: Qt.rgba(0, 0, 0, 0.75)
-      }
-      Rectangle {
-        x: su.side === "l" ? parent.width - 12 : 8
-        y: 22
-        width: 3
-        height: 24
-        radius: 1.5
-        color: Qt.rgba(0, 0, 0, 0.75)
-      }
-    }
-
-    // 2. 2.5D Mechanical Hinge Pivot (Inner Corner)
-    // Exploded engineering schematic pivot axle with concentric bearing rings
-    Item {
-      id: hingePivot
-      x: su.side === "l" ? parent.width - 10 : 3
-      y: 4
-      width: 8
-      height: 8
-
-      // Outer bearing race
-      Rectangle {
-        anchors.centerIn: parent
-        width: 7
-        height: 7
-        radius: 3.5
-        color: "transparent"
-        border.color: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.50)
-        border.width: 1
-      }
-      // Inner axle pin
-      Rectangle {
-        anchors.centerIn: parent
-        width: 2.5
-        height: 2.5
-        radius: 1.25
-        color: su.fillAmount > 0.05 ? root.playerColor : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.60)
-      }
-    }
-
-    // 3. 2.5D Dynamic Mechanical Compression Spring
-    // Visibly compresses dynamically as the trigger blade is pulled!
-    Shape {
-      x: su.side === "l" ? 12 : parent.width - 18
-      y: 8 + su.fillAmount * 4.0
-      width: 6
-      height: Math.max(4, 12 - su.fillAmount * 5.0)
-      layer.enabled: true
-      layer.smooth: true
-
-      ShapePath {
-        strokeWidth: 1
-        strokeColor: su.fillAmount > 0.05
-          ? root.playerColor
-          : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.40)
-        fillColor: "transparent"
-        capStyle: ShapePath.RoundCap
-        joinStyle: ShapePath.RoundJoin
-
-        startX: 3; startY: 0
-        PathLine { x: 0; y: parent.height * 0.25 }
-        PathLine { x: 6; y: parent.height * 0.50 }
-        PathLine { x: 0; y: parent.height * 0.75 }
-        PathLine { x: 3; y: parent.height }
-      }
-    }
-
-    // 4. 2.5D Wireframe Travel Rail & Graduation Scale (Outer Flank)
-    Item {
-      id: wireRail
-      x: su.side === "l" ? 2 : parent.width - 6
-      y: 2
-      width: 5
+    // 1. Recessed Chassis Shoulder Well Pocket (Negative Z-Depth)
+    Rectangle {
+      x: 0; y: 13
+      width: parent.width
       height: 22
+      radius: 5
+      color: Qt.darker(root.bodyColor, 1.40)
+      border.color: Qt.rgba(0, 0, 0, 0.70)
+      border.width: 1
 
-      // Vertical guide rail
+      // Subtle inner shadow
       Rectangle {
-        x: su.side === "l" ? 0 : parent.width - 1
-        y: 0
-        width: 1
-        height: parent.height
-        color: Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.35)
-      }
-
-      // 0% rest tick (0mm)
-      Rectangle {
-        x: su.side === "l" ? 0 : parent.width - 4
-        y: 2
-        width: 4
-        height: 1
-        color: Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.50)
-      }
-
-      // 50% travel tick (4.5mm)
-      Rectangle {
-        x: su.side === "l" ? 0 : parent.width - 3
-        y: 10
-        width: 3
-        height: 1
-        color: su.fillAmount > 0.45 ? root.playerColor : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.35)
-      }
-
-      // 100% full-pull tick (9mm)
-      Rectangle {
-        x: su.side === "l" ? 0 : parent.width - 4
-        y: 18
-        width: 4
-        height: 1
-        color: su.fillAmount > 0.85 ? root.playerColor : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.50)
-      }
-
-      // Dynamic 2.5D Traveling Position Chevron
-      Rectangle {
-        x: su.side === "l" ? 1 : parent.width - 5
-        y: 2 + su.fillAmount * 16.0
-        width: 4
-        height: 2
-        radius: 1
-        color: su.fillAmount > 0.05 ? root.playerColor : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.40)
-        Behavior on y { NumberAnimation { duration: 30 } }
+        x: 1; y: 1
+        width: parent.width - 2
+        height: parent.height - 2
+        radius: 4
+        color: Qt.rgba(0.03, 0.04, 0.06, 0.90)
       }
     }
 
-    // 5. 2.5D Mechanical Trigger Blade (Pivots downward behind bumper into housing)
+    // 2. Standard Xbox Ergonomic Trigger Blade (LT / RT / L2 / R2)
+    // Sits directly behind the bumper, curving up and backwards into the housing
     Rectangle {
       id: trigBlade
-      x: su.side === "l" ? 8 : 6
-      // Mechanical 2.5D travel depression: sinks 5px into housing when pulled
-      y: 1 + su.fillAmount * 5.0
-      width: parent.width - 14
-      height: 21
-      radius: 4
+      x: su.side === "l" ? 7 : 5
+      y: 1 + su.fillAmount * 4.0
+      width: parent.width - 12
+      height: 18
+      radius: 5
       color: su.fillAmount > 0.05
         ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.28)
-        : (trigMouse.containsMouse ? Qt.lighter(Qt.darker(root.bodyColor, 1.25), 1.15) : Qt.darker(root.bodyColor, 1.25))
-      border.color: su.fillAmount > 0.05 ? root.playerColor : (trigMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.5) : root.bodyBorder)
+        : (trigMouse.containsMouse ? Qt.lighter(Qt.darker(root.bodyColor, 1.22), 1.15) : Qt.darker(root.bodyColor, 1.22))
+      border.color: su.fillAmount > 0.05
+        ? root.playerColor
+        : (trigMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.50) : root.bodyBorder)
       border.width: su.fillAmount > 0.05 ? 1.5 : 1
 
       Behavior on y { NumberAnimation { duration: 40 } }
@@ -1675,38 +1395,13 @@ Item {
         }
       }
 
-      // 2.5D Isometric Sidewall Facet (Gives physical depth to the trigger edge)
-      Rectangle {
-        x: su.side === "l" ? 0 : parent.width - 3
-        y: 0
-        width: 3
-        height: parent.height
-        radius: 2
-        color: Qt.rgba(0, 0, 0, 0.35)
-      }
-
       // 2.5D Top Crown Bevel (Reflective Upper Ridge)
       Rectangle {
-        x: 2; y: 1
-        width: parent.width - 4
-        height: 2.5
-        radius: 1.5
-        color: Qt.rgba(1, 1, 1, su.fillAmount > 0.05 ? 0.35 : 0.12)
-      }
-
-      // 3 Tactile Knurled Grip Ribs
-      Repeater {
-        model: 3
-        Rectangle {
-          required property int index
-          x: 5
-          y: 5 + index * 3
-          width: parent.width - 10
-          height: 1
-          color: su.fillAmount > 0.05
-            ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.45)
-            : Qt.rgba(1, 1, 1, 0.08)
-        }
+        x: 3; y: 1
+        width: parent.width - 6
+        height: 2
+        radius: 1
+        color: Qt.rgba(1, 1, 1, su.fillAmount > 0.05 ? 0.35 : 0.14)
       }
 
       // Analog Precision Travel Fill Indicator
@@ -1726,8 +1421,8 @@ Item {
         visible: su.trigArtSource !== "" && status === Image.Ready
         anchors.centerIn: parent
         anchors.verticalCenterOffset: -2
-        width: 22
-        height: 14
+        width: 20
+        height: 12
         source: su.trigArtSource
         fillMode: Image.PreserveAspectFit
         mipmap: true
@@ -1752,16 +1447,14 @@ Item {
       }
     }
 
-    // 6. 2.5D Sculpted Ergonomic Bumper (LB / RB / L1 / R1)
-    // De-bulked, streamlined mechanical bumper seated inside recessed socket collar
+    // 3. Standard Xbox Sculpted Aerodynamic Bumper (LB / RB / L1 / R1)
+    // Streamlined contoured bumper seated cleanly at top front shoulder
     Rectangle {
       id: bumperPlate
-      x: su.side === "l" ? 2.5 : 1.5
-      // Mechanical click depression: sinks 2.5px into chassis socket when pressed
-      y: su.bumpOn ? 22.5 : 20.0
-      width: parent.width - 4
-      height: 18.5
-      // Outer corner is rounded to match the controller shoulder curvature
+      x: 1
+      y: su.bumpOn ? 17.5 : 15.5
+      width: parent.width - 2
+      height: 18
       radius: 5
       color: su.bumpOn ? root.playerColor : (bumpMouse.containsMouse ? Qt.lighter(Qt.darker(root.bodyColor, 1.12), 1.15) : Qt.darker(root.bodyColor, 1.12))
       border.color: su.bumpOn ? root.playerColor : (bumpMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.60) : root.bodyBorder)
@@ -1783,19 +1476,7 @@ Item {
         onCanceled: root.setVirtualButton(su.bumpIndex, false)
       }
 
-      // Ergonomic Curved Contour Wing Flank (hugs the shoulder horn)
-      Rectangle {
-        x: su.side === "l" ? -3 : parent.width - 4
-        y: 2
-        width: 7
-        height: parent.height - 4
-        radius: 3.5
-        color: su.bumpOn ? Qt.rgba(1, 1, 1, 0.25) : Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, bumpMouse.containsMouse ? 0.35 : 0.15)
-        border.color: su.bumpOn ? root.playerColor : Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.45)
-        border.width: 1
-      }
-
-      // 2.5D Bumper Glow Halo on Press
+      // Bumper Glow Halo on Press
       Rectangle {
         anchors.centerIn: parent
         width: parent.width + 6
@@ -1809,7 +1490,7 @@ Item {
         Behavior on opacity { NumberAnimation { duration: 50 } }
       }
 
-      // 2.5D Top Highlight Bevel (Specular upper edge)
+      // Top Highlight Bevel (Specular upper edge)
       Rectangle {
         x: 3; y: 1
         width: parent.width - 6
@@ -1818,7 +1499,7 @@ Item {
         color: su.bumpOn ? Qt.rgba(1, 1, 1, 0.50) : Qt.rgba(1, 1, 1, 0.22)
       }
 
-      // Ergonomic Upper Surface Reflection Gradient Band (eliminates flat look)
+      // Ergonomic Upper Surface Reflection Gradient Band
       Rectangle {
         x: 3; y: 2
         width: parent.width - 6
@@ -1828,16 +1509,7 @@ Item {
         visible: !su.bumpOn
       }
 
-      // 3D Bottom Undercut Chamfer (Physical sculpted thickness & shadow)
-      Rectangle {
-        x: 1; y: parent.height - 3
-        width: parent.width - 2
-        height: 2.5
-        radius: 1.25
-        color: Qt.rgba(0, 0, 0, 0.65)
-      }
-
-      // Parting Seam Line (engineered clearance partition joint with chassis)
+      // Parting Seam Line (clearance partition joint with chassis)
       Rectangle {
         x: 0; y: parent.height - 1
         width: parent.width
@@ -1868,49 +1540,9 @@ Item {
         anchors.centerIn: parent
         text: su.bumpLabel
         color: su.bumpOn ? Color.popups.background : root.glyphColor
-        font.pixelSize: 8
+        font.pixelSize: 9
         font.bold: true
         font.family: Style.font.family
-      }
-    }
-
-    // 7. Structural 2.5D Wireframe Truss Anchors (Physical chassis lock)
-    // Connects hinge and outer guide rail directly into the chassis body
-    Shape {
-      anchors.fill: parent
-      layer.enabled: true
-      layer.smooth: true
-
-      ShapePath {
-        strokeWidth: 1
-        strokeColor: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.45)
-        fillColor: "transparent"
-
-        // Outer contour guide trace
-        startX: su.side === "l" ? 1 : su.width - 1
-        startY: 12
-        PathLine {
-          x: su.side === "l" ? 1 : su.width - 1
-          y: 40
-        }
-        PathLine {
-          x: su.side === "l" ? -3 : su.width + 3
-          y: 46
-        }
-      }
-
-      // Inner structural anchor trace to chassis center bridge
-      ShapePath {
-        strokeWidth: 1
-        strokeColor: Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.30)
-        fillColor: "transparent"
-
-        startX: su.side === "l" ? su.width - 6 : 6
-        startY: 20
-        PathLine {
-          x: su.side === "l" ? su.width - 2 : 2
-          y: 42
-        }
       }
     }
   }
