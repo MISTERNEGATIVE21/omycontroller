@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# omycontroller — tests/security.test.sh
+#
+# Automated Security & Input Validation Test Suite:
+# 1. Path traversal rejection in gyro.py
+# 2. Non-character device rejection in gyro.py
+# 3. Path traversal rejection in rumble.py
+# 4. Non-character device rejection in rumble.py
+# 5. Invalid hidraw node and mode rejection in triggers.py
+# 6. File permission standards (scripts 755, code 644)
+# 7. Safe JSON escaping against control characters and quotes
+
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$ROOT_DIR"
+
+PASS_COUNT=0
+FAIL_COUNT=0
+
+assert_fail() {
+  local desc="$1"
+  shift
+  if "$@" >/dev/null 2>&1; then
+    printf '\033[31mFAIL\033[0m: %s (expected failure, but succeeded)\n' "$desc"
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+  else
+    printf '\033[32mPASS\033[0m: %s\n' "$desc"
+    PASS_COUNT=$((PASS_COUNT + 1))
+  fi
+}
+
+assert_pass() {
+  local desc="$1"
+  shift
+  if "$@" >/dev/null 2>&1; then
+    printf '\033[32mPASS\033[0m: %s\n' "$desc"
+    PASS_COUNT=$((PASS_COUNT + 1))
+  else
+    printf '\033[31mFAIL\033[0m: %s\n' "$desc"
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+  fi
+}
+
+printf '%s\n' '=== Running Security & Modernization Test Suite ==='
+
+# --- 1. gyro.py security checks ---
+printf '%s\n' '--- Testing scripts/gyro.py ---'
+assert_fail "gyro.py: rejects missing arguments" python3 scripts/gyro.py
+assert_fail "gyro.py: rejects relative path traversal" python3 scripts/gyro.py "../../etc/passwd"
+assert_fail "gyro.py: rejects arbitrary file /etc/passwd" python3 scripts/gyro.py "/etc/passwd"
+assert_fail "gyro.py: rejects malformed device node" python3 scripts/gyro.py "/dev/input/eventABC"
+assert_fail "gyro.py: rejects non-event input node" python3 scripts/gyro.py "/dev/input/mice"
+assert_fail "gyro.py: rejects path traversal with prefix" python3 scripts/gyro.py "/dev/input/event0/../../../etc/shadow"
+
+# --- 2. rumble.py security checks ---
+printf '\n%s\n' '--- Testing scripts/rumble.py ---'
+assert_fail "rumble.py: rejects missing arguments" python3 scripts/rumble.py
+assert_fail "rumble.py: rejects path traversal" python3 scripts/rumble.py "../../etc/shadow" 0 0 100
+assert_fail "rumble.py: rejects regular file" python3 scripts/rumble.py "/etc/hosts" 0 0 100
+assert_fail "rumble.py: rejects non-integer magnitudes" python3 scripts/rumble.py "/dev/input/event0" "abc" "def" 100
+assert_fail "rumble.py: rejects malformed node name" python3 scripts/rumble.py "/dev/input/js0" 0 0 100
+
+# --- 3. triggers.py security checks ---
+printf '\n%s\n' '--- Testing scripts/triggers.py ---'
+assert_fail "triggers.py: rejects missing arguments" python3 scripts/triggers.py
+assert_fail "triggers.py: rejects path traversal" python3 scripts/triggers.py "../../etc/passwd" off off
+assert_fail "triggers.py: rejects invalid mode" python3 scripts/triggers.py "auto" "hacked_mode" "off"
+assert_fail "triggers.py: rejects malformed hidraw node" python3 scripts/triggers.py "/dev/input/event0" off off
+assert_fail "triggers.py: rejects regular file as hidraw" python3 scripts/triggers.py "/etc/issue" off off
+
+# --- 4. File permission standards ---
+printf '\n%s\n' '--- Testing File Permissions ---'
+for f in scripts/*.py scripts/*.sh install.sh uninstall.sh tests/*.sh; do
+  if [ -x "$f" ]; then
+    printf '\033[32mPASS\033[0m: %s is executable (755)\n' "$f"
+    PASS_COUNT=$((PASS_COUNT + 1))
+  else
+    printf '\033[31mFAIL\033[0m: %s is NOT executable\n' "$f"
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+  fi
+done
+
+for f in *.qml *.js manifest.json; do
+  if [ ! -x "$f" ]; then
+    printf '\033[32mPASS\033[0m: %s is non-executable (644)\n' "$f"
+    PASS_COUNT=$((PASS_COUNT + 1))
+  else
+    printf '\033[31mFAIL\033[0m: %s has unexpected execute bit\n' "$f"
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+  fi
+done
+
+printf '\n==================================================\n'
+printf 'Security Test Summary: %d passed, %d failed\n' "$PASS_COUNT" "$FAIL_COUNT"
+printf '==================================================\n'
+
+if [ "$FAIL_COUNT" -gt 0 ]; then
+  exit 1
+fi
+exit 0

@@ -23,6 +23,8 @@
 
 import json
 import os
+import re
+import stat
 import struct
 import sys
 import time
@@ -39,7 +41,7 @@ EVENT = struct.Struct("llHHi")
 # EVIOCGABS(code) = _IOR('E', 0x40 + code, struct input_absinfo)
 #   _IOR(t, n, size) = 1<<30 | size<<16 | t<<8 | n
 # struct input_absinfo = 6 x s32 (value, min, max, fuzz, flat, resolution)
-def abs_max(fd, code, default=32767):
+def abs_max(fd: int, code: int, default: int = 32767) -> int:
     try:
         import fcntl
         req = (1 << 30) | (24 << 16) | (0x45 << 8) | (0x40 + code)
@@ -51,7 +53,7 @@ def abs_max(fd, code, default=32767):
         return default
 
 
-def normalize(value, full_scale):
+def normalize(value: float, full_scale: float) -> float:
     v = value / float(full_scale) if full_scale else 0.0
     return max(-1.0, min(1.0, v))
 
@@ -59,7 +61,7 @@ def normalize(value, full_scale):
 GRAVITY_MSS = 9.80665
 
 
-def snapshot(vals, fs):
+def snapshot(vals: dict[str, float], fs: dict[str, int]) -> str:
     return json.dumps({
         "ax": round(vals["ax"] * GRAVITY_MSS, 4),
         "ay": round(vals["ay"] * GRAVITY_MSS, 4),
@@ -69,14 +71,34 @@ def snapshot(vals, fs):
     })
 
 
-def main():
+def main() -> int:
     if len(sys.argv) < 2:
         print("usage: gyro.py /dev/input/eventNN", file=sys.stderr)
         return 2
+
+    node = sys.argv[1]
+    if not re.match(r"^/dev/input/event\d+$", node):
+        print(f"invalid device node: {node} must match /dev/input/eventNN", file=sys.stderr)
+        return 2
+
+    real_node = os.path.realpath(node)
+    if not real_node.startswith("/dev/input/event"):
+        print(f"path traversal rejected: {real_node}", file=sys.stderr)
+        return 2
+
     try:
-        fd = os.open(sys.argv[1], os.O_RDONLY | os.O_NONBLOCK)
+        st = os.stat(real_node)
+        if not stat.S_ISCHR(st.st_mode):
+            print(f"device node {real_node} is not a character device", file=sys.stderr)
+            return 2
     except OSError as e:
-        print("cannot open %s: %s" % (sys.argv[1], e), file=sys.stderr)
+        print(f"cannot stat {real_node}: {e}", file=sys.stderr)
+        return 1
+
+    try:
+        fd = os.open(real_node, os.O_RDONLY | os.O_NONBLOCK)
+    except OSError as e:
+        print(f"cannot open {real_node}: {e}", file=sys.stderr)
         return 1
 
     full = {}

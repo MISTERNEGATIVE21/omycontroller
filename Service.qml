@@ -61,16 +61,28 @@ Item {
   IpcHandler {
     target: "omycontroller-service"
 
+    function rescan() {
+      root.rescan()
+    }
+
+    function setRumble(target, weakOrValue, strong) {
+      return root.setRumble(target, weakOrValue, strong)
+    }
+
+    function calibrateGyro(target) {
+      return root.calibrateGyro(target)
+    }
+
+    function setDeadzone(target, key, value) {
+      return root.setDeadzone(target, key, value)
+    }
+
     function toggleDemo() {
       return root.toggleDemo()
     }
 
     function cycleDemoLayout() {
       return root.cycleDemoLayout()
-    }
-
-    function rescan() {
-      root.rescan()
     }
   }
 
@@ -231,9 +243,14 @@ Item {
   function setDeadzone(id, key, value) {
     var d = device(id)
     if (!d) return false
+    var allowedKeys = ["stickL", "stickR", "trigL", "trigR"]
+    var k = String(key || "")
+    if (allowedKeys.indexOf(k) === -1) return false
     var n = Number(value)
     if (!isFinite(n)) return false
-    storeProfile(d, (function () { var v = {}; v[key] = Math.min(0.5, Math.max(0, n)); return v })())
+    var v = {}
+    v[k] = Math.min(0.5, Math.max(0.0, n))
+    storeProfile(d, v)
     tryXpadneoApply(d, d.profile)
     return true
   }
@@ -699,6 +716,7 @@ Item {
   function startStream(id) {
     if (id === "sim0") return
     if (!root.jstestAvailable) return
+    if (!/^js\d+$/.test(String(id))) return
     if (_streams[id]) return
     var d = device(id)
     if (!d) return
@@ -760,7 +778,7 @@ Item {
   function startGyroStream(id) {
     if (id === "sim0") return
     var d = device(id)
-    if (!d || !d.motionNode || d.motionNode === "") return
+    if (!d || !d.motionNode || !/^event\d+$/.test(String(d.motionNode))) return
     if (_gyroStreams[id]) return
     var proc = gyroComp.createObject(root, { targetId: id, node: d.motionNode })
     if (!proc) return
@@ -946,8 +964,8 @@ Item {
   // per-pad stored power profile scales both motors.
   function rumble(id, weak, strong, ms) {
     var d = device(id)
-    if (!d || !d.event) {
-      root.actionResult("No evdev node for " + id)
+    if (!d || !d.event || !/^event\d+$/.test(String(d.event))) {
+      root.actionResult("No valid evdev node for " + id)
       return false
     }
     if (!root.evdevAvailable) {
@@ -955,26 +973,40 @@ Item {
       return false
     }
     var strength = d.profile && isFinite(Number(d.profile.rumble))
-        ? Math.min(1, Math.max(0.1, Number(d.profile.rumble))) : 1
-    var w = Math.round(Math.min(1, Math.max(0, weak)) * strength * 65535)
-    var s = Math.round(Math.min(1, Math.max(0, strong)) * strength * 65535)
+        ? Math.min(1.0, Math.max(0.1, Number(d.profile.rumble))) : 1.0
+    var wVal = isFinite(Number(weak)) ? Number(weak) : 0.0
+    var sVal = isFinite(Number(strong)) ? Number(strong) : 0.0
+    var w = Math.round(Math.min(1.0, Math.max(0.0, wVal)) * strength * 65535)
+    var s = Math.round(Math.min(1.0, Math.max(0.0, sVal)) * strength * 65535)
+    var duration = Math.min(5000, Math.max(30, parseInt(ms, 10) || 500))
     return runAction(
       ["python3", root.rumbleScript, "/dev/input/" + d.event,
-       String(w), String(s), String(Math.max(30, ms))],
+       String(w), String(s), String(duration)],
       "rumble")
   }
 
   // DualSense adaptive triggers: left/right in
   // off|weak|medium|strong|rigid|pulse|bow|machine gun.
+  readonly property var allowedTriggerModes: [
+    "off", "weak", "medium", "strong", "rigid", "pulse", "bow", "machine gun", "machinegun"
+  ]
+
   function setTriggers(id, leftMode, rightMode, startPos, force) {
     var d = device(id)
     if (!d || d.layout !== "ps") {
       root.actionResult("Adaptive triggers need a DualSense pad")
       return false
     }
-    var args = ["python3", root.triggersScript, "auto", leftMode, rightMode]
+    var lm = String(leftMode || "").toLowerCase().trim()
+    var rm = String(rightMode || "").toLowerCase().trim()
+    if (allowedTriggerModes.indexOf(lm) === -1) lm = "off"
+    if (allowedTriggerModes.indexOf(rm) === -1) rm = "off"
+
+    var args = ["python3", root.triggersScript, "auto", lm, rm]
     if (startPos !== undefined && force !== undefined) {
-      args.push(String(startPos), String(force))
+      var sp = Math.min(1.0, Math.max(0.0, Number(startPos) || 0))
+      var fc = Math.min(1.0, Math.max(0.0, Number(force) || 0))
+      args.push(String(sp), String(fc))
     }
     return runAction(args, "triggers")
   }

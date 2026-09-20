@@ -62,6 +62,12 @@ shopt -s nullglob
 
 for js in "$SYS"/class/input/js*; do
   id="$(basename "$js")"
+  # Validate id must strictly be jsN
+  case "$id" in
+    js[0-9]*) ;;
+    *) continue ;;
+  esac
+
   dev_dir="$js/device"                 # .../inputX  (joystick char dev)
   parent="$dev_dir/device"             # .../inputX/device (hardware node)
 
@@ -70,7 +76,7 @@ for js in "$SYS"/class/input/js*; do
 
   driver="?"
   if [ -L "$parent/driver" ] || [ -d "$parent/driver" ]; then
-    driver="$(basename "$(readlink -f "$parent/driver")")"
+    driver="$(basename "$(readlink -f "$parent/driver" 2>/dev/null || printf '?')")"
   fi
 
   bustype="$(cat "$parent/id/bustype" 2>/dev/null || printf '0000')"
@@ -79,21 +85,27 @@ for js in "$SYS"/class/input/js*; do
   phys="$(cat "$parent/phys" 2>/dev/null || printf '')"
   phys="$(basename "$phys" 2>/dev/null || printf '')"
 
-  input_name="$(basename "$(readlink -f "$dev_dir")" 2>/dev/null || printf '')"
+  input_name="$(basename "$(readlink -f "$dev_dir" 2>/dev/null || printf '')" 2>/dev/null || printf '')"
+  case "$input_name" in
+    input[0-9]*) ;;
+    *) input_name="" ;;
+  esac
 
   # Matching evdev node — required for rumble/trigger control.
   event=""
   for ev in "$dev_dir"/event*; do
     [ -d "$ev" ] || continue
-    event="$(basename "$ev")"
-    break
+    ev_base="$(basename "$ev")"
+    case "$ev_base" in
+      event[0-9]*) event="$ev_base"; break ;;
+    esac
   done
 
   # Companion motion-sensor node (gyro + accelerometer), paired by HID
   # parent: hid-playstation/hid-sony/hid-nintendo expose it as a sibling
   # input device named "... Motion Sensors" / "... IMU".
   motion=""
-  for sib in "$parent"/input/input*; do
+  for sib in "$parent"/input/input* "$parent"/input* "$parent"/../input*; do
     [ -d "$sib" ] || continue
     sib_name="$(cat "$sib/name" 2>/dev/null || printf '')"
     case "$(printf '%s' "$sib_name" | tr '[:upper:]' '[:lower:]')" in
@@ -102,14 +114,19 @@ for js in "$SYS"/class/input/js*; do
     esac
     for ev in "$sib"/event*; do
       [ -d "$ev" ] || continue
-      motion="$(basename "$ev")"
-      break
+      ev_base="$(basename "$ev")"
+      case "$ev_base" in
+        event[0-9]*) motion="$ev_base"; break ;;
+      esac
     done
     [ -n "$motion" ] && break
   done
 
-  IFS='|' read -r percent status <<<"$(battery_for_input "$(readlink -f "$dev_dir")")"
-  [ -n "$percent" ] || percent=-1
+  raw_battery="$(battery_for_input "$(readlink -f "$dev_dir" 2>/dev/null || printf '')")"
+  IFS='|' read -r percent status <<<"$raw_battery"
+  case "$percent" in
+    ''|*[!0-9]*) percent=-1 ;;
+  esac
   charging="false"
   case "$status" in
     Charging|Full) charging="true" ;;

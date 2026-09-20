@@ -167,15 +167,27 @@ def main() -> None:
     elif not re.match(r"^/dev/hidraw\d+$", node):
         fail("hidraw node must look like /dev/hidrawN or 'auto'")
 
+    real_node = os.path.realpath(node)
+    if not real_node.startswith("/dev/hidraw"):
+        fail(f"path traversal rejected: {real_node}", 2)
+
     try:
-        fd = os.open(node, os.O_WRONLY)
+        st = os.stat(real_node)
+        import stat  # noqa: PLC0415
+        if not stat.S_ISCHR(st.st_mode):
+            fail(f"device node {real_node} is not a character device", 2)
     except OSError as exc:
-        fail("cannot open %s (%s)" % (node, exc))
+        fail(f"cannot stat {real_node}: {exc}", 1)
+
+    try:
+        fd = os.open(real_node, os.O_WRONLY)
+    except OSError as exc:
+        fail("cannot open %s (%s)" % (real_node, exc))
 
     try:
         os.write(fd, build_report(left, right, start_pos, force_override))
     except OSError as exc:
-        fail("write to %s failed (%s)" % (node, exc))
+        fail("write to %s failed (%s)" % (real_node, exc))
     finally:
         os.close(fd)
 

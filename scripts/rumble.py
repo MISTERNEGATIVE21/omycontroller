@@ -17,6 +17,9 @@ Requires python-evdev (Arch: pacman -S python-evdev). Exits 0 on success,
 stderr for the actionable message.
 """
 
+import os
+import re
+import stat
 import sys
 import time
 
@@ -30,6 +33,21 @@ def main() -> None:
     if len(sys.argv) < 5:
         fail("usage: rumble.py <event-node> <weak> <strong> <ms> [delay-ms]")
     node = sys.argv[1]
+
+    if not re.match(r"^/dev/input/event\d+$", node):
+        fail(f"invalid device node: {node} must match /dev/input/eventNN", 2)
+
+    real_node = os.path.realpath(node)
+    if not real_node.startswith("/dev/input/event"):
+        fail(f"path traversal rejected: {real_node}", 2)
+
+    try:
+        st = os.stat(real_node)
+        if not stat.S_ISCHR(st.st_mode):
+            fail(f"device node {real_node} is not a character device", 2)
+    except OSError as exc:
+        fail(f"cannot stat {real_node}: {exc}", 1)
+
     try:
         weak = max(0, min(65535, int(sys.argv[2])))
         strong = max(0, min(65535, int(sys.argv[3])))
@@ -39,7 +57,7 @@ def main() -> None:
         fail("arguments must be integers")
 
     try:
-        from evdev import UInput, ecodes, ff  # noqa: PLC0415 — lazy import
+        from evdev import ecodes, ff  # noqa: PLC0415 — lazy import
     except ImportError:
         fail("python-evdev is not installed — run: sudo pacman -S --needed python-evdev", 3)
 
@@ -48,9 +66,9 @@ def main() -> None:
         # device is not possible; effects must be uploaded to the physical
         # device, which needs write access to it (user must be in `input`).
         from evdev import InputDevice  # noqa: PLC0415
-        dev = InputDevice(node)
+        dev = InputDevice(real_node)
     except (OSError, PermissionError) as exc:
-        fail("cannot open %s (%s)" % (node, exc))
+        fail("cannot open %s (%s)" % (real_node, exc))
 
     if not hasattr(dev, "upload_effect"):
         fail("device %s does not support force feedback" % node)

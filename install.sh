@@ -70,16 +70,19 @@ mkdir -p "$ICONS_SCALABLE" "$ICONS_256" "$PIXMAPS_DIR"
 if [ -f "$REPO_DIR/assets/icon.svg" ]; then
   cp -f "$REPO_DIR/assets/icon.svg" "$ICONS_SCALABLE/omycontroller.svg"
   cp -f "$REPO_DIR/assets/icon.svg" "$PIXMAPS_DIR/omycontroller.svg"
+  chmod 644 "$ICONS_SCALABLE/omycontroller.svg" "$PIXMAPS_DIR/omycontroller.svg" 2>/dev/null || true
   info "vector icon installed: $ICONS_SCALABLE/omycontroller.svg"
 fi
 
 if [ -f "$REPO_DIR/assets/icon.png" ]; then
   cp -f "$REPO_DIR/assets/icon.png" "$ICONS_256/omycontroller.png"
   cp -f "$REPO_DIR/assets/icon.png" "$PIXMAPS_DIR/omycontroller.png"
+  chmod 644 "$ICONS_256/omycontroller.png" "$PIXMAPS_DIR/omycontroller.png" 2>/dev/null || true
   info "png icon installed: $ICONS_256/omycontroller.png"
 elif command -v rsvg-convert >/dev/null 2>&1 && [ -f "$REPO_DIR/assets/icon.svg" ]; then
   rsvg-convert -w 256 -h 256 "$REPO_DIR/assets/icon.svg" -o "$ICONS_256/omycontroller.png"
   cp -f "$ICONS_256/omycontroller.png" "$PIXMAPS_DIR/omycontroller.png"
+  chmod 644 "$ICONS_256/omycontroller.png" "$PIXMAPS_DIR/omycontroller.png" 2>/dev/null || true
 fi
 
 command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -f -t "${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor" 2>/dev/null || true
@@ -99,6 +102,7 @@ Keywords=gamepad;controller;omycontroller;gamepadla;rumble;deadzone;
 Icon=omycontroller
 NoDisplay=false
 EOF
+chmod 644 "$APPS_DIR/omycontroller.desktop" 2>/dev/null || true
 info "desktop entry installed: $APPS_DIR/omycontroller.desktop"
 
 # Clean up legacy desktop entry if present
