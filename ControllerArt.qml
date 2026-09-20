@@ -610,13 +610,14 @@ Item {
         spacing: 5
         Repeater {
           model: 8
-          required property int index
-          Row {
+          delegate: Row {
+            id: leftDotRow
+            property int rowIdx: index
             spacing: 4
-            x: index > 4 ? (index - 4) * 2 : 0
+            x: rowIdx > 4 ? (rowIdx - 4) * 2 : 0
             Repeater {
-              model: (index >= 2 && index <= 6) ? 3 : 2
-              Rectangle { width: 1.5; height: 1.5; radius: 0.75; color: "#FFFFFF" }
+              model: (leftDotRow.rowIdx >= 2 && leftDotRow.rowIdx <= 6) ? 3 : 2
+              delegate: Rectangle { width: 1.5; height: 1.5; radius: 0.75; color: "#FFFFFF" }
             }
           }
         }
@@ -628,13 +629,14 @@ Item {
         spacing: 5
         Repeater {
           model: 8
-          required property int index
-          Row {
+          delegate: Row {
+            id: rightDotRow
+            property int rowIdx: index
             spacing: 4
-            x: index > 4 ? -(index - 4) * 2 : 0
+            x: rowIdx > 4 ? -(rowIdx - 4) * 2 : 0
             Repeater {
-              model: (index >= 2 && index <= 6) ? 3 : 2
-              Rectangle { width: 1.5; height: 1.5; radius: 0.75; color: "#FFFFFF" }
+              model: (rightDotRow.rowIdx >= 2 && rightDotRow.rowIdx <= 6) ? 3 : 2
+              delegate: Rectangle { width: 1.5; height: 1.5; radius: 0.75; color: "#FFFFFF" }
             }
           }
         }
