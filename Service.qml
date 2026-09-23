@@ -74,6 +74,13 @@ Item {
       return root.cycleDemoLayout()
     }
 
+    function triggerRumble(weak: real, strong: real, ms: int): string {
+      var d = root.device("js0")
+      var id = d ? "js0" : "sim0"
+      root.rumble(id, weak !== undefined ? weak : 0.5, strong !== undefined ? strong : 0.8, ms || 600)
+      return "rumble sent to " + id + " (weak=" + weak + ", strong=" + strong + ", ms=" + ms + ")"
+    }
+
     function getStatus(): string {
       var dev = root.device("js0")
       return JSON.stringify({
