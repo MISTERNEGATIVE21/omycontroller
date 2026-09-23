@@ -58,43 +58,75 @@
   <!-- Upper Chassis Highlight Bevel -->
   <path d="M 44 34 C 54 36, 74 36, 84 34 C 94 34, 101 37, 104 42 C 98 39, 86 37, 80 37 C 72 37, 56 37, 48 37 C 42 37, 30 39, 24 42 C 27 37, 34 34, 44 34 Z" fill="#ffffff" opacity="0.10"/>
 
-  <!-- D-Pad (Left lower, asymmetric Xbox layout) -->
+  <!-- D-Pad (Left lower, Xbox Series 8-Way Hybrid Dish) -->
   <g transform="translate(48, 72)">
-    <rect x="-4" y="-12" width="8" height="24" rx="2.5" fill="#1b1d2e" stroke="#47517c" stroke-width="1"/>
-    <rect x="-12" y="-4" width="24" height="8" rx="2.5" fill="#1b1d2e" stroke="#47517c" stroke-width="1"/>
-    <circle cx="0" cy="0" r="3.5" fill="#121420"/>
-    <path d="M 0 -8 L -2 -6 L 2 -6 Z" fill="#7582b8"/>
-    <path d="M 0 8 L -2 6 L 2 6 Z" fill="#7582b8"/>
-    <path d="M -8 0 L -6 -2 L -6 2 Z" fill="#7582b8"/>
-    <path d="M 8 0 L 6 -2 L 6 2 Z" fill="#7582b8"/>
+    <circle cx="0" cy="0" r="11" fill="#131624" stroke="#3d4469" stroke-width="1.2"/>
+    <circle cx="0" cy="0" r="9" fill="#1e2238" stroke="#566299" stroke-width="0.9"/>
+    <!-- 8 Facet Crease Divisions -->
+    <line x1="0" y1="-8.5" x2="0" y2="8.5" stroke="#131624" stroke-width="0.8"/>
+    <line x1="-8.5" y1="0" x2="8.5" y2="0" stroke="#131624" stroke-width="0.8"/>
+    <line x1="-6" y1="-6" x2="6" y2="6" stroke="#131624" stroke-width="0.7"/>
+    <line x1="-6" y1="6" x2="6" y2="-6" stroke="#131624" stroke-width="0.7"/>
+    <!-- Concave Thumb Pivot Dish -->
+    <circle cx="0" cy="0" r="3.8" fill="#121420" stroke="#25293d" stroke-width="0.8"/>
+    <circle cx="0" cy="0" r="1.5" fill="#47517c"/>
+    <!-- 4 Cardinal Directional Chevrons -->
+    <path d="M 0 -6.5 L -1.8 -4.5 L 1.8 -4.5 Z" fill="#8895c9"/>
+    <path d="M 0 6.5 L -1.8 4.5 L 1.8 4.5 Z" fill="#8895c9"/>
+    <path d="M -6.5 0 L -4.5 -1.8 L -4.5 1.8 Z" fill="#8895c9"/>
+    <path d="M 6.5 0 L 4.5 -1.8 L 4.5 1.8 Z" fill="#8895c9"/>
   </g>
 
-  <!-- Left Thumbstick (Asymmetric top) -->
+  <!-- Left Thumbstick (Asymmetric top, Xbox Series Concave Cap) -->
   <g transform="translate(38, 52)">
     <circle cx="0" cy="0" r="11" fill="#161826" stroke="#47517c" stroke-width="1.2"/>
     <circle cx="0" cy="0" r="8.5" fill="url(#stickGrad)" stroke="#6674ad" stroke-width="1"/>
-    <circle cx="0" cy="0" r="6" fill="none" stroke="#25293d" stroke-width="1"/>
-    <circle cx="0" cy="0" r="2.5" fill="#121420"/>
+    <!-- 4 Cardinal Traction Notches -->
+    <line x1="0" y1="-9.5" x2="0" y2="-7.5" stroke="#161826" stroke-width="1.2"/>
+    <line x1="0" y1="7.5" x2="0" y2="9.5" stroke="#161826" stroke-width="1.2"/>
+    <line x1="-9.5" y1="0" x2="-7.5" y2="0" stroke="#161826" stroke-width="1.2"/>
+    <line x1="7.5" y1="0" x2="9.5" y2="0" stroke="#161826" stroke-width="1.2"/>
+    <circle cx="0" cy="0" r="5.5" fill="#131622" stroke="#25293d" stroke-width="0.8"/>
+    <circle cx="0" cy="0" r="2.2" fill="#3b4266"/>
   </g>
 
-  <!-- Right Thumbstick (Asymmetric bottom) -->
+  <!-- Right Thumbstick (Asymmetric bottom, Xbox Series Concave Cap) -->
   <g transform="translate(80, 72)">
     <circle cx="0" cy="0" r="11" fill="#161826" stroke="#47517c" stroke-width="1.2"/>
     <circle cx="0" cy="0" r="8.5" fill="url(#stickGrad)" stroke="#6674ad" stroke-width="1"/>
-    <circle cx="0" cy="0" r="6" fill="none" stroke="#25293d" stroke-width="1"/>
-    <circle cx="0" cy="0" r="2.5" fill="#121420"/>
+    <!-- 4 Cardinal Traction Notches -->
+    <line x1="0" y1="-9.5" x2="0" y2="-7.5" stroke="#161826" stroke-width="1.2"/>
+    <line x1="0" y1="7.5" x2="0" y2="9.5" stroke="#161826" stroke-width="1.2"/>
+    <line x1="-9.5" y1="0" x2="-7.5" y2="0" stroke="#161826" stroke-width="1.2"/>
+    <line x1="7.5" y1="0" x2="9.5" y2="0" stroke="#161826" stroke-width="1.2"/>
+    <circle cx="0" cy="0" r="5.5" fill="#131622" stroke="#25293d" stroke-width="0.8"/>
+    <circle cx="0" cy="0" r="2.2" fill="#3b4266"/>
   </g>
 
-  <!-- Center Controls: View, Guide, Menu -->
-  <circle cx="54" cy="46" r="2.2" fill="#282d47" stroke="#4f598a" stroke-width="0.8"/>
-  <circle cx="74" cy="46" r="2.2" fill="#282d47" stroke="#4f598a" stroke-width="0.8"/>
+  <!-- Center Controls: View (53,44), Menu (75,44), Share (64,52) -->
+  <g transform="translate(53, 44)">
+    <circle cx="0" cy="0" r="2.4" fill="#282d47" stroke="#4f598a" stroke-width="0.8"/>
+    <rect x="-1.2" y="-1.2" width="1.6" height="1.6" rx="0.3" fill="none" stroke="#a5b4fc" stroke-width="0.5"/>
+    <rect x="-0.4" y="-0.4" width="1.6" height="1.6" rx="0.3" fill="none" stroke="#a5b4fc" stroke-width="0.5"/>
+  </g>
+  <g transform="translate(75, 44)">
+    <circle cx="0" cy="0" r="2.4" fill="#282d47" stroke="#4f598a" stroke-width="0.8"/>
+    <line x1="-1.2" y1="-1" x2="1.2" y2="-1" stroke="#a5b4fc" stroke-width="0.5"/>
+    <line x1="-1.2" y1="0" x2="1.2" y2="0" stroke="#a5b4fc" stroke-width="0.5"/>
+    <line x1="-1.2" y1="1" x2="1.2" y2="1" stroke="#a5b4fc" stroke-width="0.5"/>
+  </g>
+  <g transform="translate(64, 52)">
+    <circle cx="0" cy="0" r="2.2" fill="#282d47" stroke="#4f598a" stroke-width="0.8"/>
+    <path d="M 0 -1 L -1 0.2 L -0.4 0.2 L -0.4 1 L 0.4 1 L 0.4 0.2 L 1 0.2 Z" fill="#a5b4fc"/>
+  </g>
 
-  <!-- Center Nexus / Guide Logo with Cyan Neon Aura -->
-  <g transform="translate(64, 46)">
-    <circle cx="0" cy="0" r="6.5" fill="#131624" stroke="#00e5ff" stroke-width="1.4"/>
-    <circle cx="0" cy="0" r="4.2" fill="#00e5ff" opacity="0.25"/>
-    <circle cx="0" cy="0" r="2.8" fill="#00e5ff"/>
-    <path d="M -4.5 -2.5 L 4.5 2.5 M -4.5 2.5 L 4.5 -2.5" stroke="#131624" stroke-width="0.9" stroke-linecap="round"/>
+  <!-- Center Nexus / Guide Jewel with Cyan Neon Backlight Aura -->
+  <g transform="translate(64, 43)">
+    <circle cx="0" cy="0" r="6.8" fill="#131624" stroke="#00e5ff" stroke-width="1.4"/>
+    <circle cx="0" cy="0" r="4.6" fill="#00e5ff" opacity="0.25"/>
+    <circle cx="0" cy="0" r="3.2" fill="#0e111a"/>
+    <!-- Iconic Curved Xbox Nexus "X" Emblem -->
+    <path d="M -2.6 -2.6 C -1.5 -1.2, -0.6 -0.2, 0 -0.1 C 0.6 -0.2, 1.5 -1.2, 2.6 -2.6 C 1.8 -1.2, 1 0.2, 0 0.3 C -1 0.2, -1.8 -1.2, -2.6 -2.6 Z M -2.6 2.6 C -1.5 1.2, -0.6 0.2, 0 0.1 C 0.6 0.2, 1.5 1.2, 2.6 2.6 C 1.8 1.2, 1 -0.2, 0 -0.3 C -1 -0.2, -1.8 1.2, -2.6 2.6 Z" fill="#00e5ff"/>
   </g>
 
   <!-- Quad Face Buttons (A, B, X, Y) -->

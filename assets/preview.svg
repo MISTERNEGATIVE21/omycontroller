@@ -98,7 +98,7 @@
       <text x="342" y="17" fill="#94a3b8" font-family="sans-serif" font-size="9" text-anchor="middle">Specs</text>
     </g>
 
-    <!-- Mini Controller Art preview inside panel -->
+    <!-- Mini Controller Art preview inside panel (Xbox Series X|S Deck) -->
     <g transform="translate(70, 146)">
       <!-- Controller Silhouette -->
       <rect x="30" y="20" width="220" height="90" rx="36" fill="#222638" stroke="#3d4461" stroke-width="1.5"/>
@@ -111,36 +111,79 @@
       <path d="M232 14 C232 10, 224 8, 204 8 C184 8, 178 12, 178 24 L228 24 C232 24, 232 18, 232 14 Z" fill="#2d334a" stroke="#6366f1" stroke-width="1.2"/>
       <text x="205" y="19" fill="#a5b4fc" font-family="sans-serif" font-size="7" font-weight="700" text-anchor="middle">RB</text>
 
-      <!-- Sticks with Figma Community pastel dishes and glows -->
-      <!-- Left Stick: Figma Pastel Lavender (#C084FC) -->
-      <circle cx="85" cy="55" r="16" fill="#181a26" stroke="#c084fc" stroke-width="1.5"/>
-      <circle cx="85" cy="55" r="10" fill="#241935" stroke="#c084fc" stroke-width="1"/>
-      <circle cx="85" cy="55" r="5" fill="#c084fc"/>
+      <!-- Center Nexus Guide Jewel with Glowing Cyan Aura -->
+      <circle cx="125" cy="35" r="7.5" fill="#131624" stroke="#00e5ff" stroke-width="1.2"/>
+      <circle cx="125" cy="35" r="5" fill="#00e5ff" opacity="0.25"/>
+      <circle cx="125" cy="35" r="3.2" fill="#0e111a"/>
+      <path d="M 122.5 32.5 C 123.5 33.7, 124.3 34.6, 125 34.7 C 125.7 34.6, 126.5 33.7, 127.5 32.5 C 126.8 33.8, 126 35, 125 35.1 C 124 35, 123.2 33.8, 122.5 32.5 Z M 122.5 37.5 C 123.5 36.3, 124.3 35.4, 125 35.3 C 125.7 35.4, 126.5 36.3, 127.5 37.5 C 126.8 36.2, 126 35, 125 34.9 C 124 35, 123.2 36.2, 122.5 37.5 Z" fill="#00e5ff"/>
 
-      <!-- Right Stick: Figma Pastel Mint (#34D399) -->
-      <circle cx="165" cy="75" r="16" fill="#181a26" stroke="#34d399" stroke-width="1.5"/>
-      <circle cx="165" cy="75" r="10" fill="#142c22" stroke="#34d399" stroke-width="1"/>
-      <circle cx="165" cy="75" r="5" fill="#34d399"/>
+      <!-- Center Controls: View (108,46), Menu (142,46), Share (125,54) -->
+      <circle cx="108" cy="46" r="3" fill="#282d47" stroke="#4f598a" stroke-width="0.8"/>
+      <rect x="106.5" y="44.5" width="2" height="2" rx="0.4" fill="none" stroke="#a5b4fc" stroke-width="0.6"/>
+      <rect x="107.5" y="45.5" width="2" height="2" rx="0.4" fill="none" stroke="#a5b4fc" stroke-width="0.6"/>
 
-      <!-- Dpad -->
-      <path d="M115 65 h8 v-8 h8 v8 h8 v8 h-8 v8 h-8 v-8 h-8 z" fill="#2d334a" stroke="#4b5563"/>
+      <circle cx="142" cy="46" r="3" fill="#282d47" stroke="#4f598a" stroke-width="0.8"/>
+      <line x1="140.5" y1="44.5" x2="143.5" y2="44.5" stroke="#a5b4fc" stroke-width="0.6"/>
+      <line x1="140.5" y1="46" x2="143.5" y2="46" stroke="#a5b4fc" stroke-width="0.6"/>
+      <line x1="140.5" y1="47.5" x2="143.5" y2="47.5" stroke="#a5b4fc" stroke-width="0.6"/>
 
-      <!-- Face buttons (Figma Community Palette) -->
-      <!-- Y: Warm Amber (#FBBF24) -->
-      <circle cx="195" cy="40" r="7" fill="rgba(251,191,36,0.25)" stroke="#fbbf24" stroke-width="1.5"/>
-      <text x="195" y="43" fill="#fbbf24" font-family="sans-serif" font-size="8" font-weight="800" text-anchor="middle">Y</text>
+      <circle cx="125" cy="54" r="2.8" fill="#282d47" stroke="#4f598a" stroke-width="0.8"/>
+      <path d="M 125 52.2 L 123.5 53.8 L 124.3 53.8 L 124.3 55.2 L 125.7 55.2 L 125.7 53.8 L 126.5 53.8 Z" fill="#a5b4fc"/>
 
-      <!-- A: Mint Green (#34D399) -->
-      <circle cx="195" cy="68" r="7" fill="rgba(52,211,153,0.25)" stroke="#34d399" stroke-width="1.5"/>
-      <text x="195" y="71" fill="#34d399" font-family="sans-serif" font-size="8" font-weight="800" text-anchor="middle">A</text>
+      <!-- Sticks with Concave Dishes, Knurled Rims, and Notches -->
+      <!-- Left Stick: Asymmetric Top -->
+      <circle cx="85" cy="55" r="16" fill="#181a26" stroke="#6366f1" stroke-width="1.5"/>
+      <circle cx="85" cy="55" r="11" fill="#202336" stroke="#818cf8" stroke-width="1"/>
+      <line x1="85" y1="40" x2="85" y2="43" stroke="#181a26" stroke-width="1.4"/>
+      <line x1="85" y1="67" x2="85" y2="70" stroke="#181a26" stroke-width="1.4"/>
+      <line x1="70" y1="55" x2="73" y2="55" stroke="#181a26" stroke-width="1.4"/>
+      <line x1="97" y1="55" x2="100" y2="55" stroke="#181a26" stroke-width="1.4"/>
+      <circle cx="85" cy="55" r="5" fill="#6366f1"/>
 
-      <!-- X: Cyan Azure (#38BDF8) -->
-      <circle cx="181" cy="54" r="7" fill="rgba(56,189,248,0.25)" stroke="#38bdf8" stroke-width="1.5"/>
-      <text x="181" y="57" fill="#38bdf8" font-family="sans-serif" font-size="8" font-weight="800" text-anchor="middle">X</text>
+      <!-- Right Stick: Asymmetric Bottom -->
+      <circle cx="165" cy="75" r="16" fill="#181a26" stroke="#6366f1" stroke-width="1.5"/>
+      <circle cx="165" cy="75" r="11" fill="#202336" stroke="#818cf8" stroke-width="1"/>
+      <line x1="165" y1="60" x2="165" y2="63" stroke="#181a26" stroke-width="1.4"/>
+      <line x1="165" y1="87" x2="165" y2="90" stroke="#181a26" stroke-width="1.4"/>
+      <line x1="150" y1="75" x2="153" y2="75" stroke="#181a26" stroke-width="1.4"/>
+      <line x1="177" y1="75" x2="180" y2="75" stroke="#181a26" stroke-width="1.4"/>
+      <circle cx="165" cy="75" r="5" fill="#6366f1"/>
 
-      <!-- B: Coral Rose (#F43F5E) -->
-      <circle cx="209" cy="54" r="7" fill="rgba(244,63,94,0.25)" stroke="#f43f5e" stroke-width="1.5"/>
-      <text x="209" y="57" fill="#f43f5e" font-family="sans-serif" font-size="8" font-weight="800" text-anchor="middle">B</text>
+      <!-- Xbox Series 8-Way Hybrid Faceted Metallic D-Pad Dish -->
+      <g transform="translate(125, 75)">
+        <circle cx="0" cy="0" r="13" fill="#131624" stroke="#3d4469" stroke-width="1.2"/>
+        <circle cx="0" cy="0" r="11" fill="#1e2238" stroke="#566299" stroke-width="0.9"/>
+        <!-- 8 Facet Crease Divisions -->
+        <line x1="0" y1="-10.5" x2="0" y2="10.5" stroke="#131624" stroke-width="0.8"/>
+        <line x1="-10.5" y1="0" x2="10.5" y2="0" stroke="#131624" stroke-width="0.8"/>
+        <line x1="-7.5" y1="-7.5" x2="7.5" y2="7.5" stroke="#131624" stroke-width="0.7"/>
+        <line x1="-7.5" y1="7.5" x2="7.5" y2="-7.5" stroke="#131624" stroke-width="0.7"/>
+        <!-- Concave Center Pivot Bowl -->
+        <circle cx="0" cy="0" r="4.5" fill="#121420" stroke="#25293d" stroke-width="0.8"/>
+        <circle cx="0" cy="0" r="1.8" fill="#47517c"/>
+        <!-- 4 Cardinal Directional Chevrons -->
+        <path d="M 0 -8 L -2.2 -5.5 L 2.2 -5.5 Z" fill="#8895c9"/>
+        <path d="M 0 8 L -2.2 5.5 L 2.2 5.5 Z" fill="#8895c9"/>
+        <path d="M -8 0 L -5.5 -2.2 L -5.5 2.2 Z" fill="#8895c9"/>
+        <path d="M 8 0 L 5.5 -2.2 L 5.5 2.2 Z" fill="#8895c9"/>
+      </g>
+
+      <!-- Face buttons (A, B, X, Y Acrylic Gem Buttons) -->
+      <!-- Y: Top (Warm Amber / Accent) -->
+      <circle cx="195" cy="40" r="7" fill="rgba(251,191,36,0.22)" stroke="#fbbf24" stroke-width="1.5"/>
+      <text x="195" y="43" fill="#fbbf24" font-family="sans-serif" font-size="8" font-weight="900" text-anchor="middle">Y</text>
+
+      <!-- A: Bottom (Emerald Mint / Accent) -->
+      <circle cx="195" cy="68" r="7" fill="rgba(52,211,153,0.22)" stroke="#34d399" stroke-width="1.5"/>
+      <text x="195" y="71" fill="#34d399" font-family="sans-serif" font-size="8" font-weight="900" text-anchor="middle">A</text>
+
+      <!-- X: Left (Cyan Azure / Accent) -->
+      <circle cx="181" cy="54" r="7" fill="rgba(56,189,248,0.22)" stroke="#38bdf8" stroke-width="1.5"/>
+      <text x="181" y="57" fill="#38bdf8" font-family="sans-serif" font-size="8" font-weight="900" text-anchor="middle">X</text>
+
+      <!-- B: Right (Coral Rose / Accent) -->
+      <circle cx="209" cy="54" r="7" fill="rgba(244,63,94,0.22)" stroke="#f43f5e" stroke-width="1.5"/>
+      <text x="209" y="57" fill="#f43f5e" font-family="sans-serif" font-size="8" font-weight="900" text-anchor="middle">B</text>
     </g>
 
     <!-- Status Cards (2 columns) -->

@@ -859,20 +859,22 @@ Item {
       // Center Guide / Home / PS Key
       CircleKey {
         cx: parent.width * 0.5
-        cy: root.isPs ? 54 : 34
-        r: root.isPs ? 12 : 11
+        cy: root.isPs ? 54 : (root.isXbox ? 28 : 34)
+        r: root.isPs ? 12 : (root.isXbox ? 13 : 11)
         label: root.isPs ? "PS" : root.isSwitch ? "HOME" : "XBOX"
         labelSize: 6
+        role: "centerTop"
         buttonIndex: root.tables.centerTop
         on: root.pressed(root.tables.centerTop)
         accent: root.playerColor
-        showLabel: root.showLabels
+        showLabel: !root.isXbox && root.showLabels
+        artSource: root.isXbox ? Qt.resolvedUrl(GamepadModel.centerArt("xbox", "guide")) : ""
       }
 
       // Left Center Key (View / Minus / Create)
       CircleKey {
-        cx: parent.width * 0.5 - (root.isSwitch ? 34 : root.isPs ? 38 : 26)
-        cy: root.isPs ? 36 : 40
+        cx: parent.width * 0.5 - (root.isSwitch ? 34 : root.isPs ? 38 : 28)
+        cy: root.isPs ? 36 : (root.isXbox ? 44 : 40)
         r: 7
         label: root.isSwitch ? "–" : "⧉"
         role: "centerLeft"
@@ -880,12 +882,13 @@ Item {
         on: root.pressed(root.tables.centerLeft)
         accent: root.playerColor
         showLabel: root.showLabels
+        artSource: root.isXbox ? Qt.resolvedUrl(GamepadModel.centerArt("xbox", "left")) : ""
       }
 
       // Right Center Key (Menu / Plus / Options)
       CircleKey {
-        cx: parent.width * 0.5 + (root.isSwitch ? 34 : root.isPs ? 38 : 26)
-        cy: root.isPs ? 36 : 40
+        cx: parent.width * 0.5 + (root.isSwitch ? 34 : root.isPs ? 38 : 28)
+        cy: root.isPs ? 36 : (root.isXbox ? 44 : 40)
         r: 7
         label: root.isSwitch ? "+" : "☰"
         role: "centerRight"
@@ -893,6 +896,7 @@ Item {
         on: root.pressed(root.tables.centerRight)
         accent: root.playerColor
         showLabel: root.showLabels
+        artSource: root.isXbox ? Qt.resolvedUrl(GamepadModel.centerArt("xbox", "right")) : ""
       }
 
       // Extra Center Key (Switch Capture / Xbox Share)
@@ -900,14 +904,15 @@ Item {
         visible: root.isSwitch || root.isXbox
         cx: parent.width * 0.5
         cy: root.isXbox ? 50 : 56
-        r: 5
-        label: "▣"
+        r: root.isXbox ? 6 : 5
+        label: root.isXbox ? "⮝" : "▣"
         labelSize: 6
         role: "centerExtra"
         buttonIndex: root.tables.centerExtra
         on: root.pressed(root.tables.centerExtra)
         accent: root.playerColor
         showLabel: root.showLabels
+        artSource: root.isXbox ? Qt.resolvedUrl(GamepadModel.centerArt("xbox", "extra")) : ""
       }
     }
 
@@ -1885,6 +1890,11 @@ Item {
     property int idxLeft: -1
     property int idxRight: -1
     property color accent: root.playerColor
+    readonly property bool isAny: up || down || dpadLeft || dpadRight
+
+    // Rocker physics tilt calculations (-1..1)
+    readonly property real tiltX: (dpadRight ? 1.0 : 0.0) - (dpadLeft ? 1.0 : 0.0)
+    readonly property real tiltY: (down ? 1.0 : 0.0) - (up ? 1.0 : 0.0)
 
     x: cx - 26
     y: cy - 26
@@ -1914,62 +1924,314 @@ Item {
       }
     }
 
-    // 2. Extruded 3D Cross Base Sidewall (2px shadow under cross)
-    Rectangle {
+    // =========================================================================
+    // XBOX SERIES 8-WAY HYBRID METALLIC DISH (Tactile 3D Rocker)
+    // =========================================================================
+    Item {
+      id: hybridDish
+      visible: root.isXbox
       anchors.centerIn: parent
-      anchors.verticalCenterOffset: 2
-      width: 16; height: 44; radius: 4
-      color: Qt.rgba(0, 0, 0, 0.55)
-    }
-    Rectangle {
-      anchors.centerIn: parent
-      anchors.verticalCenterOffset: 2
-      width: 44; height: 16; radius: 4
-      color: Qt.rgba(0, 0, 0, 0.55)
-    }
+      width: 44
+      height: 44
+      y: dp.isAny ? 5.5 : 4.0
 
-    // 3. Main Cross Surface
-    Rectangle {
-      anchors.centerIn: parent
-      width: 16; height: 44; radius: 4
-      color: root.idleFill
-      border.color: root.bodyBorder
-      border.width: 1
-    }
-    Rectangle {
-      anchors.centerIn: parent
-      width: 44; height: 16; radius: 4
-      color: root.idleFill
-      border.color: root.bodyBorder
-      border.width: 1
-    }
+      Behavior on y { NumberAnimation { duration: 35 } }
 
-    // 4. Directional Arms with 3D Facets & Tactile Rocker Motion
-    DpadArm { dir: "up";    on: dp.up;        buttonIndex: dp.idxUp;    accent: dp.accent }
-    DpadArm { dir: "down";  on: dp.down;      buttonIndex: dp.idxDown;  accent: dp.accent }
-    DpadArm { dir: "left";  on: dp.dpadLeft;  buttonIndex: dp.idxLeft;  accent: dp.accent }
-    DpadArm { dir: "right"; on: dp.dpadRight; buttonIndex: dp.idxRight; accent: dp.accent }
+      // 3D Tilting Rocker Transform
+      transform: [
+        Rotation {
+          origin.x: 22; origin.y: 22
+          axis { x: 1; y: 0; z: 0 }
+          angle: dp.tiltY * 8.5
+          Behavior on angle { SpringAnimation { spring: 5.0; damping: 0.32; epsilon: 0.05 } }
+        },
+        Rotation {
+          origin.x: 22; origin.y: 22
+          axis { x: 0; y: 1; z: 0 }
+          angle: dp.tiltX * 8.5
+          Behavior on angle { SpringAnimation { spring: 5.0; damping: 0.32; epsilon: 0.05 } }
+        }
+      ]
 
-    // 5. Ergonomic Center Pivot Dish (Concave Thumb Bowl)
-    Rectangle {
-      anchors.centerIn: parent
-      width: 14; height: 14; radius: 7
-      color: Qt.rgba(0, 0, 0, 0.35)
-      border.color: Qt.rgba(0, 0, 0, 0.60)
-      border.width: 1
-
-      // Inverted bowl bottom bounce reflection
+      // Drop shadow cast by the elevated tilting dish onto the crucible floor
       Rectangle {
-        x: 3; y: 9
-        width: 8; height: 2; radius: 1
-        color: Qt.rgba(1, 1, 1, 0.20)
+        x: 1 + dp.tiltX * 2.5
+        y: 2.5 + dp.tiltY * 2.5
+        width: 44; height: 44; radius: 22
+        color: Qt.rgba(0, 0, 0, 0.65)
+        z: -1
       }
 
-      // Center pivot pin
+      // Dish Outer Rim & Faceted Metallic Body
+      Rectangle {
+        id: dishRim
+        anchors.fill: parent
+        radius: 22
+        color: Qt.darker(root.bodyColor, 1.35)
+        border.color: dp.isAny ? dp.accent : Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.55)
+        border.width: dp.isAny ? 1.5 : 1.0
+
+        // Dynamic Specular Light Shift (Crescent highlight glints towards active tilt)
+        Rectangle {
+          x: 6 - dp.tiltX * 3.5
+          y: 3 - dp.tiltY * 3.5
+          width: 32; height: 10; radius: 5
+          color: Qt.rgba(1, 1, 1, dp.isAny ? 0.40 : 0.22)
+          Behavior on x { NumberAnimation { duration: 40 } }
+          Behavior on y { NumberAnimation { duration: 40 } }
+        }
+
+        // 8 Faceted Diagonal Creases (Visual 8-way segmentation)
+        Repeater {
+          model: 4
+          Rectangle {
+            anchors.centerIn: parent
+            width: 40; height: 1
+            rotation: index * 45
+            color: Qt.rgba(0, 0, 0, 0.35)
+          }
+        }
+
+        // Directional Neon Bloom Halo for Active Directions
+        Rectangle {
+          visible: dp.isAny
+          anchors.centerIn: parent
+          width: parent.width + 4
+          height: parent.height + 4
+          radius: width / 2
+          color: Qt.rgba(dp.accent.r, dp.accent.g, dp.accent.b, 0.25)
+          border.color: dp.accent
+          border.width: 1.5
+          z: -1
+        }
+
+        // 4 Raised Directional Cardinal Chevrons
+        // Up Chevron
+        Text {
+          x: 17; y: 3
+          text: "▲"
+          color: dp.up ? dp.accent : (dishMouseUp.containsMouse ? Qt.lighter(root.dimGlyph, 1.3) : root.dimGlyph)
+          font.pixelSize: 8
+          font.bold: true
+          scale: dp.up ? 1.25 : (dishMouseUp.containsMouse ? 1.15 : 1.0)
+          Behavior on scale { NumberAnimation { duration: 35 } }
+          Behavior on color { ColorAnimation { duration: 40 } }
+        }
+        // Down Chevron
+        Text {
+          x: 17; y: 31
+          text: "▼"
+          color: dp.down ? dp.accent : (dishMouseDown.containsMouse ? Qt.lighter(root.dimGlyph, 1.3) : root.dimGlyph)
+          font.pixelSize: 8
+          font.bold: true
+          scale: dp.down ? 1.25 : (dishMouseDown.containsMouse ? 1.15 : 1.0)
+          Behavior on scale { NumberAnimation { duration: 35 } }
+          Behavior on color { ColorAnimation { duration: 40 } }
+        }
+        // Left Chevron
+        Text {
+          x: 4; y: 17
+          text: "◀"
+          color: dp.dpadLeft ? dp.accent : (dishMouseLeft.containsMouse ? Qt.lighter(root.dimGlyph, 1.3) : root.dimGlyph)
+          font.pixelSize: 8
+          font.bold: true
+          scale: dp.dpadLeft ? 1.25 : (dishMouseLeft.containsMouse ? 1.15 : 1.0)
+          Behavior on scale { NumberAnimation { duration: 35 } }
+          Behavior on color { ColorAnimation { duration: 40 } }
+        }
+        // Right Chevron
+        Text {
+          x: 32; y: 17
+          text: "▶"
+          color: dp.dpadRight ? dp.accent : (dishMouseRight.containsMouse ? Qt.lighter(root.dimGlyph, 1.3) : root.dimGlyph)
+          font.pixelSize: 8
+          font.bold: true
+          scale: dp.dpadRight ? 1.25 : (dishMouseRight.containsMouse ? 1.15 : 1.0)
+          Behavior on scale { NumberAnimation { duration: 35 } }
+          Behavior on color { ColorAnimation { duration: 40 } }
+        }
+
+        // Deep Center Concave Thumb Bowl (The Faceted Pivot Dish)
+        Rectangle {
+          anchors.centerIn: parent
+          width: 18; height: 18; radius: 9
+          color: Qt.rgba(0, 0, 0, 0.45)
+          border.color: Qt.rgba(0, 0, 0, 0.70)
+          border.width: 1
+
+          // Inverted bowl shadow (top is shadowed in a concave dish)
+          Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 1.5
+            width: 12; height: 4; radius: 2
+            color: Qt.rgba(0, 0, 0, 0.65)
+          }
+
+          // Inverted bowl bounce reflection (bottom catches ambient bounce)
+          Rectangle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: 12
+            width: 10; height: 3.5; radius: 1.75
+            color: Qt.rgba(1, 1, 1, 0.20)
+          }
+
+          // Center Machined Pivot Pin
+          Rectangle {
+            anchors.centerIn: parent
+            width: 5; height: 5; radius: 2.5
+            color: dp.isAny ? dp.accent : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.50)
+          }
+        }
+      }
+
+      // Interactive 4-Quadrant Click Zones
+      // Up Zone
+      MouseArea {
+        id: dishMouseUp
+        x: 12; y: 0; width: 20; height: 16
+        enabled: root.interactive && root.isXbox
+        hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        cursorShape: Qt.PointingHandCursor
+        onPressed: function(mouse) {
+          if (mouse.button === Qt.RightButton || root.remapMode) {
+            root.requestRemap("dpadUp", dp.idxUp, GamepadModel.buttonLabel(root.layout, "dpadUp", root.profile))
+            return
+          }
+          root.setVirtualButton(dp.idxUp, true)
+        }
+        onReleased: function(mouse) {
+          if (mouse.button === Qt.LeftButton && !root.remapMode) root.setVirtualButton(dp.idxUp, false)
+        }
+        onCanceled: root.setVirtualButton(dp.idxUp, false)
+      }
+      // Down Zone
+      MouseArea {
+        id: dishMouseDown
+        x: 12; y: 28; width: 20; height: 16
+        enabled: root.interactive && root.isXbox
+        hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        cursorShape: Qt.PointingHandCursor
+        onPressed: function(mouse) {
+          if (mouse.button === Qt.RightButton || root.remapMode) {
+            root.requestRemap("dpadDown", dp.idxDown, GamepadModel.buttonLabel(root.layout, "dpadDown", root.profile))
+            return
+          }
+          root.setVirtualButton(dp.idxDown, true)
+        }
+        onReleased: function(mouse) {
+          if (mouse.button === Qt.LeftButton && !root.remapMode) root.setVirtualButton(dp.idxDown, false)
+        }
+        onCanceled: root.setVirtualButton(dp.idxDown, false)
+      }
+      // Left Zone
+      MouseArea {
+        id: dishMouseLeft
+        x: 0; y: 12; width: 16; height: 20
+        enabled: root.interactive && root.isXbox
+        hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        cursorShape: Qt.PointingHandCursor
+        onPressed: function(mouse) {
+          if (mouse.button === Qt.RightButton || root.remapMode) {
+            root.requestRemap("dpadLeft", dp.idxLeft, GamepadModel.buttonLabel(root.layout, "dpadLeft", root.profile))
+            return
+          }
+          root.setVirtualButton(dp.idxLeft, true)
+        }
+        onReleased: function(mouse) {
+          if (mouse.button === Qt.LeftButton && !root.remapMode) root.setVirtualButton(dp.idxLeft, false)
+        }
+        onCanceled: root.setVirtualButton(dp.idxLeft, false)
+      }
+      // Right Zone
+      MouseArea {
+        id: dishMouseRight
+        x: 28; y: 12; width: 16; height: 20
+        enabled: root.interactive && root.isXbox
+        hoverEnabled: true
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        cursorShape: Qt.PointingHandCursor
+        onPressed: function(mouse) {
+          if (mouse.button === Qt.RightButton || root.remapMode) {
+            root.requestRemap("dpadRight", dp.idxRight, GamepadModel.buttonLabel(root.layout, "dpadRight", root.profile))
+            return
+          }
+          root.setVirtualButton(dp.idxRight, true)
+        }
+        onReleased: function(mouse) {
+          if (mouse.button === Qt.LeftButton && !root.remapMode) root.setVirtualButton(dp.idxRight, false)
+        }
+        onCanceled: root.setVirtualButton(dp.idxRight, false)
+      }
+    }
+
+    // =========================================================================
+    // CLASSIC CROSS DPAD (For PlayStation / Switch / Generic)
+    // =========================================================================
+    Item {
+      id: classicCross
+      visible: !root.isXbox
+      anchors.fill: parent
+
+      // 2. Extruded 3D Cross Base Sidewall (2px shadow under cross)
       Rectangle {
         anchors.centerIn: parent
-        width: 4; height: 4; radius: 2
-        color: Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.40)
+        anchors.verticalCenterOffset: 2
+        width: 16; height: 44; radius: 4
+        color: Qt.rgba(0, 0, 0, 0.55)
+      }
+      Rectangle {
+        anchors.centerIn: parent
+        anchors.verticalCenterOffset: 2
+        width: 44; height: 16; radius: 4
+        color: Qt.rgba(0, 0, 0, 0.55)
+      }
+
+      // 3. Main Cross Surface
+      Rectangle {
+        anchors.centerIn: parent
+        width: 16; height: 44; radius: 4
+        color: root.idleFill
+        border.color: root.bodyBorder
+        border.width: 1
+      }
+      Rectangle {
+        anchors.centerIn: parent
+        width: 44; height: 16; radius: 4
+        color: root.idleFill
+        border.color: root.bodyBorder
+        border.width: 1
+      }
+
+      // 4. Directional Arms with 3D Facets & Tactile Rocker Motion
+      DpadArm { dir: "up";    on: dp.up;        buttonIndex: dp.idxUp;    accent: dp.accent }
+      DpadArm { dir: "down";  on: dp.down;      buttonIndex: dp.idxDown;  accent: dp.accent }
+      DpadArm { dir: "left";  on: dp.dpadLeft;  buttonIndex: dp.idxLeft;  accent: dp.accent }
+      DpadArm { dir: "right"; on: dp.dpadRight; buttonIndex: dp.idxRight; accent: dp.accent }
+
+      // 5. Ergonomic Center Pivot Dish (Concave Thumb Bowl)
+      Rectangle {
+        anchors.centerIn: parent
+        width: 14; height: 14; radius: 7
+        color: Qt.rgba(0, 0, 0, 0.35)
+        border.color: Qt.rgba(0, 0, 0, 0.60)
+        border.width: 1
+
+        // Inverted bowl bottom bounce reflection
+        Rectangle {
+          x: 3; y: 9
+          width: 8; height: 2; radius: 1
+          color: Qt.rgba(1, 1, 1, 0.20)
+        }
+
+        // Center pivot pin
+        Rectangle {
+          anchors.centerIn: parent
+          width: 4; height: 4; radius: 2
+          color: Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.40)
+        }
       }
     }
   }
@@ -2103,15 +2365,10 @@ Item {
     property bool on: false
     property int buttonIndex: -1
 
-    // Figma Community Design Palette (Option B):
-    // Warm Amber (#FBBF24), Mint Green (#34D399), Cyan Azure (#38BDF8), Coral Rose (#F43F5E)
-    // PS: △ (#40E2A0), × (#A78BFA), □ (#F472B6), ○ (#F87171)
+    // Theme-Reactive Accent (Omarchy Active Accent Color)
     readonly property color buttonAccent: {
       if (root.isXbox) {
-        if (fb.pos === "top") return "#FBBF24"    // Y - warm amber
-        if (fb.pos === "bottom") return "#34D399" // A - mint green
-        if (fb.pos === "left") return "#38BDF8"   // X - cyan azure
-        if (fb.pos === "right") return "#F43F5E"  // B - coral rose
+        return root.playerColor
       }
       if (root.isSwitch) {
         if (fb.pos === "top") return "#FBBF24"    // X - warm amber
@@ -2125,10 +2382,6 @@ Item {
         if (fb.pos === "left") return "#F472B6"   // □ - pink
         if (fb.pos === "right") return "#F87171"  // ○ - coral crimson
       }
-      if (fb.pos === "top") return "#FBBF24"
-      if (fb.pos === "bottom") return "#34D399"
-      if (fb.pos === "left") return "#38BDF8"
-      if (fb.pos === "right") return "#F43F5E"
       return root.playerColor
     }
 
@@ -2227,14 +2480,14 @@ Item {
         anchors.fill: parent
         radius: 12
         color: fb.on
-          ? Qt.lighter(fb.buttonAccent, 1.15)
+          ? (root.isXbox ? root.playerColor : Qt.lighter(fb.buttonAccent, 1.15))
           : (fbMouse.containsMouse
               ? Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.35)
               : Qt.rgba(0.12, 0.14, 0.18, 0.95))
         border.color: fb.on
           ? "#FFFFFF"
           : (fbMouse.containsMouse ? fb.buttonAccent : Qt.rgba(fb.buttonAccent.r, fb.buttonAccent.g, fb.buttonAccent.b, 0.65))
-        border.width: fb.on ? 1.5 : 1.2
+        border.width: fb.on ? 1.8 : 1.2
 
         // Glossy 3D Acrylic Specular Crescent Highlight (The glass dome reflection)
         Rectangle {
@@ -2257,12 +2510,12 @@ Item {
           color: Qt.rgba(1, 1, 1, 0.16)
         }
 
-        // SVG Cap Art (Kenney Input Prompts)
+        // SVG Cap Art (Clean Vector Button Glyph)
         Image {
           id: faceCapImg
           visible: fb.artSource !== "" && status === Image.Ready
           anchors.fill: parent
-          anchors.margins: 1
+          anchors.margins: 1.5
           source: fb.artSource
           fillMode: Image.PreserveAspectFit
           mipmap: true
@@ -2270,8 +2523,9 @@ Item {
           layer.enabled: visible
           layer.effect: MultiEffect {
             colorization: 1.0
-            colorizationColor: root.isPs ? (fb.on ? Color.popups.background : fb.buttonAccent)
-                             : ((root.isXbox || fb.on) ? "#FFFFFF" : root.glyphColor)
+            colorizationColor: fb.on
+              ? (root.isXbox ? Color.popups.background : (root.isPs ? Color.popups.background : "#FFFFFF"))
+              : (root.isXbox ? root.playerColor : (root.isPs ? fb.buttonAccent : root.glyphColor))
           }
         }
 
@@ -2287,12 +2541,14 @@ Item {
           font.family: Style.font.family
         }
 
-        // Crisp 3D Button Glyph / Letter (Pure white on Xbox/Switch, vibrant on PlayStation)
+        // Crisp 3D Button Glyph / Letter (Pure white on Switch, theme-reactive on Xbox, vibrant on PlayStation)
         Text {
           visible: root.showLabels && (!faceCapImg.visible || faceCapImg.status !== Image.Ready)
           anchors.centerIn: parent
           text: fb.label
-          color: fb.on ? "#000000" : fb.buttonAccent
+          color: fb.on
+            ? (root.isXbox ? Color.popups.background : (root.isPs ? Color.popups.background : "#000000"))
+            : (root.isXbox ? root.playerColor : fb.buttonAccent)
           font.pixelSize: root.isPs ? 13 : 11
           font.bold: true
           font.family: Style.font.family
@@ -2316,6 +2572,7 @@ Item {
     property color accent: root.playerColor
     property bool showLabel: true
     property int labelSize: 7
+    readonly property bool isXboxGuide: root.isXbox && (ck.role === "centerTop" || ck.label === "XBOX" || ck.label === "Xbox")
 
     x: cx - r - 1
     y: cy - r - 1
@@ -2342,7 +2599,7 @@ Item {
       color: Qt.rgba(0, 0, 0, 0.60)
     }
 
-    // 3. Domed Key Cap
+    // 3. Domed Key Cap (With Xbox Nexus Jewel Styling)
     Rectangle {
       id: keyCap
       anchors.horizontalCenter: parent.horizontalCenter
@@ -2351,9 +2608,17 @@ Item {
       width: ck.r * 2
       height: ck.r * 2
       radius: ck.r
-      color: ck.on ? ck.accent : (ckMouse.containsMouse ? Qt.lighter(root.idleFill, 1.20) : root.idleFill)
-      border.color: ck.on ? ck.accent : (ckMouse.containsMouse ? Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, 0.60) : root.bodyBorder)
-      border.width: ck.on ? 2 : 1
+      color: ck.on
+        ? (ck.isXboxGuide ? Qt.lighter(ck.accent, 1.25) : ck.accent)
+        : (ck.isXboxGuide
+            ? (ckMouse.containsMouse ? Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, 0.25) : Qt.rgba(0.08, 0.10, 0.14, 0.95))
+            : (ckMouse.containsMouse ? Qt.lighter(root.idleFill, 1.20) : root.idleFill))
+      border.color: ck.on
+        ? "#FFFFFF"
+        : (ck.isXboxGuide
+            ? (ckMouse.containsMouse ? ck.accent : Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, 0.65))
+            : (ckMouse.containsMouse ? Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, 0.60) : root.bodyBorder))
+      border.width: ck.on ? 2 : (ck.isXboxGuide ? 1.5 : 1)
       scale: ck.on ? 0.94 : (ckMouse.containsMouse ? 1.08 : 1.0)
 
       Behavior on y { NumberAnimation { duration: 35 } }
@@ -2384,16 +2649,16 @@ Item {
         onCanceled: root.setVirtualButton(ck.buttonIndex, false)
       }
 
-      // Glow halo
+      // Glow halo (Nexus ambient breathing LED glow when Xbox Guide)
       Rectangle {
         anchors.centerIn: parent
         width: parent.width + 6
         height: parent.height + 6
         radius: width / 2
-        color: Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, ck.on ? 0.30 : 0)
-        border.color: Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, ck.on ? 0.70 : 0)
+        color: Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, ck.on ? 0.45 : (ck.isXboxGuide ? 0.22 : 0))
+        border.color: Qt.rgba(ck.accent.r, ck.accent.g, ck.accent.b, ck.on ? 0.85 : 0.55)
         border.width: 1.5
-        opacity: (ck.on || ckMouse.containsMouse) ? 1.0 : 0.0
+        opacity: (ck.on || ckMouse.containsMouse || ck.isXboxGuide) ? 1.0 : 0.0
         z: -1
         Behavior on opacity { NumberAnimation { duration: 50 } }
       }
@@ -2405,27 +2670,31 @@ Item {
         width: Math.max(4, parent.width - 4)
         height: Math.max(2, parent.height * 0.4)
         radius: width / 2
-        color: Qt.rgba(1, 1, 1, ck.on ? 0.45 : 0.18)
+        color: Qt.rgba(1, 1, 1, ck.on ? 0.45 : (ck.isXboxGuide ? 0.32 : 0.18))
       }
 
-      // Kenney cap art (start/back for the Create/Options keys)
+      // Vector cap art (View, Menu, Share, Guide)
       Image {
-        visible: ck.artSource !== ""
+        id: ckSvgImg
+        visible: ck.artSource !== "" && status === Image.Ready
         anchors.fill: parent
-        anchors.margins: ck.r >= 7 ? 0 : 1
+        anchors.margins: ck.isXboxGuide ? 2.5 : (ck.r >= 7 ? 1.5 : 1)
         source: ck.artSource
         fillMode: Image.PreserveAspectFit
         mipmap: true
+        smooth: true
         layer.enabled: visible
         layer.effect: MultiEffect {
           colorization: 1.0
-          colorizationColor: ck.on ? root.playerColor : root.glyphColor
+          colorizationColor: ck.on
+            ? (ck.isXboxGuide ? Color.popups.background : Color.popups.background)
+            : (ck.isXboxGuide ? "#FFFFFF" : (ckMouse.containsMouse ? ck.accent : root.glyphColor))
         }
       }
 
       // Embossed shadow for text label
       Text {
-        visible: ck.artSource === "" && ck.showLabel
+        visible: (!ckSvgImg.visible || ckSvgImg.status !== Image.Ready) && ck.showLabel
         anchors.centerIn: parent
         anchors.verticalCenterOffset: 1
         text: ck.label
@@ -2437,7 +2706,7 @@ Item {
 
       // Core text label
       Text {
-        visible: ck.artSource === "" && ck.showLabel
+        visible: (!ckSvgImg.visible || ckSvgImg.status !== Image.Ready) && ck.showLabel
         anchors.centerIn: parent
         text: ck.label
         color: ck.on ? Color.popups.background : root.glyphColor

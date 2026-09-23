@@ -560,14 +560,16 @@ function buttonArt(layout, role, profile) {
     bumperR: "rightshoulder",
     triggerL: "lefttrigger",
     triggerR: "righttrigger",
-    stickL: set === "ps3" ? "leftstick" : "",
-    stickR: set === "ps3" ? "rightstick" : "",
+    stickL: "leftstick",
+    stickR: "rightstick",
     dpadUp: "dpup",
     dpadDown: "dpdown",
     dpadLeft: "dpleft",
     dpadRight: "dpright",
     centerLeft: "back",
-    centerRight: "start"
+    centerRight: "start",
+    centerExtra: "share",
+    centerTop: "guide"
   }
   if (profile && (profile.remapPreset === "nintendo_swap" || profile.swapFace)) {
     if (activeRole === "faceBottom") return artPath(set, "e")
@@ -634,6 +636,8 @@ function buttonLabel(layout, role, profile) {
   if (activeRole === "dpadRight") return "▶"
   if (activeRole === "centerLeft") return isPs ? "Create" : isSwitch ? "–" : "View"
   if (activeRole === "centerRight") return isPs ? "Options" : isSwitch ? "+" : "Menu"
+  if (activeRole === "centerExtra") return isPs ? "Touchpad" : isSwitch ? "Capture" : "Share"
+  if (activeRole === "centerTop") return isPs ? "PS" : isSwitch ? "Home" : "Xbox"
   return activeRole
 }
 
@@ -652,6 +656,8 @@ function triggerArt(layout, side) {
 // Center key cap: "left" = back/create/share, "right" = start/options/menu.
 function centerArt(layout, side) {
   if (layout !== "xbox" && layout !== "ps") return ""
+  if (side === "extra" || side === "share") return artPath(artSet(layout), "share")
+  if (side === "top" || side === "guide") return artPath(artSet(layout), "guide")
   return artPath(artSet(layout), side === "left" ? "back" : "start")
 }
 

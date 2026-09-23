@@ -1,0 +1,6 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="32" cy="32" r="26" fill="none" stroke="#FFFFFF" stroke-width="2.5" opacity="0.4"/>
+  <!-- Xbox Series Share Tray & Arrow -->
+  <path d="M 20 35 L 20 43 C 20 44.5 21.5 45.5 23.5 45.5 L 40.5 45.5 C 42.5 45.5 44 44.5 44 43 L 44 35" fill="none" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M 32 17 L 23 26 L 28 26 L 28 37 L 36 37 L 36 26 L 41 26 Z" fill="#FFFFFF"/>
+</svg>

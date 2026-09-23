@@ -1,6 +1,11 @@
-<svg width="64" height="64" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
-  <defs/>
-  <g>
-    <path stroke="none" fill="#FFFFFF" d="M48.3 54 L31.35 54 Q21.85 53.8 15.05 47 8.35 40.3 8 31.05 L8 18 Q8 10 16 10 L48 10 Q56 10 56 18 L56 46 Q56 53.85 48.3 54 M38 36 L42 36 42 23 47 23 47 19 33 19 33 23 38 23 38 36 M25 23 Q25.8 23 26.4 23.6 27 24.2 27 25 27 25.8 26.45 26.35 L26.35 26.45 Q25.8 27 25 27 L22 27 22 23 25 23 M18 19 L18 36 22 36 22 31 25 31 27.5 36 31.5 36 28.45 29.9 29.2 29.25 29.25 29.2 Q31 27.45 31 25 31 22.5 29.25 20.75 27.5 19 25 19 L18 19"/>
-  </g>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sculpted Analog Right Trigger Blade Outline -->
+  <path d="M 50 14 C 50 10, 44 8, 34 8 L 16 8 C 12 8, 10 11, 10 16 L 10 38 C 10 48, 20 56, 32 56 C 44 56, 50 48, 50 38 Z" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+  <!-- 3 Tactile Micro-Ridge Grip Lines -->
+  <line x1="20" y1="14" x2="40" y2="14" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" opacity="0.6"/>
+  <line x1="20" y1="18" x2="40" y2="18" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" opacity="0.6"/>
+  <line x1="20" y1="22" x2="40" y2="22" stroke="#FFFFFF" stroke-width="1.8" stroke-linecap="round" opacity="0.6"/>
+  <!-- Bold Vector RT Glyph -->
+  <path fill="#FFFFFF" fill-rule="evenodd" d="M 18 29 L 26 29 C 29.5 29 31.5 30.5 31.5 33.5 C 31.5 35.8 30 37.2 27.5 37.8 L 32 44 L 27 44 L 23 38 L 22.5 38 L 22.5 44 L 18 44 Z M 22.5 32 L 22.5 35 L 25.5 35 C 26.5 35 27.5 34.5 27.5 33.5 C 27.5 32.5 26.5 32 25.5 32 Z"/>
+  <path fill="#FFFFFF" d="M 33 29 L 47 29 L 47 33 L 42.5 33 L 42.5 44 L 37.5 44 L 37.5 33 L 33 33 Z"/>
 </svg>

@@ -281,6 +281,8 @@ test('ControllerImage button art resolution paths', (t) => {
   assert.strictEqual(Model.triggerArt('xbox', 'r'), 'assets/input/xbox360/righttrigger.svg');
   assert.strictEqual(Model.centerArt('xbox', 'left'), 'assets/input/xbox360/back.svg');
   assert.strictEqual(Model.centerArt('xbox', 'right'), 'assets/input/xbox360/start.svg');
+  assert.strictEqual(Model.centerArt('xbox', 'extra'), 'assets/input/xbox360/share.svg');
+  assert.strictEqual(Model.centerArt('xbox', 'guide'), 'assets/input/xbox360/guide.svg');
   assert.strictEqual(Model.centerArt('ps', 'left'), 'assets/input/ps3/back.svg');
 
   // Switch/generic fall back to vector text labels
@@ -371,11 +373,17 @@ test('Dynamic SVG buttonArt and faceArt with button remapping', (t) => {
   assert.strictEqual(Model.buttonArt('xbox', 'faceBottom'), 'assets/input/xbox360/s.svg');
   assert.strictEqual(Model.buttonArt('xbox', 'bumperL'), 'assets/input/xbox360/leftshoulder.svg');
   assert.strictEqual(Model.buttonArt('xbox', 'triggerR'), 'assets/input/xbox360/righttrigger.svg');
+  assert.strictEqual(Model.buttonArt('xbox', 'stickL'), 'assets/input/xbox360/leftstick.svg');
+  assert.strictEqual(Model.buttonArt('xbox', 'stickR'), 'assets/input/xbox360/rightstick.svg');
+  assert.strictEqual(Model.buttonArt('xbox', 'centerExtra'), 'assets/input/xbox360/share.svg');
+  assert.strictEqual(Model.buttonArt('xbox', 'centerTop'), 'assets/input/xbox360/guide.svg');
   assert.strictEqual(Model.buttonArt('xbox', 'faceBottom', nProfile), 'assets/input/xbox360/e.svg');
 
   // buttonLabel resolver
   assert.strictEqual(Model.buttonLabel('xbox', 'faceBottom'), 'A');
   assert.strictEqual(Model.buttonLabel('xbox', 'faceBottom', nProfile), 'B');
+  assert.strictEqual(Model.buttonLabel('xbox', 'centerExtra'), 'Share');
+  assert.strictEqual(Model.buttonLabel('xbox', 'centerTop'), 'Xbox');
   assert.strictEqual(Model.buttonLabel('ps', 'faceBottom'), '×');
   assert.strictEqual(Model.buttonLabel('ps', 'faceBottom', nProfile), '○');
 });
