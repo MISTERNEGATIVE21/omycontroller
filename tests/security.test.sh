@@ -53,6 +53,15 @@ assert_fail "gyro.py: rejects malformed device node" python3 scripts/gyro.py "/d
 assert_fail "gyro.py: rejects non-event input node" python3 scripts/gyro.py "/dev/input/mice"
 assert_fail "gyro.py: rejects path traversal with prefix" python3 scripts/gyro.py "/dev/input/event0/../../../etc/shadow"
 
+# --- 1b. stream.py security checks ---
+printf '\n%s\n' '--- Testing scripts/stream.py ---'
+assert_fail "stream.py: rejects missing arguments" python3 scripts/stream.py
+assert_fail "stream.py: rejects relative path traversal" python3 scripts/stream.py "../../etc/passwd"
+assert_fail "stream.py: rejects arbitrary file /etc/passwd" python3 scripts/stream.py "/etc/passwd"
+assert_fail "stream.py: rejects malformed device node" python3 scripts/stream.py "/dev/input/jsABC"
+assert_fail "stream.py: rejects non-js input node" python3 scripts/stream.py "/dev/input/mice"
+assert_fail "stream.py: rejects path traversal with prefix" python3 scripts/stream.py "/dev/input/js0/../../../etc/shadow"
+
 # --- 2. rumble.py security checks ---
 printf '\n%s\n' '--- Testing scripts/rumble.py ---'
 assert_fail "rumble.py: rejects missing arguments" python3 scripts/rumble.py

@@ -79,10 +79,10 @@ for js in "$SYS"/class/input/js*; do
     driver="$(basename "$(readlink -f "$parent/driver" 2>/dev/null || printf '?')")"
   fi
 
-  bustype="$(cat "$parent/id/bustype" 2>/dev/null || printf '0000')"
-  vendor="$(cat "$parent/id/vendor" 2>/dev/null || printf '0000')"
-  product="$(cat "$parent/id/product" 2>/dev/null || printf '0000')"
-  phys="$(cat "$parent/phys" 2>/dev/null || printf '')"
+  bustype="$(cat "$dev_dir/id/bustype" 2>/dev/null || cat "$parent/id/bustype" 2>/dev/null || printf '0000')"
+  vendor="$(cat "$dev_dir/id/vendor" 2>/dev/null || cat "$parent/id/vendor" 2>/dev/null || printf '0000')"
+  product="$(cat "$dev_dir/id/product" 2>/dev/null || cat "$parent/id/product" 2>/dev/null || printf '0000')"
+  phys="$(cat "$dev_dir/phys" 2>/dev/null || cat "$parent/phys" 2>/dev/null || printf '')"
   phys="$(basename "$phys" 2>/dev/null || printf '')"
 
   input_name="$(basename "$(readlink -f "$dev_dir" 2>/dev/null || printf '')" 2>/dev/null || printf '')"

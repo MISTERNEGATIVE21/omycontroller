@@ -104,8 +104,14 @@ Item {
   readonly property var extras: isJoystick ? GamepadModel.joystickExtras(axes, axisNames) : null
 
   // ---------------------------------------------------------------- tables
-  readonly property var tables: GamepadModel.buttonTables(layout, profile)
+  property string buttonPreset: (profile && profile.buttonPreset) ? profile.buttonPreset : ""
+  readonly property var tables: GamepadModel.buttonTables(buttonPreset || layout, profile)
   readonly property var axisMap: GamepadModel.axesMap(layout, axes ? axes.length : 0, axisNames)
+
+  // Live rumble visual haptic parameters
+  property bool rumbleActive: false
+  property real rumbleWeak: 0.0
+  property real rumbleStrong: 0.0
 
   function pressed(idx) {
     if (idx < 0) return false
@@ -154,10 +160,14 @@ Item {
     if (virtualTriggers && isFinite(Number(virtualTriggers[side])) && Number(virtualTriggers[side]) > 0) {
       return Number(virtualTriggers[side])
     }
-    if (!axes || axes.length === 0) {
-      return (side === "l" ? pressed(tables.triggerL) : pressed(tables.triggerR)) ? 1.0 : 0.0
+    // Check digital trigger button first for discrete button-based triggers
+    if (pressed(side === "l" ? tables.triggerL : tables.triggerR)) {
+      return 1.0
     }
-    var fallback = isXbox ? -1 : 0
+    if (!axes || axes.length === 0) {
+      return 0.0
+    }
+    var fallback = (isXbox || layout === "generic") ? -1 : 0
     var raw = axisValue(side === "l" ? axisMap.lt : axisMap.rt, fallback)
     return GamepadModel.triggerNorm(layout, raw)
   }
@@ -307,7 +317,20 @@ Item {
     y: (root.height - 208 * root.effScale) / 2
 
     // 3D Gyro Motion Transform: tilts, rolls and yaws dynamically with physical controller motion
+    property real rumblePhase: 0
+    NumberAnimation on rumblePhase {
+      running: root.rumbleActive
+      from: 0; to: Math.PI * 20
+      duration: 800
+      loops: Animation.Infinite
+    }
+
     transform: [
+      Translate {
+        id: rumbleTranslate
+        x: root.rumbleActive ? (Math.sin(root.rumblePhase * 3.7) * (1.8 * Math.max(0.2, (root.rumbleWeak + root.rumbleStrong)))) : 0
+        y: root.rumbleActive ? (Math.cos(root.rumblePhase * 4.3) * (1.2 * Math.max(0.2, (root.rumbleWeak + root.rumbleStrong)))) : 0
+      },
       Rotation {
         id: pitchRot
         origin.x: 170
@@ -601,6 +624,96 @@ Item {
       }
     }
 
+    // --- Visual Dual-Motor Rumble Haptics (Left Heavy LF / Right Fast HF) ---
+    Item {
+      anchors.fill: parent
+      visible: root.rumbleActive
+      opacity: root.rumbleActive ? 1.0 : 0.0
+      Behavior on opacity { NumberAnimation { duration: 120 } }
+
+      // Left Grip: Heavy Low-Frequency Shaker (Coil + Eccentric Counterweight)
+      Item {
+        x: 42; y: 126
+        width: 34; height: 34
+
+        // Radiating Haptic Resonance Ripple Wave
+        Rectangle {
+          anchors.centerIn: parent
+          width: 26 + Math.sin(art.rumblePhase * 2.5) * 14
+          height: width
+          radius: width / 2
+          color: "transparent"
+          border.color: Qt.rgba(1.0, 0.45, 0.15, 0.65 * Math.max(0.3, root.rumbleStrong))
+          border.width: 1.5
+        }
+
+        // Motor Casing
+        Rectangle {
+          anchors.centerIn: parent
+          width: 22; height: 26; radius: 4
+          color: Qt.rgba(0.08, 0.09, 0.12, 0.85)
+          border.color: Qt.rgba(1.0, 0.50, 0.20, 0.75 * Math.max(0.3, root.rumbleStrong))
+          border.width: 1.2
+        }
+
+        // Copper Coil Core
+        Rectangle {
+          anchors.centerIn: parent
+          width: 14; height: 16; radius: 2
+          color: Qt.rgba(0.85, 0.40, 0.15, 0.75)
+        }
+
+        // Rotating Heavy Eccentric Rotor Mass
+        Rectangle {
+          anchors.centerIn: parent
+          width: 18; height: 6; radius: 3
+          color: Qt.rgba(1.0, 0.65, 0.25, 0.95)
+          rotation: (art.rumblePhase * 180 / Math.PI) * 1.5
+        }
+      }
+
+      // Right Grip: High-Frequency Precision Spinner (Coil + Lightweight Flyweight)
+      Item {
+        x: 290; y: 126
+        width: 34; height: 34
+
+        // Radiating Haptic Resonance Ripple Wave
+        Rectangle {
+          anchors.centerIn: parent
+          width: 24 + Math.cos(art.rumblePhase * 3.2) * 12
+          height: width
+          radius: width / 2
+          color: "transparent"
+          border.color: Qt.rgba(0.35, 0.75, 1.0, 0.65 * Math.max(0.3, root.rumbleWeak))
+          border.width: 1.5
+        }
+
+        // Motor Casing
+        Rectangle {
+          anchors.centerIn: parent
+          width: 20; height: 24; radius: 4
+          color: Qt.rgba(0.08, 0.09, 0.12, 0.85)
+          border.color: Qt.rgba(0.35, 0.75, 1.0, 0.75 * Math.max(0.3, root.rumbleWeak))
+          border.width: 1.2
+        }
+
+        // High-Speed Blue/Cyan Armature Core
+        Rectangle {
+          anchors.centerIn: parent
+          width: 12; height: 14; radius: 2
+          color: Qt.rgba(0.20, 0.60, 0.95, 0.75)
+        }
+
+        // Rapid Spinning Counterweight
+        Rectangle {
+          anchors.centerIn: parent
+          width: 16; height: 5; radius: 2.5
+          color: Qt.rgba(0.50, 0.85, 1.0, 0.95)
+          rotation: (art.rumblePhase * 180 / Math.PI) * 2.8
+        }
+      }
+    }
+
     // Micro-Stippled Tactile Texture Overlay on Palm Grips
     Item {
       anchors.fill: parent
@@ -721,10 +834,10 @@ Item {
     Dpad {
       cx: root.geo.dpad[0]
       cy: root.geo.dpad[1]
-      up: root.pressed(root.tables.dpadUp)
-      down: root.pressed(root.tables.dpadDown)
-      dpadLeft: root.pressed(root.tables.dpadLeft)
-      dpadRight: root.pressed(root.tables.dpadRight)
+      up: root.pressed(root.tables.dpadUp) || (root.axisMap.hatY !== undefined && root.axisMap.hatY !== -1 && root.axisValue(root.axisMap.hatY, 0) < -0.5)
+      down: root.pressed(root.tables.dpadDown) || (root.axisMap.hatY !== undefined && root.axisMap.hatY !== -1 && root.axisValue(root.axisMap.hatY, 0) > 0.5)
+      dpadLeft: root.pressed(root.tables.dpadLeft) || (root.axisMap.hatX !== undefined && root.axisMap.hatX !== -1 && root.axisValue(root.axisMap.hatX, 0) < -0.5)
+      dpadRight: root.pressed(root.tables.dpadRight) || (root.axisMap.hatX !== undefined && root.axisMap.hatX !== -1 && root.axisValue(root.axisMap.hatX, 0) > 0.5)
       idxUp: root.tables.dpadUp
       idxDown: root.tables.dpadDown
       idxLeft: root.tables.dpadLeft

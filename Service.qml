@@ -73,6 +73,28 @@ Item {
     function cycleDemoLayout(): string {
       return root.cycleDemoLayout()
     }
+
+    function getStatus(): string {
+      var dev = root.device("js0")
+      return JSON.stringify({
+        scanScript: root.scanScript,
+        streamScript: root.streamScript,
+        jstestAvailable: root.jstestAvailable,
+        seenThisScan: root._seenThisScan,
+        devices: Object.keys(root._devices),
+        js0: dev ? {
+          name: dev.name,
+          layout: dev.layout,
+          buttonPreset: dev.buttonPreset,
+          axisCount: dev.axisCount,
+          buttonCount: dev.buttonCount,
+          live: dev.live,
+          buttons: dev.buttons,
+          axes: dev.axes,
+          profile: dev.profile
+        } : null
+      })
+    }
   }
 
   // Live polling rate (Hz) and min/avg/max latency benchmark stats
@@ -125,6 +147,7 @@ Item {
   readonly property string rumbleScript: root.localPath("scripts/rumble.py")
   readonly property string triggersScript: root.localPath("scripts/triggers.py")
   readonly property string gyroScript: root.localPath("scripts/gyro.py")
+  readonly property string streamScript: root.localPath("scripts/stream.py")
 
   function localPath(rel) {
     var url = Qt.resolvedUrl(rel).toString()
@@ -155,14 +178,15 @@ Item {
     return false
   }
 
-  // Tool availability, filled by envProc on startup.
-  property bool jstestAvailable: false
+  // Tool availability. Live streaming is always available via bundled streamScript.
+  property bool jstestAvailable: true
   property bool evdevAvailable: false
   readonly property bool liveInputReady: jstestAvailable && count > 0
 
   // Last hardware-action feedback line for the panel footer.
   signal actionResult(string message)
   signal liveUpdated(string id)
+  signal rumbleTriggered(string id, real weak, real strong, int ms)
 
   // Per-pad deadzone profiles, persisted across reloads and restarts.
   PersistentProperties {
@@ -190,8 +214,8 @@ Item {
     return GamepadModel.connection(d.bus, d.name, d.phys)
   }
 
-  function profileFor(id) {
-    var d = device(id)
+  function profileFor(id, fallbackDevice) {
+    var d = fallbackDevice || device(id)
     var key = d ? GamepadModel.profileKey(d.vendor, d.product, d.name) : ""
     var raw = key && persisted.profiles ? persisted.profiles[key] : null
     var p = GamepadModel.normalizeProfile(raw)
@@ -207,6 +231,12 @@ Item {
       p.rumble = isFinite(r) ? Math.min(1, Math.max(0.1, r)) : 1
     } else {
       p.rumble = 1
+    }
+    if (d) {
+      if (d.buttonPreset && !p.buttonPreset) p.buttonPreset = d.buttonPreset
+      if (d.vendor === "0079" || String(d.name || "").toLowerCase().indexOf("zhixu") !== -1) {
+        if (!p.buttonPreset) p.buttonPreset = "zhixu"
+      }
     }
     return p
   }
@@ -317,10 +347,6 @@ Item {
       var s = Number(strong)
       if (!isFinite(w)) w = 1.0
       if (!isFinite(s)) s = w
-      if (d.id === "sim0") {
-        root.actionResult("Rumble simulated (" + Math.round(w * 100) + "% / " + Math.round(s * 100) + "%) on " + d.modelLabel)
-        return true
-      }
       return root.rumble(d.id, w, s, 500)
     }
 
@@ -659,8 +685,9 @@ Item {
     state.modelLabel = cls.modelLabel
     state.protocol = cls.protocol
     state.maker = cls.maker
+    if (cls.buttonPreset) state.buttonPreset = cls.buttonPreset
     state.connection = GamepadModel.connection(state.bus, state.name, state.phys)
-    state.profile = root.profileFor(id)
+    state.profile = root.profileFor(id, state)
 
     if (!existing) {
       state.slot = root.claimSlot(id)
@@ -711,7 +738,7 @@ Item {
     if (!d) return
     var proc = streamComp.createObject(root, { targetId: id })
     if (!proc) return
-    proc.command = ["jstest", "--event", "/dev/input/" + id]
+    proc.command = ["python3", root.streamScript, "/dev/input/" + id]
     proc.running = true
     var next = ({})
     for (var k in _streams) next[k] = _streams[k]
@@ -843,7 +870,7 @@ Item {
   // accept both so live input survives across distros. The header regex
   // also captures the axis-name list ("X, Y, Throttle, Hat0X, Hat0Y") so
   // joystick extras bind by name, not by guessed index.
-  readonly property var eventRe: /time\s+([0-9]+\.[0-9]+).*?type\s+(\d+).*?(?:code|number)\s+(\d+).*?value\s+(-?\d+)/
+  readonly property var eventRe: /(?:time\s+([0-9]+(?:\.[0-9]+)?).*?type\s+(\d+)|type\s+(\d+).*?time\s+([0-9]+(?:\.[0-9]+)?)).*?(?:code|number)\s+(\d+).*?value\s+(-?\d+)/
   readonly property var headerRe: /has\s+(\d+)\s+axes\s*\(([^)]*)\)\s+and\s+(\d+)\s+buttons/
 
   function handleEventLine(id, line) {
@@ -870,12 +897,15 @@ Item {
         // from the generic gamepad silhouette to the dedicated one.
         var cls = GamepadModel.classify(d.name, d.driver, d.vendor, d.product,
                                         d.axisCount, d.buttonCount)
-        if (cls.layout !== d.layout || cls.protocol !== d.protocol ||
-            cls.modelLabel !== d.modelLabel) {
-          d.layout = cls.layout
-          d.modelLabel = cls.modelLabel
-          d.protocol = cls.protocol
-          d.maker = cls.maker
+        d.layout = cls.layout
+        d.modelLabel = cls.modelLabel
+        d.protocol = cls.protocol
+        d.maker = cls.maker
+        if (cls.buttonPreset) {
+          d.buttonPreset = cls.buttonPreset
+          if (d.profile && !d.profile.buttonPreset) {
+            d.profile.buttonPreset = cls.buttonPreset
+          }
         }
         _touch(id)
       }
@@ -884,10 +914,11 @@ Item {
 
     var m = eventRe.exec(text)
     if (!m) return
-    var ts = parseFloat(m[1])
-    var type = parseInt(m[2], 10) & 0x7f
-    var num = parseInt(m[3], 10)
-    var value = parseInt(m[4], 10)
+    var rawTs = m[1] !== undefined ? m[1] : m[4]
+    var ts = parseFloat(rawTs)
+    var type = parseInt(m[2] !== undefined ? m[2] : m[3], 10) & 0x7f
+    var num = parseInt(m[5], 10)
+    var value = parseInt(m[6], 10)
 
     if (type === 1) {
       d.buttons[num] = (value !== 0)
@@ -901,7 +932,7 @@ Item {
     // Input latency: rolling average of evdev event intervals.
     if (!isNaN(ts)) {
       if (d._lastTs > 0) {
-        var delta = (ts - d._lastTs) * 1000.0
+        var delta = ts > 100000 ? (ts - d._lastTs) : (ts - d._lastTs) * 1000.0
         if (delta > 0 && delta < 1000) {
           if (!d._samples) d._samples = []
           d._samples.push(delta)
@@ -953,21 +984,24 @@ Item {
   // per-pad stored power profile scales both motors.
   function rumble(id, weak, strong, ms) {
     var d = device(id)
-    if (!d || !d.event || !/^event\d+$/.test(String(d.event))) {
-      root.actionResult("No valid evdev node for " + id)
-      return false
-    }
-    if (!root.evdevAvailable) {
-      root.actionResult("python-evdev missing — sudo pacman -S --needed python-evdev")
-      return false
-    }
-    var strength = d.profile && isFinite(Number(d.profile.rumble))
+    var strength = (d && d.profile && isFinite(Number(d.profile.rumble)))
         ? Math.min(1.0, Math.max(0.1, Number(d.profile.rumble))) : 1.0
     var wVal = isFinite(Number(weak)) ? Number(weak) : 0.0
     var sVal = isFinite(Number(strong)) ? Number(strong) : 0.0
     var w = Math.round(Math.min(1.0, Math.max(0.0, wVal)) * strength * 65535)
     var s = Math.round(Math.min(1.0, Math.max(0.0, sVal)) * strength * 65535)
     var duration = Math.min(5000, Math.max(30, parseInt(ms, 10) || 500))
+
+    root.rumbleTriggered(id, wVal * strength, sVal * strength, duration)
+
+    if (!d || !d.event || !/^event\d+$/.test(String(d.event))) {
+      root.actionResult("Rumble simulated (" + Math.round(wVal * 100) + "% / " + Math.round(sVal * 100) + "%) on " + (d ? d.modelLabel : id))
+      return true
+    }
+    if (!root.evdevAvailable) {
+      root.actionResult("Rumble simulated (" + Math.round(wVal * 100) + "% / " + Math.round(sVal * 100) + "%) — python-evdev missing")
+      return true
+    }
     return runAction(
       ["python3", root.rumbleScript, "/dev/input/" + d.event,
        String(w), String(s), String(duration)],
@@ -1010,7 +1044,7 @@ Item {
       waitForEnd: true
       onStreamFinished: {
         var t = String(text || "")
-        root.jstestAvailable = t.indexOf("jstest:yes") !== -1
+        root.jstestAvailable = true
         root.evdevAvailable = t.indexOf("evdev:yes") !== -1
       }
     }

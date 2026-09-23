@@ -388,4 +388,99 @@ test('Dynamic SVG buttonArt and faceArt with button remapping', (t) => {
   assert.strictEqual(Model.buttonLabel('ps', 'faceBottom', nProfile), '○');
 });
 
+test('ZhiXu Gamepad Classification and Button Mapping', (t) => {
+  // Classification
+  const zx = Model.classify('ZhiXu Gamepad', 'hid-generic', '0079', '181c', 8, 15);
+  assert.strictEqual(zx.layout, 'xbox');
+  assert.strictEqual(zx.maker, 'ZhiXu');
+  assert.strictEqual(zx.modelLabel, 'ZhiXu Gamepad');
+  assert.strictEqual(zx.buttonPreset, 'zhixu');
+
+  // Axes map with hat coordinates
+  const axes = Model.axesMap('xbox', 8, ['X', 'Y', 'Z', 'Rz', 'Gas', 'Brake', 'Hat0X', 'Hat0Y']);
+  assert.strictEqual(axes.lx, 0);
+  assert.strictEqual(axes.ly, 1);
+  assert.strictEqual(axes.rx, 2);
+  assert.strictEqual(axes.ry, 3);
+  assert.strictEqual(axes.lt, 4);
+  assert.strictEqual(axes.rt, 5);
+  assert.strictEqual(axes.hatX, 6);
+  assert.strictEqual(axes.hatY, 7);
+
+  // Button table for zhixu
+  const zxTable = Model.buttonTables('xbox', { buttonPreset: 'zhixu' });
+  assert.strictEqual(zxTable.faceBottom, 0); // A
+  assert.strictEqual(zxTable.faceRight, 1);  // B
+  assert.strictEqual(zxTable.faceLeft, 3);   // X
+  assert.strictEqual(zxTable.faceTop, 4);    // Y
+  assert.strictEqual(zxTable.bumperL, 6);    // LB
+  assert.strictEqual(zxTable.bumperR, 7);    // RB
+  assert.strictEqual(zxTable.triggerL, 8);   // LT button
+  assert.strictEqual(zxTable.triggerR, 9);   // RT button
+  assert.strictEqual(zxTable.centerLeft, 10); // Back/View
+  assert.strictEqual(zxTable.centerRight, 11); // Start/Menu
+  assert.strictEqual(zxTable.centerTop, 12);  // Mode/Guide
+  assert.strictEqual(zxTable.stickL, 13);    // LS
+  assert.strictEqual(zxTable.stickR, 14);    // RS
+});
+
+test('Kernel Device Database & Multi-Vendor Classification', (t) => {
+  // Vendor coverage
+  assert.ok(typeof Model.VENDORS === 'object');
+  assert.ok(Object.keys(Model.VENDORS).length >= 75, `Expected >= 75 vendors, got ${Object.keys(Model.VENDORS).length}`);
+
+  // Device catalog coverage
+  assert.ok(typeof Model.KERNEL_DEVICES === 'object');
+  assert.ok(Object.keys(Model.KERNEL_DEVICES).length >= 350, `Expected >= 350 kernel devices, got ${Object.keys(Model.KERNEL_DEVICES).length}`);
+
+  // Logitech F310 DirectInput
+  const f310 = Model.classify('Logitech Gamepad F310', 'hid-generic', '046d', 'c21d', 6, 12);
+  assert.strictEqual(f310.maker, 'Logitech');
+  assert.strictEqual(f310.modelLabel, 'Logitech Gamepad F310');
+  assert.strictEqual(f310.protocol, 'DirectInput');
+
+  // Logitech G29 Racing Wheel
+  const g29 = Model.classify('Logitech G29 Driving Force Racing Wheel', 'hid-generic', '046d', 'c29b', 4, 16);
+  assert.strictEqual(g29.layout, 'joystick');
+  assert.strictEqual(g29.maker, 'Logitech');
+  assert.strictEqual(g29.protocol, 'HID wheel');
+
+  // Valve Steam Deck Controller
+  const steamDeck = Model.classify('Steam Deck Controller', 'hid-generic', '28de', '1205', 6, 16);
+  assert.strictEqual(steamDeck.maker, 'Valve');
+  assert.strictEqual(steamDeck.modelLabel, 'Steam Deck Controller');
+  assert.strictEqual(steamDeck.protocol, 'Steam Input');
+
+  // Flydigi Apex 4
+  const apex4 = Model.classify('Flydigi Apex 4', 'xpadneo', '31e3', '1100', 6, 16);
+  assert.strictEqual(apex4.maker, 'Flydigi');
+  assert.strictEqual(apex4.modelLabel, 'Flydigi Apex 4');
+  assert.strictEqual(apex4.layout, 'xbox');
+
+  // GameSir G7 SE
+  const g7se = Model.classify('GameSir G7 SE', 'xpad', '3537', '1001', 6, 16);
+  assert.strictEqual(g7se.maker, 'GameSir');
+  assert.strictEqual(g7se.modelLabel, 'GameSir G7 SE');
+  assert.strictEqual(g7se.protocol, 'XInput');
+
+  // BIGBIG WON Rainbow 2 Pro
+  const bbw = Model.classify('BIGBIG WON Rainbow 2 Pro', 'xpad', '3507', '1001', 6, 16);
+  assert.strictEqual(bbw.maker, 'BIGBIG WON');
+  assert.strictEqual(bbw.modelLabel, 'BIGBIG WON Rainbow 2 Pro');
+
+  // Sony DualSense Edge
+  const edge = Model.classify('Wireless Controller', 'hid-playstation', '054c', '0df2', 6, 16);
+  assert.strictEqual(edge.maker, 'Sony');
+  assert.strictEqual(edge.modelLabel, 'DualSense Edge');
+  assert.strictEqual(edge.layout, 'ps');
+  assert.strictEqual(edge.protocol, 'DualSense');
+
+  // Nintendo Joy-Con
+  const joyconL = Model.classify('Joy-Con (L)', 'hid-nintendo', '057e', '2006', 4, 8);
+  assert.strictEqual(joyconL.maker, 'Nintendo');
+  assert.strictEqual(joyconL.modelLabel, 'Joy-Cons');
+  assert.strictEqual(joyconL.layout, 'switch');
+});
+
+
 

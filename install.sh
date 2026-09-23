@@ -25,6 +25,10 @@ TARGET_LINK="$PLUGINS_DIR/$PLUGIN_ID"
 
 mkdir -p "$PLUGINS_DIR"
 if [ "$REPO_DIR" != "$TARGET_LINK" ]; then
+  if [ -e "$TARGET_LINK" ] && [ ! -L "$TARGET_LINK" ]; then
+    info "replacing existing directory with symlink: $TARGET_LINK"
+    rm -rf "$TARGET_LINK"
+  fi
   ln -sfn "$REPO_DIR" "$TARGET_LINK"
   info "symlinked $REPO_DIR -> $TARGET_LINK"
 else

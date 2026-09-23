@@ -70,25 +70,21 @@ def main() -> None:
     except (OSError, PermissionError) as exc:
         fail("cannot open %s (%s)" % (real_node, exc))
 
-    if not hasattr(dev, "upload_effect"):
-        fail("device %s does not support force feedback" % node)
+    if not hasattr(dev, "upload_effect") or ecodes.EV_FF not in dev.capabilities():
+        fail("device %s does not support force feedback motors" % node, 0)
 
-    rumble = ff.Effect(
+    rumble = ff.Rumble(strong_magnitude=strong, weak_magnitude=weak)
+    effect = ff.Effect(
         ecodes.FF_RUMBLE,
-        time_left=0,
-        delay=0,
-        u=ff.EffectU(
-            type=ecodes.FF_RUMBLE,
-            data=ff.EffectUData(
-                strong_magnitude=strong,
-                weak_magnitude=weak,
-                delay=0,
-            ),
-        ),
+        -1,
+        0,
+        ff.Trigger(0, 0),
+        ff.Replay(ms, delay),
+        ff.EffectType(ff_rumble_effect=rumble),
     )
 
     try:
-        effect_id = dev.upload_effect(rumble)
+        effect_id = dev.upload_effect(effect)
     except (OSError, PermissionError) as exc:
         fail("cannot upload effect to %s (%s) — are you in the input group?" % (node, exc))
 

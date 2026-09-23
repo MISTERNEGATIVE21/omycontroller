@@ -104,6 +104,22 @@ Panel {
   property var liveAxes: []
   property var liveGyro: null
 
+  // Live rumble visual haptic state
+  property bool rumbleActive: false
+  property real rumbleWeak: 0.0
+  property real rumbleStrong: 0.0
+
+  Timer {
+    id: rumbleDecayTimer
+    interval: 500
+    repeat: false
+    onTriggered: {
+      root.rumbleActive = false
+      root.rumbleWeak = 0.0
+      root.rumbleStrong = 0.0
+    }
+  }
+
   function refreshLive() {
     if (!sel) { liveButtons = ({}); liveAxes = []; liveGyro = null; return }
     var b = {}
@@ -124,17 +140,39 @@ Panel {
     refreshLive()
   }
 
+  onSelChanged: {
+    if (root.sel && root.selectedId !== root.sel.id) {
+      root.selectedId = root.sel.id
+    }
+    root.refreshLive()
+  }
+
   Connections {
     target: svc
     function onLiveUpdated(id) {
-      if (id === root.selectedId) root.refreshLive()
+      if (!root.selectedId && root.sel) root.selectedId = root.sel.id
+      if (!root.sel || id === root.sel.id || id === root.selectedId) {
+        root.refreshLive()
+      }
     }
     function onDevicesChanged() {
-      if (!root.sel && root.pads.length > 0) root.select(root.pads[0].id)
-      if (root.sel) root.refreshLive()
+      if ((!root.selectedId || !root.sel) && root.pads.length > 0) {
+        root.select(root.pads[0].id)
+      } else if (root.sel) {
+        root.refreshLive()
+      }
     }
     function onActionResult(message) {
       root.actionMsg = String(message || "")
+    }
+    function onRumbleTriggered(id, weak, strong, ms) {
+      if (!root.sel || id === root.sel.id || id === "sim0") {
+        root.rumbleWeak = weak
+        root.rumbleStrong = strong
+        root.rumbleActive = true
+        rumbleDecayTimer.interval = Math.max(100, ms || 500)
+        rumbleDecayTimer.restart()
+      }
     }
   }
 
@@ -164,6 +202,20 @@ Panel {
     function closeModal(): string {
       remapModal.close()
       return "modal closed"
+    }
+
+    function getLiveState(): string {
+      return JSON.stringify({
+        selectedId: root.selectedId,
+        selId: root.sel ? root.sel.id : null,
+        layout: root.sel ? root.sel.layout : null,
+        buttonPreset: root.sel ? (root.sel.buttonPreset || (root.sel.profile && root.sel.profile.buttonPreset)) : null,
+        buttons: root.liveButtons,
+        axes: root.liveAxes,
+        currentTab: root.currentTab,
+        padsCount: root.pads.length,
+        rumbleActive: root.rumbleActive
+      })
     }
 
     function scrollContentY(y: int): string {
@@ -254,10 +306,6 @@ Panel {
 
   function triggerRumble(w, s, ms) {
     if (!root.svc || !root.sel) return
-    if (root.sel.id === "sim0") {
-      root.actionMsg = "Rumble simulated (" + Math.round(w * 100) + "% HF / " + Math.round(s * 100) + "% LF) on " + root.sel.modelLabel
-      return
-    }
     root.svc.rumble(root.sel.id, w, s, ms)
   }
 
@@ -937,8 +985,12 @@ Panel {
                     axes: root.liveAxes
                     axisNames: root.sel && root.sel.axisNames ? root.sel.axisNames : []
                     profile: root.sel && root.sel.profile ? root.sel.profile : null
+                    buttonPreset: (root.sel && (root.sel.buttonPreset || (root.sel.profile && root.sel.profile.buttonPreset))) ? (root.sel.buttonPreset || root.sel.profile.buttonPreset) : ""
                     gyro: root.liveGyro
                     remapMode: root.remapModeActive
+                    rumbleActive: root.rumbleActive
+                    rumbleWeak: root.rumbleWeak
+                    rumbleStrong: root.rumbleStrong
                     width: Style.space(310)
                     height: Style.space(190)
 
@@ -1876,6 +1928,22 @@ Panel {
                     font.family: root.bar ? root.bar.fontFamily : Style.font.family
                   }
 
+                  ControllerArt {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    layout: root.sel ? root.sel.layout : "generic"
+                    playerColor: root.playerColor
+                    buttons: root.liveButtons
+                    axes: root.liveAxes
+                    axisNames: root.sel && root.sel.axisNames ? root.sel.axisNames : []
+                    profile: root.sel && root.sel.profile ? root.sel.profile : null
+                    buttonPreset: (root.sel && (root.sel.buttonPreset || (root.sel.profile && root.sel.profile.buttonPreset))) ? (root.sel.buttonPreset || root.sel.profile.buttonPreset) : ""
+                    rumbleActive: root.rumbleActive
+                    rumbleWeak: root.rumbleActive ? root.rumbleWeak : root.hfMixer
+                    rumbleStrong: root.rumbleActive ? root.rumbleStrong : root.lfMixer
+                    width: Style.space(280)
+                    height: Style.space(165)
+                  }
+
                   DeadzoneSlider {
                     width: parent.width
                     labelText: "Low Freq (LF)"
@@ -2138,6 +2206,7 @@ Panel {
                       axes: root.liveAxes
                       axisNames: root.sel && root.sel.axisNames ? root.sel.axisNames : []
                       profile: root.sel && root.sel.profile ? root.sel.profile : null
+                      buttonPreset: (root.sel && (root.sel.buttonPreset || (root.sel.profile && root.sel.profile.buttonPreset))) ? (root.sel.buttonPreset || root.sel.profile.buttonPreset) : ""
                       gyro: root.liveGyro
                       width: Style.space(250)
                       height: Style.space(150)
