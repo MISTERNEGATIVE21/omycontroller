@@ -78,6 +78,13 @@ assert_fail "haptic_midi.py: rejects regular file" python3 scripts/haptic_midi.p
 assert_fail "haptic_midi.py: rejects malformed node name" python3 scripts/haptic_midi.py "/dev/input/js0" mario
 assert_fail "haptic_midi.py: rejects unknown track" python3 scripts/haptic_midi.py "/dev/input/event0" nonexistent_track
 
+# --- 2c. audio_test.py security checks ---
+printf '\n%s\n' '--- Testing scripts/audio_test.py ---'
+assert_fail "audio_test.py: rejects missing arguments" python3 scripts/audio_test.py
+assert_fail "audio_test.py: rejects unknown command" python3 scripts/audio_test.py invalid_cmd
+assert_fail "audio_test.py: rejects invalid channel" python3 scripts/audio_test.py play center
+
+
 
 # --- 3. triggers.py security checks ---
 printf '\n%s\n' '--- Testing scripts/triggers.py ---'
