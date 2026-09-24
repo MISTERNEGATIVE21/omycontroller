@@ -1086,7 +1086,6 @@ Item {
     id: melodyProc
     running: false
     stderr: SplitParser {
-      split: "\n"
       onRead: function(line) {
         if (line && line.trim()) {
           root._actionStderr = (root._actionStderr ? root._actionStderr + "\n" : "") + line
@@ -1170,7 +1169,6 @@ Item {
     running: false
     command: ["python3", root.audioTestScript, "probe"]
     stdout: SplitParser {
-      split: "\n"
       onRead: function(line) {
         if (!line || !line.trim()) return
         root._audioProbeBuf = (root._audioProbeBuf ? root._audioProbeBuf : "") + line + "\n"

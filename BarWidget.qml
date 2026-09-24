@@ -156,6 +156,27 @@ BarWidget {
     function hide() { root.close() }
     function toggle() { root.toggle() }
 
+    function rescan() {
+      if (root.svc && typeof root.svc.rescan === "function") {
+        root.svc.rescan()
+      }
+    }
+
+    function toggleDemo(): string {
+      if (root.svc && typeof root.svc.toggleDemo === "function") {
+        root.svc.toggleDemo()
+        return root.svc.simulatorActive ? "active" : "inactive"
+      }
+      return "no-service"
+    }
+
+    function cycleDemoLayout(): string {
+      if (root.svc && typeof root.svc.cycleDemoLayout === "function") {
+        return root.svc.cycleDemoLayout()
+      }
+      return "none"
+    }
+
     function playMelody(track: string, volume: real) {
       if (root.svc && typeof root.svc.playMelody === "function") {
         root.svc.playMelody("js0", track || "mario", volume !== undefined ? volume : 1.0)
