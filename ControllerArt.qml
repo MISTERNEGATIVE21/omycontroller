@@ -278,7 +278,7 @@ Item {
       height: 18
       rotation: Math.max(-45, Math.min(45, root.rawRoll * 0.75))
       Behavior on rotation {
-        SpringAnimation { spring: 3.5; damping: 0.35; epsilon: 0.1 }
+        NumberAnimation { duration: 45; easing.type: Easing.OutQuad }
       }
 
       // Main controller body silhouette
@@ -370,7 +370,7 @@ Item {
         axis { x: 1; y: 0; z: 0 }
         angle: Math.max(-45, Math.min(45, root.rawPitch * 0.75))
         Behavior on angle {
-          SpringAnimation { spring: 3.5; damping: 0.35; epsilon: 0.05 }
+          NumberAnimation { duration: 45; easing.type: Easing.OutQuad }
         }
       },
       Rotation {
@@ -380,7 +380,7 @@ Item {
         axis { x: 0; y: 1; z: 0 }
         angle: Math.max(-35, Math.min(35, root.rawYaw * 0.65))
         Behavior on angle {
-          SpringAnimation { spring: 3.5; damping: 0.35; epsilon: 0.05 }
+          NumberAnimation { duration: 45; easing.type: Easing.OutQuad }
         }
       },
       Rotation {
@@ -390,7 +390,7 @@ Item {
         axis { x: 0; y: 0; z: 1 }
         angle: Math.max(-60, Math.min(60, root.rawRoll * 0.85))
         Behavior on angle {
-          SpringAnimation { spring: 3.8; damping: 0.32; epsilon: 0.05 }
+          NumberAnimation { duration: 45; easing.type: Easing.OutQuad }
         }
       }
     ]
@@ -1096,7 +1096,7 @@ Item {
         axis { x: 1; y: 0; z: 0 }
         angle: Math.max(-45, Math.min(45, root.rawPitch * 0.75))
         Behavior on angle {
-          SpringAnimation { spring: 3.5; damping: 0.35; epsilon: 0.05 }
+          NumberAnimation { duration: 45; easing.type: Easing.OutQuad }
         }
       },
       Rotation {
@@ -1105,7 +1105,7 @@ Item {
         axis { x: 0; y: 1; z: 0 }
         angle: Math.max(-35, Math.min(35, root.rawYaw * 0.65))
         Behavior on angle {
-          SpringAnimation { spring: 3.5; damping: 0.35; epsilon: 0.05 }
+          NumberAnimation { duration: 45; easing.type: Easing.OutQuad }
         }
       },
       Rotation {
@@ -1114,7 +1114,7 @@ Item {
         axis { x: 0; y: 0; z: 1 }
         angle: Math.max(-60, Math.min(60, root.rawRoll * 0.85))
         Behavior on angle {
-          SpringAnimation { spring: 3.8; damping: 0.32; epsilon: 0.05 }
+          NumberAnimation { duration: 45; easing.type: Easing.OutQuad }
         }
       }
     ]
@@ -1407,8 +1407,8 @@ Item {
         : (trigMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.60) : Qt.rgba(0, 0, 0, 0.70))
       border.width: su.fillAmount > 0.05 ? 1.5 : 1
 
-      Behavior on y { NumberAnimation { duration: 40 } }
-      Behavior on color { ColorAnimation { duration: 50 } }
+      Behavior on y { NumberAnimation { duration: 15; easing.type: Easing.OutQuad } }
+      Behavior on color { ColorAnimation { duration: 25 } }
 
       MouseArea {
         id: trigMouse
@@ -1689,8 +1689,8 @@ Item {
     border.color: on ? root.playerColor : root.bodyBorder
     border.width: on ? 2 : 1
     scale: on ? 1.04 : 1.0
-    Behavior on color { ColorAnimation { duration: 60 } }
-    Behavior on scale { NumberAnimation { duration: 60 } }
+    Behavior on color { ColorAnimation { duration: 25 } }
+    Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
 
     // Glow halo drop-shadow
     Rectangle {
@@ -1703,7 +1703,7 @@ Item {
       border.width: 2
       opacity: bump.on ? 1.0 : 0.0
       z: -1
-      Behavior on opacity { NumberAnimation { duration: 60 } }
+      Behavior on opacity { NumberAnimation { duration: 30 } }
     }
 
     Image {
@@ -1893,9 +1893,9 @@ Item {
       height: 20
       scale: st.on ? 0.94 : (stickMouse.containsMouse && !st.isDragging ? 1.05 : 1.0)
 
-      Behavior on x { NumberAnimation { duration: 25 } }
-      Behavior on y { NumberAnimation { duration: 25 } }
-      Behavior on scale { NumberAnimation { duration: 40 } }
+      Behavior on x { enabled: !st.isDragging; NumberAnimation { duration: 15; easing.type: Easing.OutQuad } }
+      Behavior on y { enabled: !st.isDragging; NumberAnimation { duration: 15; easing.type: Easing.OutQuad } }
+      Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
 
       // Cap Ambient Drop Shadow (casts shadow into well)
       Rectangle {
@@ -2125,13 +2125,13 @@ Item {
           origin.x: 22; origin.y: 22
           axis { x: 1; y: 0; z: 0 }
           angle: -dp.tiltY * 8.5
-          Behavior on angle { SpringAnimation { spring: 8.0; damping: 0.40; epsilon: 0.05 } }
+          Behavior on angle { NumberAnimation { duration: 40; easing.type: Easing.OutQuad } }
         },
         Rotation {
           origin.x: 22; origin.y: 22
           axis { x: 0; y: 1; z: 0 }
           angle: dp.tiltX * 8.5
-          Behavior on angle { SpringAnimation { spring: 8.0; damping: 0.40; epsilon: 0.05 } }
+          Behavior on angle { NumberAnimation { duration: 40; easing.type: Easing.OutQuad } }
         }
       ]
 
@@ -2159,8 +2159,8 @@ Item {
           y: 3 - dp.tiltY * 3.5
           width: 32; height: 10; radius: 5
           color: Qt.rgba(1, 1, 1, dp.isAny ? 0.40 : 0.22)
-          Behavior on x { NumberAnimation { duration: 40 } }
-          Behavior on y { NumberAnimation { duration: 40 } }
+          Behavior on x { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+          Behavior on y { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
         }
 
         // 8 Faceted Diagonal Creases (Visual 8-way segmentation)
@@ -2391,13 +2391,13 @@ Item {
           origin.x: 26; origin.y: 26
           axis { x: 1; y: 0; z: 0 }
           angle: -dp.tiltY * 7.5
-          Behavior on angle { SpringAnimation { spring: 8.0; damping: 0.40; epsilon: 0.05 } }
+          Behavior on angle { NumberAnimation { duration: 40; easing.type: Easing.OutQuad } }
         },
         Rotation {
           origin.x: 26; origin.y: 26
           axis { x: 0; y: 1; z: 0 }
           angle: dp.tiltX * 7.5
-          Behavior on angle { SpringAnimation { spring: 8.0; damping: 0.40; epsilon: 0.05 } }
+          Behavior on angle { NumberAnimation { duration: 40; easing.type: Easing.OutQuad } }
         }
       ]
 

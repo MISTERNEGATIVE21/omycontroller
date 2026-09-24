@@ -572,7 +572,18 @@ test('isDpadActive - unified D-pad detection across buttons and hat axes', (t) =
   assert.strictEqual(Model.isDpadActive('right', {}, axesRight, swTables, swAxisMap), true);
   assert.strictEqual(Model.isDpadActive('left', {}, axesRight, swTables, swAxisMap), false);
 
-  // 3. Null / edge cases
+  // 3. Resting analog triggers (-1.0) must NOT activate D-pad
+  const xboxMap = Model.axesMap('xbox', 6, ['X', 'Y', 'Z', 'Rx', 'Ry', 'Rz']);
+  const xboxTables = Model.buttonTables('xbox');
+  const restingAxes = [0, 0, 0, 0, -1.0, -1.0];
+  assert.strictEqual(Model.isDpadActive('up', {}, restingAxes, xboxTables, xboxMap), false, 'Resting trigger must not activate Dpad Up');
+  assert.strictEqual(Model.isDpadActive('left', {}, restingAxes, xboxTables, xboxMap), false, 'Resting trigger must not activate Dpad Left');
+  assert.strictEqual(Model.isDpadActive('down', {}, restingAxes, xboxTables, xboxMap), false);
+  assert.strictEqual(Model.isDpadActive('right', {}, restingAxes, xboxTables, xboxMap), false);
+  // Button 11 on xbox tables activates D-pad Up
+  assert.strictEqual(Model.isDpadActive('up', { 11: true }, restingAxes, xboxTables, xboxMap), true);
+
+  // 4. Null / edge cases
   assert.strictEqual(Model.isDpadActive(null, null, null, null, null), false);
   assert.strictEqual(Model.isDpadActive('up', null, null, null, null), false);
 });

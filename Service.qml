@@ -567,8 +567,8 @@ Item {
     sim.axes[4] = Math.sin(_simTick * 1.5)
     sim.axes[5] = Math.cos(_simTick * 1.2)
 
-    // 3. Cycling A/B/X/Y button presses and bumpers
-    var cycle = Math.floor(_simTick * 1.5) % 8
+    // 3. Cycling A/B/X/Y button presses, bumpers, and D-pad cardinal directions
+    var cycle = Math.floor(_simTick * 2.0) % 10
     var btn = {}
     if (cycle === 0) btn[0] = true       // A
     else if (cycle === 1) btn[1] = true  // B
@@ -577,6 +577,9 @@ Item {
     else if (cycle === 4) btn[4] = true  // LB
     else if (cycle === 5) btn[5] = true  // RB
     else if (cycle === 6) btn[11] = true // D-pad Up
+    else if (cycle === 7) btn[12] = true // D-pad Down
+    else if (cycle === 8) btn[13] = true // D-pad Left
+    else if (cycle === 9) btn[14] = true // D-pad Right
     sim.buttons = btn
 
     // 4. Sinusoidal gyro pitch/roll stream

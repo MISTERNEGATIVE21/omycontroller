@@ -957,9 +957,9 @@ function buttonTables(layout, profile) {
       triggerL: -1, triggerR: -1,
       centerLeft: 6, centerRight: 7, centerTop: 8,
       stickL: 9, stickR: 10,
-      centerExtra: 11,
-      dpadUp: -1, dpadDown: -1, dpadLeft: -1, dpadRight: -1,
-      known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+      centerExtra: -1,
+      dpadUp: 11, dpadDown: 12, dpadLeft: 13, dpadRight: 14,
+      known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     };
   } else if (layout === "ps" || layout === "playstation") {
     // hid-playstation / hid-sony standard Linux kernel joydev mapping:
@@ -1055,10 +1055,14 @@ function axesMap(layout, axisCount, axisNames) {
   var hatY = hat.y
 
   if (hatX === -1 || hatY === -1) {
-    if (axisCount >= 8) {
-      hatX = 6; hatY = 7;
-    } else if (axisCount >= 6) {
-      hatX = 4; hatY = 5;
+    if (names.length === 0) {
+      if (axisCount >= 8) {
+        hatX = 6; hatY = 7;
+      } else if (axisCount >= 6 && (layout === "switch" || layout === "nintendo")) {
+        hatX = 4; hatY = 5;
+      } else {
+        hatX = -1; hatY = -1;
+      }
     } else {
       hatX = -1; hatY = -1;
     }

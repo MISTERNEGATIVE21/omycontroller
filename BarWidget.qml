@@ -247,7 +247,7 @@ BarWidget {
         smooth: true
         rotation: (root.activePad && root.activePad.gyro) ? Math.max(-30, Math.min(30, (root.activePad.gyro.roll || 0) * 0.5)) : 0
         Behavior on rotation {
-          SpringAnimation { spring: 3.5; damping: 0.35; epsilon: 0.1 }
+          NumberAnimation { duration: 45; easing.type: Easing.OutQuad }
         }
         layer.enabled: true
         layer.effect: MultiEffect {
