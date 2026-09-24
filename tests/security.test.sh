@@ -70,6 +70,15 @@ assert_fail "rumble.py: rejects regular file" python3 scripts/rumble.py "/etc/ho
 assert_fail "rumble.py: rejects non-integer magnitudes" python3 scripts/rumble.py "/dev/input/event0" "abc" "def" 100
 assert_fail "rumble.py: rejects malformed node name" python3 scripts/rumble.py "/dev/input/js0" 0 0 100
 
+# --- 2b. haptic_midi.py security checks ---
+printf '\n%s\n' '--- Testing scripts/haptic_midi.py ---'
+assert_fail "haptic_midi.py: rejects missing arguments" python3 scripts/haptic_midi.py
+assert_fail "haptic_midi.py: rejects path traversal" python3 scripts/haptic_midi.py "../../etc/shadow" mario
+assert_fail "haptic_midi.py: rejects regular file" python3 scripts/haptic_midi.py "/etc/hosts" mario
+assert_fail "haptic_midi.py: rejects malformed node name" python3 scripts/haptic_midi.py "/dev/input/js0" mario
+assert_fail "haptic_midi.py: rejects unknown track" python3 scripts/haptic_midi.py "/dev/input/event0" nonexistent_track
+
+
 # --- 3. triggers.py security checks ---
 printf '\n%s\n' '--- Testing scripts/triggers.py ---'
 assert_fail "triggers.py: rejects missing arguments" python3 scripts/triggers.py
