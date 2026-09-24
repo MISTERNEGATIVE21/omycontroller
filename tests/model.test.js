@@ -285,9 +285,16 @@ test('ControllerImage button art resolution paths', (t) => {
   assert.strictEqual(Model.centerArt('xbox', 'guide'), 'assets/input/xbox360/guide.svg');
   assert.strictEqual(Model.centerArt('ps', 'left'), 'assets/input/ps3/back.svg');
 
-  // Switch/generic fall back to vector text labels
-  assert.strictEqual(Model.faceArt('switch', 'top'), '');
-  assert.strictEqual(Model.bumperArt('switch', 'l'), '');
+  // Switch resolves to switchpro SVG art set
+  assert.strictEqual(Model.faceArt('switch', 'top'), 'assets/input/switchpro/n.svg');
+  assert.strictEqual(Model.bumperArt('switch', 'l'), 'assets/input/switchpro/leftshoulder.svg');
+  assert.strictEqual(Model.triggerArt('switch', 'r'), 'assets/input/switchpro/righttrigger.svg');
+  assert.strictEqual(Model.centerArt('switch', 'guide'), 'assets/input/switchpro/guide.svg');
+  assert.strictEqual(Model.centerArt('switch', 'extra'), 'assets/input/switchpro/share.svg');
+
+  // Generic/joystick fall back to vector text labels
+  assert.strictEqual(Model.faceArt('generic', 'top'), '');
+  assert.strictEqual(Model.bumperArt('generic', 'l'), '');
   assert.strictEqual(Model.centerArt('generic', 'right'), '');
   assert.strictEqual(Model.triggerArt('generic', 'l'), '');
 });
@@ -409,10 +416,10 @@ test('ZhiXu Gamepad Classification and Button Mapping', (t) => {
 
   // Button table for zhixu
   const zxTable = Model.buttonTables('xbox', { buttonPreset: 'zhixu' });
-  assert.strictEqual(zxTable.faceBottom, 0); // A
-  assert.strictEqual(zxTable.faceRight, 1);  // B
-  assert.strictEqual(zxTable.faceLeft, 3);   // X
-  assert.strictEqual(zxTable.faceTop, 4);    // Y
+  assert.strictEqual(zxTable.faceBottom, 0); // A (BTN_SOUTH)
+  assert.strictEqual(zxTable.faceRight, 1);  // B (BTN_EAST)
+  assert.strictEqual(zxTable.faceTop, 3);    // Y (BTN_NORTH)
+  assert.strictEqual(zxTable.faceLeft, 4);   // X (BTN_WEST)
   assert.strictEqual(zxTable.bumperL, 6);    // LB
   assert.strictEqual(zxTable.bumperR, 7);    // RB
   assert.strictEqual(zxTable.triggerL, 8);   // LT button
@@ -481,6 +488,155 @@ test('Kernel Device Database & Multi-Vendor Classification', (t) => {
   assert.strictEqual(joyconL.modelLabel, 'Joy-Cons');
   assert.strictEqual(joyconL.layout, 'switch');
 });
+
+test('Nintendo Switch Pro Controller button tables and axes map', (t) => {
+  const swTable = Model.buttonTables('switch');
+  // hid-nintendo evdev keycodes:
+  // BTN_SOUTH (304) = B (0)
+  // BTN_EAST (305) = A (1)
+  // BTN_NORTH (307) = X (2)
+  // BTN_WEST (308) = Y (3)
+  // BTN_Z (309) = Capture (4)
+  // BTN_TL (310) = L (5)
+  // BTN_TR (311) = R (6)
+  // BTN_TL2 (312) = ZL (7)
+  // BTN_TR2 (313) = ZR (8)
+  // BTN_SELECT (314) = Minus (9)
+  // BTN_START (315) = Plus (10)
+  // BTN_MODE (316) = Home (11)
+  // BTN_THUMBL (317) = StickL (12)
+  // BTN_THUMBR (318) = StickR (13)
+  assert.strictEqual(swTable.faceBottom, 0); // B
+  assert.strictEqual(swTable.faceRight, 1);  // A
+  assert.strictEqual(swTable.faceTop, 2);    // X
+  assert.strictEqual(swTable.faceLeft, 3);   // Y
+  assert.strictEqual(swTable.centerExtra, 4); // Capture
+  assert.strictEqual(swTable.bumperL, 5);    // L
+  assert.strictEqual(swTable.bumperR, 6);    // R
+  assert.strictEqual(swTable.triggerL, 7);   // ZL
+  assert.strictEqual(swTable.triggerR, 8);   // ZR
+  assert.strictEqual(swTable.centerLeft, 9); // Minus (-)
+  assert.strictEqual(swTable.centerRight, 10); // Plus (+)
+  assert.strictEqual(swTable.centerTop, 11);  // Home
+  assert.strictEqual(swTable.stickL, 12);    // Left stick click
+  assert.strictEqual(swTable.stickR, 13);    // Right stick click
+
+  // Switch axes map with Hat0X/Hat0Y
+  const swAxes = Model.axesMap('switch', 6);
+  assert.strictEqual(swAxes.lx, 0);
+  assert.strictEqual(swAxes.ly, 1);
+  assert.strictEqual(swAxes.rx, 2);
+  assert.strictEqual(swAxes.ry, 3);
+  assert.strictEqual(swAxes.hatX, 4);
+  assert.strictEqual(swAxes.hatY, 5);
+});
+
+test('isDpadActive - unified D-pad detection across buttons and hat axes', (t) => {
+  assert.strictEqual(typeof Model.isDpadActive, 'function', 'isDpadActive must be exported');
+
+  // 1. Digital button active via custom remap or digital D-pad
+  const digitalTables = { dpadUp: 0, dpadDown: 1, dpadLeft: 2, dpadRight: 3 };
+  const buttonsUp = { 0: true };
+  assert.strictEqual(Model.isDpadActive('up', buttonsUp, [], digitalTables, null), true);
+  assert.strictEqual(Model.isDpadActive('down', buttonsUp, [], digitalTables, null), false);
+  assert.strictEqual(Model.isDpadActive('left', buttonsUp, [], digitalTables, null), false);
+  assert.strictEqual(Model.isDpadActive('right', buttonsUp, [], digitalTables, null), false);
+
+  // 2. Hat axes on Switch (hatX: 4, hatY: 5)
+  const swTables = Model.buttonTables('switch');
+  const swAxisMap = Model.axesMap('switch', 6);
+
+  // Hat centered (0, 0)
+  assert.strictEqual(Model.isDpadActive('up', {}, [0, 0, 0, 0, 0, 0], swTables, swAxisMap), false);
+  assert.strictEqual(Model.isDpadActive('down', {}, [0, 0, 0, 0, 0, 0], swTables, swAxisMap), false);
+  assert.strictEqual(Model.isDpadActive('left', {}, [0, 0, 0, 0, 0, 0], swTables, swAxisMap), false);
+  assert.strictEqual(Model.isDpadActive('right', {}, [0, 0, 0, 0, 0, 0], swTables, swAxisMap), false);
+
+  // Hat Up: hatY (index 5) = -1.0
+  const axesUp = [0, 0, 0, 0, 0, -1.0];
+  assert.strictEqual(Model.isDpadActive('up', {}, axesUp, swTables, swAxisMap), true);
+  assert.strictEqual(Model.isDpadActive('down', {}, axesUp, swTables, swAxisMap), false);
+
+  // Hat Down: hatY (index 5) = +1.0
+  const axesDown = [0, 0, 0, 0, 0, 1.0];
+  assert.strictEqual(Model.isDpadActive('down', {}, axesDown, swTables, swAxisMap), true);
+  assert.strictEqual(Model.isDpadActive('up', {}, axesDown, swTables, swAxisMap), false);
+
+  // Hat Left: hatX (index 4) = -1.0
+  const axesLeft = [0, 0, 0, 0, -1.0, 0];
+  assert.strictEqual(Model.isDpadActive('left', {}, axesLeft, swTables, swAxisMap), true);
+  assert.strictEqual(Model.isDpadActive('right', {}, axesLeft, swTables, swAxisMap), false);
+
+  // Hat Right: hatX (index 4) = +1.0
+  const axesRight = [0, 0, 0, 0, 1.0, 0];
+  assert.strictEqual(Model.isDpadActive('right', {}, axesRight, swTables, swAxisMap), true);
+  assert.strictEqual(Model.isDpadActive('left', {}, axesRight, swTables, swAxisMap), false);
+
+  // 3. Null / edge cases
+  assert.strictEqual(Model.isDpadActive(null, null, null, null, null), false);
+  assert.strictEqual(Model.isDpadActive('up', null, null, null, null), false);
+});
+
+test('Performance Scorecard - 6 sectors, grading, and Gamepadla comparison', (t) => {
+  const dev = {
+    id: 'js0',
+    name: 'Nintendo Co., Ltd. Pro Controller',
+    modelLabel: 'Nintendo Switch Pro Controller',
+    maker: 'Nintendo',
+    layout: 'switch',
+    hasRumble: true,
+    event: 'event30',
+    bus: 'usb',
+    circularity: {
+      left: { error: 0.072, drift: 0.003 },
+      right: { error: 0.075, drift: 0.004 }
+    },
+    motion: { gyroHz: 200, drift: 0.015 }
+  };
+  const stats = { hz: 125, avgMs: 8.0, jitter: 0.5 };
+  const joyLabStats = { stickError: 7.2, snapbacks: 0, jumps: 12, coins: 5 };
+
+  const card = Model.computePerformanceScorecard(dev, stats, joyLabStats);
+  assert.ok(card, 'scorecard must be produced');
+  assert.ok(card.overallGrade === 'S' || card.overallGrade === 'A+' || card.overallGrade === 'A', 'overall grade should be high tier');
+  assert.ok(card.overallScore >= 85, 'overall score must be at least 85');
+  assert.strictEqual(card.sectors.sticks.tier, 'S');
+  assert.ok(card.sectors.sticks.score >= 90);
+  assert.ok(card.sectors.latency.score > 0);
+  assert.strictEqual(card.sectors.haptics.tier, 'S');
+  assert.strictEqual(card.sectors.motion.tier, 'S');
+  assert.ok(card.gamepadlaMatch, 'should find Gamepadla catalog match');
+
+  // Edge case: null or empty device
+  const emptyCard = Model.computePerformanceScorecard(null, null, null);
+  assert.ok(emptyCard);
+  assert.strictEqual(emptyCard.overallGrade, 'C');
+});
+
+test('Markdown Diagnostic Report Export', (t) => {
+  const dev = {
+    id: 'js0',
+    name: 'Nintendo Co., Ltd. Pro Controller',
+    modelLabel: 'Nintendo Switch Pro Controller',
+    maker: 'Nintendo',
+    layout: 'switch',
+    hasRumble: true,
+    event: 'event30',
+    bus: 'usb',
+    circularity: {
+      left: { error: 0.072, drift: 0.003 },
+      right: { error: 0.075, drift: 0.004 }
+    }
+  };
+  const card = Model.computePerformanceScorecard(dev, { hz: 125, avgMs: 8.0 }, { stickError: 7.2, snapbacks: 0 });
+  const md = Model.exportMarkdownReport(dev, card);
+  assert.match(md, /### omycontroller Hardware Performance Report/);
+  assert.match(md, /Nintendo Switch Pro Controller/);
+  assert.match(md, /Overall Grade/);
+  assert.match(md, /Stick Precision/);
+  assert.match(md, /Polling & Latency/);
+});
+
 
 
 

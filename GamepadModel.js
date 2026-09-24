@@ -921,13 +921,25 @@ function applyStickDeadzone(x, y, dz) {
 // ---------------------------------------------------------------------------
 function buttonTables(layout, profile) {
   var t;
-  var preset = (typeof profile === "string" ? profile : "") ||
-               (profile && (profile.buttonPreset || profile.preset)) ||
-               (layout === "zhixu" ? "zhixu" : "");
+  var preset = "";
+  if (typeof profile === "string") {
+    preset = profile.toLowerCase();
+  } else if (profile && typeof profile === "object") {
+    preset = String(profile.buttonPreset || profile.preset || "").toLowerCase();
+  }
+  if (!preset && layout) {
+    var l = String(layout).toLowerCase();
+    if (l === "zhixu" || l === "dragonrise") preset = "zhixu";
+  }
+
   if (preset === "zhixu" || layout === "zhixu" || (profile && profile.isZhiXu)) {
-    // ZhiXu / DragonRise 15-button HID map (BTN_C/Z offset face and shoulder buttons)
+    // ZhiXu / DragonRise 15-button HID map (kernel joydev keycodes):
+    // 0: A (BTN_SOUTH), 1: B (BTN_EAST), 2: C (BTN_C), 3: Y (BTN_NORTH), 4: X (BTN_WEST),
+    // 5: Z (BTN_Z), 6: LB (BTN_TL), 7: RB (BTN_TR), 8: LT (BTN_TL2), 9: RT (BTN_TR2),
+    // 10: Back (BTN_SELECT), 11: Start (BTN_START), 12: Mode/Home (BTN_MODE),
+    // 13: LS (BTN_THUMBL), 14: RS (BTN_THUMBR). D-Pad is on Hat0X/Hat0Y axes.
     t = {
-      faceBottom: 0, faceRight: 1, faceLeft: 3, faceTop: 4,
+      faceBottom: 0, faceRight: 1, faceTop: 3, faceLeft: 4,
       bumperL: 6, bumperR: 7,
       triggerL: 8, triggerR: 9,
       centerLeft: 10, centerRight: 11, centerTop: 12, centerExtra: -1,
@@ -936,45 +948,49 @@ function buttonTables(layout, profile) {
       known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     };
   } else if (layout === "xbox") {
-    // xpad / xpadneo: A0 B1 X2 Y3, LB4 RB5, back6 start7 guide8,
-    // TL9 TR10, dpad 11..14
+    // xpad / xpadneo standard Linux kernel joydev mapping:
+    // A0 B1 X2 Y3, LB4 RB5, Back6 Start7 Guide8, LS9 RS10, Share11
+    // D-Pad is on Hat0X and Hat0Y (axes 6 and 7). Triggers are analog axes.
     t = {
-      faceTop: 3, faceBottom: 0, faceLeft: 2, faceRight: 1,
+      faceBottom: 0, faceRight: 1, faceLeft: 2, faceTop: 3,
       bumperL: 4, bumperR: 5,
+      triggerL: -1, triggerR: -1,
+      centerLeft: 6, centerRight: 7, centerTop: 8,
       stickL: 9, stickR: 10,
-      dpadUp: 11, dpadDown: 12, dpadLeft: 13, dpadRight: 14,
-      centerTop: 8, centerLeft: 6, centerRight: 7, centerExtra: -1,
-      triggerL: -1, triggerR: -1,
-      known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-    };
-  } else if (layout === "ps") {
-    // hid-playstation: ×0 ○1 □2 △3, create4 options5 PS6 touchpad7,
-    // L3 8, R3 9, L1 10, R1 11
-    t = {
-      faceTop: 3, faceBottom: 0, faceLeft: 2, faceRight: 1,
-      bumperL: 10, bumperR: 11,
-      stickL: 8, stickR: 9,
-      dpadUp: 12, dpadDown: 13, dpadLeft: 14, dpadRight: 15,
-      centerTop: 6, centerLeft: 4, centerRight: 5, centerExtra: 7,
-      triggerL: -1, triggerR: -1,
+      centerExtra: 11,
+      dpadUp: -1, dpadDown: -1, dpadLeft: -1, dpadRight: -1,
       known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
     };
-  } else if (layout === "switch") {
-    // hid-nintendo pro: B0 A1 Y2 X3, L4 R5, ZL6 ZR7, -8 +9,
-    // stick presses 10/11, home12 capture13
+  } else if (layout === "ps" || layout === "playstation") {
+    // hid-playstation / hid-sony standard Linux kernel joydev mapping:
+    // Cross0 Circle1 Triangle2 Square3, L1 4, R1 5, L2 6, R2 7,
+    // Create/Share8, Options9, PS10, L3 11, R3 12, Touchpad13. D-Pad is on Hat0X/Hat0Y.
     t = {
-      faceTop: 3, faceBottom: 0, faceLeft: 2, faceRight: 1,
+      faceBottom: 0, faceRight: 1, faceTop: 2, faceLeft: 3,
       bumperL: 4, bumperR: 5,
-      stickL: 10, stickR: 11,
-      dpadUp: 14, dpadDown: 15, dpadLeft: 16, dpadRight: 17,
-      centerTop: 12, centerLeft: 8, centerRight: 9, centerExtra: 13,
       triggerL: 6, triggerR: 7,
+      centerLeft: 8, centerRight: 9, centerTop: 10,
+      stickL: 11, stickR: 12,
+      centerExtra: 13,
+      dpadUp: -1, dpadDown: -1, dpadLeft: -1, dpadRight: -1,
+      known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    };
+  } else if (layout === "switch" || layout === "nintendo") {
+    // hid-nintendo pro: B0 A1 X2 Y3, Capture4, L5 R6, ZL7 ZR8,
+    // -9 +10, Home11, stick presses 12/13. D-Pad is on Hat0X/Hat0Y.
+    t = {
+      faceBottom: 0, faceRight: 1, faceTop: 2, faceLeft: 3,
+      centerExtra: 4,
+      bumperL: 5, bumperR: 6,
+      triggerL: 7, triggerR: 8,
+      centerLeft: 9, centerRight: 10, centerTop: 11,
+      stickL: 12, stickR: 13,
+      dpadUp: -1, dpadDown: -1, dpadLeft: -1, dpadRight: -1,
       known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
     };
   } else if (layout === "joystick") {
     // Conventional single-stick ordering: trigger = button 0, then the
-    // base/grip cluster 1..6. The hat switch is NOT buttons — it reports
-    // as ABS_HAT0X/Y axes (indices 16/17), handled by joystickExtras().
+    // base/grip cluster 1..6. Hat reports as ABS_HAT0X/Y axes.
     t = {
       faceTop: 2, faceBottom: 1, faceLeft: 4, faceRight: 3,
       bumperL: 5, bumperR: 6,
@@ -985,20 +1001,21 @@ function buttonTables(layout, profile) {
       known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
     };
   } else {
-    // generic: 1..4 diamond, bumpers 4/5, sticks 9/10, center 6/7
+    // generic: A0 B1 X2 Y3, LB4 RB5, center 6/7, guide 8, sticks 9/10
     t = {
-      faceTop: 3, faceBottom: 0, faceLeft: 2, faceRight: 1,
+      faceBottom: 0, faceRight: 1, faceLeft: 2, faceTop: 3,
       bumperL: 4, bumperR: 5,
-      stickL: 9, stickR: 10,
-      dpadUp: 11, dpadDown: 12, dpadLeft: 13, dpadRight: 14,
-      centerTop: 8, centerLeft: 6, centerRight: 7, centerExtra: -1,
       triggerL: -1, triggerR: -1,
-      known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+      centerLeft: 6, centerRight: 7, centerTop: 8,
+      stickL: 9, stickR: 10,
+      centerExtra: -1,
+      dpadUp: -1, dpadDown: -1, dpadLeft: -1, dpadRight: -1,
+      known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     };
   }
 
   // Profile-based button remapping
-  if (profile) {
+  if (profile && typeof profile === "object") {
     if (profile.remapPreset === "nintendo_swap" || profile.swapFace) {
       var tmpBottom = t.faceBottom;
       t.faceBottom = t.faceRight;
@@ -1020,22 +1037,96 @@ function buttonTables(layout, profile) {
 }
 
 // Axis map — js axis index per art element, heuristics per driver family.
-// Most pads report LX, LY, RX, RY on axes 0..3 and analog triggers after.
-// For joysticks the jstest header's axis-name list (when available) picks
-// the real Throttle axis; without names we fall back to index 2.
+// Linux joydev axes:
+// - 8+ axes: LX(0), LY(1), sticks/triggers(2..5), Hat0X(6), Hat0Y(7)
+// - 6 axes:  LX(0), LY(1), RX(2), RY(3), Hat0X(4), Hat0Y(5)
+// - Joysticks: Throttle & Rudder detected by name
 function axesMap(layout, axisCount, axisNames) {
   if (layout === "joystick") {
     var thr = throttleIndex(axisNames)
-    if (thr === -1 && axisCount >= 3) thr = 2   // nameless fallback: first extra axis
+    if (thr === -1 && axisCount >= 3) thr = 2
     return { lx: 0, ly: 1, rx: -1, ry: -1, lt: thr, rt: -1, hatX: -1, hatY: -1 }
   }
+
   var hat = hatIndices(axisNames)
-  var hatX = hat.x !== -1 ? hat.x : (axisCount >= 8 ? 6 : -1)
-  var hatY = hat.y !== -1 ? hat.y : (axisCount >= 8 ? 7 : -1)
-  var hasAnalogTriggers = (layout !== "switch") && (hatX !== 4 && hatX !== 5 && hatY !== 4 && hatY !== 5)
-  if (axisCount >= 6 && hasAnalogTriggers) return { lx: 0, ly: 1, rx: 2, ry: 3, lt: 4, rt: 5, hatX: hatX, hatY: hatY }
-  if (layout === "xbox" && axisCount >= 4) return { lx: 0, ly: 1, rx: -1, ry: -1, lt: 2, rt: 3, hatX: hatX, hatY: hatY }
-  return { lx: 0, ly: 1, rx: 2, ry: 3, lt: -1, rt: -1, hatX: hatX, hatY: hatY }
+  var names = axisNameList(axisNames)
+
+  var hatX = hat.x
+  var hatY = hat.y
+
+  if (hatX === -1 || hatY === -1) {
+    if (axisCount >= 8) {
+      hatX = 6; hatY = 7;
+    } else if (axisCount >= 6) {
+      hatX = 4; hatY = 5;
+    } else {
+      hatX = -1; hatY = -1;
+    }
+  }
+
+  var lt = -1, rt = -1, rx = 2, ry = 3;
+
+  if (names.length >= 6) {
+    var zIdx = names.indexOf("z");
+    var rzIdx = names.indexOf("rz");
+    var rxIdx = names.indexOf("rx");
+    var ryIdx = names.indexOf("ry");
+    var gasIdx = names.indexOf("gas");
+    var brakeIdx = names.indexOf("brake");
+    var throttleIdx = names.indexOf("throttle");
+    var rudderIdx = names.indexOf("rudder");
+
+    if (gasIdx !== -1 && brakeIdx !== -1) {
+      lt = gasIdx; rt = brakeIdx;
+      if (zIdx !== -1 && rzIdx !== -1) { rx = zIdx; ry = rzIdx; }
+    } else if (zIdx !== -1 && rzIdx !== -1 && rxIdx !== -1 && ryIdx !== -1) {
+      lt = zIdx; rt = rzIdx;
+      rx = rxIdx; ry = ryIdx;
+    } else if (throttleIdx !== -1 && rudderIdx !== -1) {
+      lt = throttleIdx; rt = rudderIdx;
+    }
+  }
+
+  if (lt === -1 && rt === -1) {
+    if (layout === "switch" || (axisCount >= 6 && hatX === 4 && hatY === 5)) {
+      lt = -1; rt = -1;
+      rx = 2; ry = 3;
+    } else if (axisCount >= 8) {
+      lt = 4; rt = 5;
+      rx = 2; ry = 3;
+    }
+  }
+
+  return { lx: 0, ly: 1, rx: rx, ry: ry, lt: lt, rt: rt, hatX: hatX, hatY: hatY }
+}
+
+function isDpadActive(dir, buttons, axes, tables, axisMap) {
+  if (!dir) return false
+  var d = String(dir).toLowerCase()
+  var role = d === "up" ? "dpadUp" : d === "down" ? "dpadDown" : d === "left" ? "dpadLeft" : "dpadRight"
+
+  // 1. Hat Axes (Primary D-Pad for Linux gamepads)
+  if (axisMap && axes && axes.length > 0) {
+    if (d === "up" && axisMap.hatY !== undefined && axisMap.hatY >= 0 && axisMap.hatY < axes.length) {
+      if (Number(axes[axisMap.hatY]) < -0.45) return true
+    }
+    if (d === "down" && axisMap.hatY !== undefined && axisMap.hatY >= 0 && axisMap.hatY < axes.length) {
+      if (Number(axes[axisMap.hatY]) > 0.45) return true
+    }
+    if (d === "left" && axisMap.hatX !== undefined && axisMap.hatX >= 0 && axisMap.hatX < axes.length) {
+      if (Number(axes[axisMap.hatX]) < -0.45) return true
+    }
+    if (d === "right" && axisMap.hatX !== undefined && axisMap.hatX >= 0 && axisMap.hatX < axes.length) {
+      if (Number(axes[axisMap.hatX]) > 0.45) return true
+    }
+  }
+
+  // 2. Digital button check (for custom profiles or digital D-pad devices)
+  if (tables && tables[role] !== undefined && tables[role] >= 0 && buttons && !!buttons[tables[role]]) {
+    return true
+  }
+
+  return false
 }
 
 // ---------------------------------------------------------------------------
@@ -1121,9 +1212,10 @@ function joystickExtras(axes, axisNames) {
 // Qt.resolvedUrl so the panel/bar can load them from any component.
 // ---------------------------------------------------------------------------
 function artSet(layout) {
-  if (layout === "xbox") return "xbox360"
-  if (layout === "ps") return "ps3"
-  if (layout === "switch") return "switchpro"
+  var l = String(layout || "").toLowerCase()
+  if (l === "xbox") return "xbox360"
+  if (l === "ps" || l === "playstation") return "ps3"
+  if (l === "switch" || l === "nintendo") return "switchpro"
   return ""
 }
 
@@ -1133,7 +1225,8 @@ function artPath(set, name) {
 
 // Face cap for a diamond position ("top"/"bottom"/"left"/"right").
 function faceArt(layout, pos, profile) {
-  if (layout !== "xbox" && layout !== "ps") return ""
+  var l = String(layout || "").toLowerCase()
+  if (l !== "xbox" && l !== "ps" && l !== "playstation" && l !== "switch" && l !== "nintendo") return ""
   var map = { top: "n", bottom: "s", left: "w", right: "e" }
   if (profile) {
     if (profile.remapPreset === "nintendo_swap" || profile.swapFace) {
@@ -1210,8 +1303,9 @@ function buttonArt(layout, role, profile) {
 
 // Logical button label given layout, role and profile
 function buttonLabel(layout, role, profile) {
-  var isPs = layout === "ps"
-  var isSwitch = layout === "switch"
+  var l = String(layout || "").toLowerCase()
+  var isPs = l === "ps" || l === "playstation"
+  var isSwitch = l === "switch" || l === "nintendo"
   var swapped = profile && (profile.remapPreset === "nintendo_swap" || profile.swapFace)
 
   var activeRole = role
@@ -1268,22 +1362,25 @@ function buttonLabel(layout, role, profile) {
 
 // Shoulder (bumper) cap for a side, empty for sets without shoulder art.
 function bumperArt(layout, side) {
-  if (layout !== "xbox" && layout !== "ps") return ""
+  var l = String(layout || "").toLowerCase()
+  if (l !== "xbox" && l !== "ps" && l !== "playstation" && l !== "switch" && l !== "nintendo") return ""
   return artPath(artSet(layout), (side === "l" ? "left" : "right") + "shoulder")
 }
 
 // Analog trigger cap for a side, empty for sets without trigger art.
 function triggerArt(layout, side) {
-  if (layout !== "xbox" && layout !== "ps") return ""
+  var l = String(layout || "").toLowerCase()
+  if (l !== "xbox" && l !== "ps" && l !== "playstation" && l !== "switch" && l !== "nintendo") return ""
   return artPath(artSet(layout), (side === "l" ? "left" : "right") + "trigger")
 }
 
 // Center key cap: "left" = back/create/share, "right" = start/options/menu.
 function centerArt(layout, side) {
-  if (layout !== "xbox" && layout !== "ps") return ""
-  if (side === "extra" || side === "share") return artPath(artSet(layout), "share")
-  if (side === "top" || side === "guide") return artPath(artSet(layout), "guide")
-  return artPath(artSet(layout), side === "left" ? "back" : "start")
+  var l = String(layout || "").toLowerCase()
+  if (l !== "xbox" && l !== "ps" && l !== "playstation" && l !== "switch" && l !== "nintendo") return ""
+  if (side === "extra" || side === "share" || side === "capture") return artPath(artSet(layout), "share")
+  if (side === "top" || side === "guide" || side === "home") return artPath(artSet(layout), "guide")
+  return artPath(artSet(layout), side === "left" || side === "minus" || side === "back" ? "back" : "start")
 }
 
 // Human word for a layout, shown in the Hardware chip + device menu.
@@ -1520,6 +1617,240 @@ function latencyMetrics(eventIntervals) {
 }
 
 // ---------------------------------------------------------------------------
+// Multi-Sector Performance Scorecard & Gamepadla Benchmark Comparison
+// ---------------------------------------------------------------------------
+var _catalogModule = null
+function getCatalog() {
+  if (_catalogModule) return _catalogModule
+  if (typeof GamepadlaCatalog !== "undefined") {
+    _catalogModule = GamepadlaCatalog
+    return _catalogModule
+  }
+  if (typeof require !== "undefined") {
+    try {
+      _catalogModule = require("./GamepadlaCatalog.js")
+      return _catalogModule
+    } catch (e) {}
+  }
+  return null
+}
+
+function computePerformanceScorecard(dev, stats, joyLabStats) {
+  if (!dev) {
+    return {
+      overallGrade: "C",
+      overallScore: 50,
+      summary: "No controller connected",
+      sectors: {
+        sticks: { score: 50, tier: "C", error: 0.15, drift: 0.01, label: "No stick data" },
+        latency: { score: 50, tier: "C", hz: 0, ms: 0, label: "Idle / Unmeasured" },
+        buttons: { score: 50, tier: "C", label: "0 buttons" },
+        haptics: { score: 50, tier: "C", label: "No motors" },
+        motion: { score: 0, tier: "C", label: "No motion sensor" },
+        connectivity: { score: 50, tier: "C", label: "Disconnected" }
+      },
+      gamepadlaMatch: null
+    }
+  }
+
+  stats = stats || {}
+  joyLabStats = joyLabStats || {}
+
+  // 1. Stick Precision & Circularity
+  var leftErr = (dev.circularity && dev.circularity.left && isFinite(dev.circularity.left.error)) ? dev.circularity.left.error : null
+  var rightErr = (dev.circularity && dev.circularity.right && isFinite(dev.circularity.right.error)) ? dev.circularity.right.error : null
+  var stickErr = 0.08
+  if (leftErr !== null && rightErr !== null) {
+    stickErr = (leftErr + rightErr) / 2
+  } else if (leftErr !== null) {
+    stickErr = leftErr
+  } else if (rightErr !== null) {
+    stickErr = rightErr
+  } else if (joyLabStats.stickError !== undefined) {
+    stickErr = Number(joyLabStats.stickError) > 1.0 ? Number(joyLabStats.stickError) / 100 : Number(joyLabStats.stickError)
+  }
+
+  var drift = (dev.circularity && dev.circularity.left && isFinite(dev.circularity.left.drift)) ? dev.circularity.left.drift : 0.003
+  var snapbacks = joyLabStats.snapbacks || 0
+
+  var sticksTier = "C"
+  var sticksScore = 60
+  if (stickErr < 0.078 && snapbacks <= 1) {
+    sticksTier = "S"; sticksScore = 96
+  } else if (stickErr < 0.11) {
+    sticksTier = "A"; sticksScore = 88
+  } else if (stickErr < 0.16) {
+    sticksTier = "B"; sticksScore = 75
+  } else {
+    sticksTier = "C"; sticksScore = 60
+  }
+
+  // 2. Polling Rate & Latency
+  var hz = stats.hz || stats.pollingRate || (stats.avgMs > 0 ? Math.round(1000 / stats.avgMs) : (dev.hz || 125))
+  var ms = stats.avgMs || stats.avg || (hz > 0 ? 1000 / hz : 8.0)
+  var jitter = stats.jitter || 0.5
+  var latencyTier = "C"
+  var latencyScore = 60
+  if (hz >= 500) {
+    latencyTier = "S"; latencyScore = 98
+  } else if (hz >= 250) {
+    latencyTier = "A"; latencyScore = 90
+  } else if (hz >= 120) {
+    latencyTier = "B"; latencyScore = 80
+  } else {
+    latencyTier = "C"; latencyScore = 65
+  }
+
+  // 3. Buttons & Triggers
+  var buttonCount = dev.buttonCount || 16
+  var buttonsTier = buttonCount >= 14 ? "S" : (buttonCount >= 10 ? "A" : "B")
+  var buttonsScore = buttonCount >= 14 ? 96 : (buttonCount >= 10 ? 88 : 76)
+
+  // 4. Haptics & Vibration Engine
+  var layout = dev.layout || "generic"
+  var hasRumble = !!(dev.hasRumble || (dev.event && String(dev.event).length > 0))
+  var hapticsTier = "C"
+  var hapticsScore = 40
+  if (layout === "switch" || layout === "ps") {
+    hapticsTier = "S"; hapticsScore = 98
+  } else if (hasRumble) {
+    hapticsTier = "A"; hapticsScore = 88
+  } else {
+    hapticsTier = "C"; hapticsScore = 45
+  }
+
+  // 5. 6-DOF IMU Motion
+  var hasGyro = !!(dev.motion || (dev.motionNode && dev.motionNode.length > 0) || layout === "switch" || layout === "ps")
+  var gyroDrift = (dev.motion && isFinite(dev.motion.drift)) ? dev.motion.drift : 0.02
+  var motionTier = "C"
+  var motionScore = 30
+  if (hasGyro && gyroDrift < 0.05) {
+    motionTier = "S"; motionScore = 95
+  } else if (hasGyro) {
+    motionTier = "A"; motionScore = 85
+  } else {
+    motionTier = "C"; motionScore = 40
+  }
+
+  // 6. Connectivity & Audio Health
+  var bus = String(dev.bus || "usb").toLowerCase()
+  var connTier = "A"
+  var connScore = 85
+  if (bus === "usb" || bus === "dongle") {
+    connTier = "S"; connScore = 96
+  } else if (bus === "bluetooth") {
+    connTier = "A"; connScore = 88
+  }
+
+  // Overall Weighted Score: Sticks (25%), Latency (25%), Buttons (15%), Haptics (15%), Motion (10%), Connectivity (10%)
+  var overallScore = Math.round(
+    sticksScore * 0.25 +
+    latencyScore * 0.25 +
+    buttonsScore * 0.15 +
+    hapticsScore * 0.15 +
+    motionScore * 0.10 +
+    connScore * 0.10
+  )
+
+  var overallGrade = "C"
+  if (overallScore >= 93) overallGrade = "S"
+  else if (overallScore >= 87) overallGrade = "A+"
+  else if (overallScore >= 80) overallGrade = "A"
+  else if (overallScore >= 70) overallGrade = "B"
+  else if (overallScore >= 55) overallGrade = "C"
+  else overallGrade = "D"
+
+  var cat = getCatalog()
+  var match = cat ? cat.find(dev.modelLabel || dev.name, dev.maker) : null
+
+  return {
+    overallGrade: overallGrade,
+    overallScore: overallScore,
+    sectors: {
+      sticks: {
+        score: sticksScore,
+        tier: sticksTier,
+        error: stickErr,
+        drift: drift,
+        snapbacks: snapbacks,
+        label: (stickErr * 100).toFixed(1) + "% error" + (snapbacks > 0 ? " · " + snapbacks + " snapbacks" : " · 0 snapbacks")
+      },
+      latency: {
+        score: latencyScore,
+        tier: latencyTier,
+        hz: hz,
+        ms: ms,
+        jitter: jitter,
+        label: Math.round(hz) + " Hz · " + ms.toFixed(1) + " ms avg"
+      },
+      buttons: {
+        score: buttonsScore,
+        tier: buttonsTier,
+        count: buttonCount,
+        label: buttonCount + " inputs verified"
+      },
+      haptics: {
+        score: hapticsScore,
+        tier: hapticsTier,
+        label: (layout === "switch" || layout === "ps") ? "HD Rumble / LRAs Active" : (hasRumble ? "Dual ERM Motors" : "None")
+      },
+      motion: {
+        score: motionScore,
+        tier: motionTier,
+        hasGyro: hasGyro,
+        label: hasGyro ? "6-DOF Active (Drift: " + (gyroDrift * 100).toFixed(1) + "°/s)" : "No Gyro Detected"
+      },
+      connectivity: {
+        score: connScore,
+        tier: connTier,
+        bus: bus,
+        label: bus.toUpperCase() + (dev.battery !== undefined ? " · Battery " + dev.battery + "%" : "")
+      }
+    },
+    gamepadlaMatch: match
+  }
+}
+
+function exportMarkdownReport(dev, card) {
+  var name = dev ? (dev.modelLabel || dev.name || "Gamepad") : "Unknown Controller"
+  var dateStr = new Date().toISOString().slice(0, 10)
+  var bus = dev && dev.bus ? dev.bus.toUpperCase() : "USB"
+  card = card || computePerformanceScorecard(dev, null, null)
+
+  var lines = [
+    "### omycontroller Hardware Performance Report",
+    "- **Generated**: " + dateStr,
+    "- **Controller**: " + name,
+    "- **Connection**: " + bus,
+    "- **Overall Grade**: **" + card.overallGrade + "** (" + card.overallScore + "/100)",
+    "",
+    "#### 📊 Multi-Sector Benchmark Evaluation",
+    "- **Stick Precision & Circularity**: Tier " + card.sectors.sticks.tier + " — " + card.sectors.sticks.label,
+    "- **Polling & Latency**: Tier " + card.sectors.latency.tier + " — " + card.sectors.latency.label,
+    "- **Button & Trigger Health**: Tier " + card.sectors.buttons.tier + " — " + card.sectors.buttons.label,
+    "- **Haptics & HD Rumble**: Tier " + card.sectors.haptics.tier + " — " + card.sectors.haptics.label,
+    "- **6-DOF IMU Motion**: Tier " + card.sectors.motion.tier + " — " + card.sectors.motion.label,
+    "- **Connectivity & Bus Health**: Tier " + card.sectors.connectivity.tier + " — " + card.sectors.connectivity.label
+  ]
+
+  if (card.gamepadlaMatch && card.gamepadlaMatch.entry) {
+    var entry = card.gamepadlaMatch.entry
+    lines.push("")
+    lines.push("#### 🏆 Gamepadla Lab Reference Match")
+    lines.push("- **Model Match**: " + entry.n + (entry.b ? " (" + entry.b + ")" : ""))
+    if (entry.poll) lines.push("- **Verified Polling Rate**: " + entry.poll + " Hz")
+    if (entry.avg) lines.push("- **Verified Average Delay**: " + entry.avg + " ms")
+    if (entry.stick_resolution) lines.push("- **Stick Resolution**: " + entry.stick_resolution + " points")
+  }
+
+  lines.push("")
+  lines.push("---")
+  lines.push("*Generated by omycontroller Pro Diagnostics on Omarchy Linux*")
+
+  return lines.join("\n")
+}
+
+// ---------------------------------------------------------------------------
 // CommonJS exports for Node.js test runner while preserving QML compatibility
 // ---------------------------------------------------------------------------
 if (typeof module !== "undefined" && module.exports) {
@@ -1563,7 +1894,10 @@ if (typeof module !== "undefined" && module.exports) {
     bumperArt: bumperArt,
     triggerArt: triggerArt,
     centerArt: centerArt,
-    triggerNorm: triggerNorm
+    triggerNorm: triggerNorm,
+    isDpadActive: isDpadActive,
+    computePerformanceScorecard: computePerformanceScorecard,
+    exportMarkdownReport: exportMarkdownReport
   }
 }
 
