@@ -946,7 +946,7 @@ function buttonTables(layout, profile) {
     // 10: Back (BTN_SELECT), 11: Start (BTN_START), 12: Mode/Home (BTN_MODE),
     // 13: LS (BTN_THUMBL), 14: RS (BTN_THUMBR). D-Pad is on Hat0X/Hat0Y axes.
     t = {
-      faceBottom: 0, faceRight: 1, faceTop: 3, faceLeft: 4,
+      faceBottom: 0, faceRight: 1, faceLeft: 3, faceTop: 4,
       bumperL: 6, bumperR: 7,
       triggerL: 8, triggerR: 9,
       centerLeft: 10, centerRight: 11, centerTop: 12, centerExtra: -1,

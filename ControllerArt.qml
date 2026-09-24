@@ -104,19 +104,24 @@ Item {
 
   readonly property string effectiveLayout: {
     var l = String(layout || "").toLowerCase()
+    if (l === "ps" || l === "playstation") return "ps"
+    if (l === "switch" || l === "nintendo") return "switch"
+    if (l === "xbox") return "xbox"
+    if (l === "joystick") return "joystick"
+
     var m = String(modelLabel || "").toLowerCase()
     var mk = String(maker || "").toLowerCase()
 
-    if (l === "ps" || l === "playstation" || m.indexOf("dualsense") !== -1 || m.indexOf("dualshock") !== -1 || m.indexOf("playstation") !== -1 || mk.indexOf("sony") !== -1) {
+    if (m.indexOf("dualsense") !== -1 || m.indexOf("dualshock") !== -1 || m.indexOf("playstation") !== -1 || mk.indexOf("sony") !== -1) {
       return "ps"
     }
-    if (l === "switch" || l === "nintendo" || m.indexOf("switch") !== -1 || m.indexOf("joy-con") !== -1 || mk.indexOf("nintendo") !== -1) {
+    if (m.indexOf("switch") !== -1 || m.indexOf("joy-con") !== -1 || mk.indexOf("nintendo") !== -1) {
       return "switch"
     }
-    if (l === "joystick" || m.indexOf("flight") !== -1 || m.indexOf("hotas") !== -1 || m.indexOf("yoke") !== -1 || m.indexOf("arcade") !== -1) {
+    if (m.indexOf("flight") !== -1 || m.indexOf("hotas") !== -1 || m.indexOf("yoke") !== -1 || m.indexOf("arcade") !== -1) {
       return "joystick"
     }
-    if (l === "xbox" || m.indexOf("xbox") !== -1 || mk.indexOf("microsoft") !== -1 || m.indexOf("zhixu") !== -1) {
+    if (m.indexOf("xbox") !== -1 || mk.indexOf("microsoft") !== -1 || m.indexOf("zhixu") !== -1) {
       return "xbox"
     }
     return l || "generic"

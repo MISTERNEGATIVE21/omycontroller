@@ -771,9 +771,24 @@ Item {
     root._seenThisScan[id] = true
     var existing = _devices[id]
 
-    var state = existing || {
+    // Detect if this device has changed hardware identity (e.g. mode switch between Switch, Xbox, and DirectInput)
+    var modeChanged = existing && (
+      existing.vendor !== String(rec.vendor || "0000") ||
+      existing.product !== String(rec.product || "0000") ||
+      existing.name !== String(rec.name || id) ||
+      existing.event !== String(rec.event || "") ||
+      existing.driver !== String(rec.driver || "?")
+    )
+
+    if (modeChanged) {
+      // Controller switched mode (e.g. Switch <-> Xbox <-> DirectInput)
+      root.stopStream(id)
+      root.stopGyroStream(id)
+    }
+
+    var state = (existing && !modeChanged) ? existing : {
       id: id,
-      slot: 0,
+      slot: existing ? existing.slot : 0,
       buttons: {},
       buttonCount: 0,
       axes: [],
@@ -805,18 +820,19 @@ Item {
     state.maker = cls.maker
     state.hasTouchpad = Boolean(cls.hasTouchpad || (state.touchpadNode !== ""))
     state.hasRgbLed = Boolean(cls.hasRgbLed)
-    if (cls.buttonPreset) state.buttonPreset = cls.buttonPreset
+    state.buttonPreset = cls.buttonPreset || ""
     state.connection = GamepadModel.connection(state.bus, state.name, state.phys)
     state.profile = root.profileFor(id, state)
 
-    if (!existing) {
-      state.slot = root.claimSlot(id)
+    if (!existing || modeChanged) {
+      if (!existing) state.slot = root.claimSlot(id)
       var next = ({})
       for (var k in _devices) next[k] = _devices[k]
       next[id] = state
       _devices = next
       devicesChanged()
       root.startStream(id)
+      if (state.motionNode) root.startGyroStream(id)
     } else if (existing.percent !== state.percent || existing.charging !== state.charging ||
                existing.motionNode !== state.motionNode || existing.touchpadNode !== state.touchpadNode) {
       _touch(id)
@@ -879,22 +895,22 @@ Item {
   function reconcileStreams() {
     for (var id in _devices) {
       if (id === "sim0") continue
-      root.startStream(id)
-      root.startGyroStream(id)
+      if (!_streams[id]) root.startStream(id)
+      var d = _devices[id]
+      if (d && d.motionNode && !_gyroStreams[id]) root.startGyroStream(id)
     }
     for (var sid in _streams) {
       if (!_devices[sid]) root.stopStream(sid)
     }
     for (var gid in _gyroStreams) {
-      var d = _devices[gid]
-      if (!d || d.motionNode !== _gyroStreams[gid].node) root.stopGyroStream(gid)
+      var gd = _devices[gid]
+      if (!gd || gd.motionNode !== _gyroStreams[gid].node) root.stopGyroStream(gid)
     }
   }
 
   function streamDied(id) {
-    // Device unplugged (or jstest vanished). The next scan sweep cleans the
-    // state; drop the process handle immediately.
-    if (_streams[id] && !_devices[id]) stopStream(id)
+    // Process terminated. Clean up handle immediately so startStream/reconcileStreams can restart cleanly.
+    root.stopStream(id)
   }
 
   // ------------------------------------------------------- gyro/motion streams
@@ -937,8 +953,8 @@ Item {
   }
 
   function gyroDied(id) {
-    var d = _devices[id]
-    if (_gyroStreams[id] && (!d || !d.motionNode || d.motionNode === "")) stopGyroStream(id)
+    // Process terminated. Clean up gyro stream handle immediately.
+    root.stopGyroStream(id)
   }
 
   function handleGyroLine(id, line) {

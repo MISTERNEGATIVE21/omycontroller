@@ -426,8 +426,8 @@ test('ZhiXu Gamepad Classification and Button Mapping', (t) => {
   const zxTable = Model.buttonTables('xbox', { buttonPreset: 'zhixu' });
   assert.strictEqual(zxTable.faceBottom, 0); // A (BTN_SOUTH)
   assert.strictEqual(zxTable.faceRight, 1);  // B (BTN_EAST)
-  assert.strictEqual(zxTable.faceTop, 3);    // Y (BTN_NORTH)
-  assert.strictEqual(zxTable.faceLeft, 4);   // X (BTN_WEST)
+  assert.strictEqual(zxTable.faceLeft, 3);   // X (Left)
+  assert.strictEqual(zxTable.faceTop, 4);    // Y (Top)
   assert.strictEqual(zxTable.bumperL, 6);    // LB
   assert.strictEqual(zxTable.bumperR, 7);    // RB
   assert.strictEqual(zxTable.triggerL, 8);   // LT button
