@@ -1,0 +1,6 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Square Outer Frame -->
+  <rect x="17" y="17" width="30" height="30" rx="4" fill="none" stroke="#FFFFFF" stroke-width="3.5"/>
+  <!-- Sunken Circular Indent Lens -->
+  <circle cx="32" cy="32" r="8" fill="#FFFFFF"/>
+</svg>

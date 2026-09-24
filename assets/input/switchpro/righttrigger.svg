@@ -1,0 +1,7 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Sculpted Nintendo ZR Trigger Outline -->
+  <path d="M 50 14 C 50 10, 44 8, 34 8 L 16 8 C 12 8, 10 11, 10 16 L 10 38 C 10 48, 20 56, 32 56 C 44 56, 50 48, 50 38 Z" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Bold Vector ZR Glyph -->
+  <path fill="#FFFFFF" d="M 19 29 L 30 29 L 30 33 L 23.5 39.5 L 30 39.5 L 30 43.5 L 19 43.5 L 19 39.5 L 25.5 33 L 19 33 Z"/>
+  <path fill="#FFFFFF" fill-rule="evenodd" d="M 33 29 L 40 29 C 43.5 29 45.5 30.5 45.5 33 C 45.5 35 44 36.2 42 36.8 L 46 43.5 L 41.5 43.5 L 38 37.5 L 37 37.5 L 37 43.5 L 33 43.5 Z M 37 32 L 37 35 L 39.5 35 C 41 35 41.8 34.4 41.8 33.5 C 41.8 32.6 41 32 39.5 32 Z"/>
+</svg>

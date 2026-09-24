@@ -59,6 +59,7 @@ Item {
 
   // Interactive pad signals
   signal buttonClicked(int index, bool pressed)
+  signal dpadClicked(string dir, bool pressed)
   signal stickMoved(string side, real x, real y)
   signal stickReleased(string side)
   signal triggerMoved(string side, real value)
@@ -95,18 +96,49 @@ Item {
   implicitWidth: mini ? 34 : 340 * scale
   implicitHeight: mini ? 20 : 208 * scale
 
-  readonly property bool isPs: layout === "ps"
-  readonly property bool isSwitch: layout === "switch"
-  readonly property bool isXbox: layout === "xbox"
-  readonly property bool isJoystick: layout === "joystick"
+  property string modelLabel: ""
+  property string maker: ""
+
+  readonly property string effectiveLayout: {
+    var l = String(layout || "").toLowerCase()
+    var m = String(modelLabel || "").toLowerCase()
+    var mk = String(maker || "").toLowerCase()
+
+    if (l === "ps" || l === "playstation" || m.indexOf("dualsense") !== -1 || m.indexOf("dualshock") !== -1 || m.indexOf("playstation") !== -1 || mk.indexOf("sony") !== -1) {
+      return "ps"
+    }
+    if (l === "switch" || l === "nintendo" || m.indexOf("switch") !== -1 || m.indexOf("joy-con") !== -1 || mk.indexOf("nintendo") !== -1) {
+      return "switch"
+    }
+    if (l === "joystick" || m.indexOf("flight") !== -1 || m.indexOf("hotas") !== -1 || m.indexOf("yoke") !== -1 || m.indexOf("arcade") !== -1) {
+      return "joystick"
+    }
+    if (l === "xbox" || m.indexOf("xbox") !== -1 || mk.indexOf("microsoft") !== -1 || m.indexOf("zhixu") !== -1) {
+      return "xbox"
+    }
+    return l || "generic"
+  }
+
+  readonly property bool isPs: effectiveLayout === "ps"
+  readonly property bool isSwitch: effectiveLayout === "switch"
+  readonly property bool isXbox: effectiveLayout === "xbox"
+  readonly property bool isJoystick: effectiveLayout === "joystick"
 
   // Hat switch + throttle lever, only meaningful for the joystick layout.
   readonly property var extras: isJoystick ? GamepadModel.joystickExtras(axes, axisNames) : null
 
   // ---------------------------------------------------------------- tables
-  property string buttonPreset: (profile && profile.buttonPreset) ? profile.buttonPreset : ""
-  readonly property var tables: GamepadModel.buttonTables(buttonPreset || layout, profile)
-  readonly property var axisMap: GamepadModel.axesMap(layout, axes ? axes.length : 0, axisNames)
+  property string buttonPreset: ""
+  readonly property var tables: GamepadModel.buttonTables(buttonPreset || (profile && profile.buttonPreset) || effectiveLayout, profile || buttonPreset)
+  readonly property var axisMap: GamepadModel.axesMap(effectiveLayout, axes ? axes.length : 0, axisNames)
+  property var virtualDpad: ({ up: false, down: false, left: false, right: false })
+  function setVirtualDpad(dir, isDown) {
+    var copy = Object.assign({}, virtualDpad)
+    copy[dir] = !!isDown
+    virtualDpad = copy
+    dpadClicked(dir, isDown)
+    buttonClicked(-1, isDown)
+  }
 
   // Live rumble visual haptic parameters
   property bool rumbleActive: false
@@ -783,13 +815,13 @@ Item {
       xPos: root.geo.bumpers[0]
       trigRole: "triggerL"
       bumpRole: "bumperL"
-      trigLabel: GamepadModel.buttonLabel(root.layout, "triggerL", root.profile)
-      bumpLabel: GamepadModel.buttonLabel(root.layout, "bumperL", root.profile)
+      trigLabel: GamepadModel.buttonLabel(root.effectiveLayout, "triggerL", root.profile)
+      bumpLabel: GamepadModel.buttonLabel(root.effectiveLayout, "bumperL", root.profile)
       bumpIndex: root.tables.bumperL
       trigIndex: root.tables.triggerL
       bumpOn: root.pressed(root.tables.bumperL)
-      bumpArtSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.layout, "bumperL", root.profile))
-      trigArtSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.layout, "triggerL", root.profile))
+      bumpArtSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.effectiveLayout, "bumperL", root.profile))
+      trigArtSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.effectiveLayout, "triggerL", root.profile))
     }
 
     ShoulderUnit {
@@ -797,13 +829,13 @@ Item {
       xPos: root.geo.bumpers[1]
       trigRole: "triggerR"
       bumpRole: "bumperR"
-      trigLabel: GamepadModel.buttonLabel(root.layout, "triggerR", root.profile)
-      bumpLabel: GamepadModel.buttonLabel(root.layout, "bumperR", root.profile)
+      trigLabel: GamepadModel.buttonLabel(root.effectiveLayout, "triggerR", root.profile)
+      bumpLabel: GamepadModel.buttonLabel(root.effectiveLayout, "bumperR", root.profile)
       bumpIndex: root.tables.bumperR
       trigIndex: root.tables.triggerR
       bumpOn: root.pressed(root.tables.bumperR)
-      bumpArtSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.layout, "bumperR", root.profile))
-      trigArtSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.layout, "triggerR", root.profile))
+      bumpArtSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.effectiveLayout, "bumperR", root.profile))
+      trigArtSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.effectiveLayout, "triggerR", root.profile))
     }
 
     // ---------------- left stick ----------------------------------------
@@ -834,10 +866,10 @@ Item {
     Dpad {
       cx: root.geo.dpad[0]
       cy: root.geo.dpad[1]
-      up: root.pressed(root.tables.dpadUp) || (root.axisMap.hatY !== undefined && root.axisMap.hatY !== -1 && root.axisValue(root.axisMap.hatY, 0) < -0.5)
-      down: root.pressed(root.tables.dpadDown) || (root.axisMap.hatY !== undefined && root.axisMap.hatY !== -1 && root.axisValue(root.axisMap.hatY, 0) > 0.5)
-      dpadLeft: root.pressed(root.tables.dpadLeft) || (root.axisMap.hatX !== undefined && root.axisMap.hatX !== -1 && root.axisValue(root.axisMap.hatX, 0) < -0.5)
-      dpadRight: root.pressed(root.tables.dpadRight) || (root.axisMap.hatX !== undefined && root.axisMap.hatX !== -1 && root.axisValue(root.axisMap.hatX, 0) > 0.5)
+      up: (root.virtualDpad && root.virtualDpad.up) || GamepadModel.isDpadActive("up", root.buttons, root.axes, root.tables, root.axisMap)
+      down: (root.virtualDpad && root.virtualDpad.down) || GamepadModel.isDpadActive("down", root.buttons, root.axes, root.tables, root.axisMap)
+      dpadLeft: (root.virtualDpad && root.virtualDpad.left) || GamepadModel.isDpadActive("left", root.buttons, root.axes, root.tables, root.axisMap)
+      dpadRight: (root.virtualDpad && root.virtualDpad.right) || GamepadModel.isDpadActive("right", root.buttons, root.axes, root.tables, root.axisMap)
       idxUp: root.tables.dpadUp
       idxDown: root.tables.dpadDown
       idxLeft: root.tables.dpadLeft
@@ -846,10 +878,10 @@ Item {
     }
 
     // ---------------- face buttons --------------------------------------
-    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] - 18; label: root.faceLabel("top");    pos: "top";    role: "faceTop";    buttonIndex: root.tables.faceTop;    on: root.pressed(root.tables.faceTop);    artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "top", root.profile)) }
-    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] + 18; label: root.faceLabel("bottom"); pos: "bottom"; role: "faceBottom"; buttonIndex: root.tables.faceBottom; on: root.pressed(root.tables.faceBottom); artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "bottom", root.profile)) }
-    FaceButton { cx: root.geo.face[0] - 18; cy: root.geo.face[1];      label: root.faceLabel("left");   pos: "left";   role: "faceLeft";   buttonIndex: root.tables.faceLeft;   on: root.pressed(root.tables.faceLeft);   artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "left", root.profile)) }
-    FaceButton { cx: root.geo.face[0] + 18; cy: root.geo.face[1];      label: root.faceLabel("right");  pos: "right";  role: "faceRight";  buttonIndex: root.tables.faceRight;  on: root.pressed(root.tables.faceRight);  artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.layout, "right", root.profile)) }
+    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] - 18; label: root.faceLabel("top");    pos: "top";    role: "faceTop";    buttonIndex: root.tables.faceTop;    on: root.pressed(root.tables.faceTop);    artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.effectiveLayout, "top", root.profile)) }
+    FaceButton { cx: root.geo.face[0];      cy: root.geo.face[1] + 18; label: root.faceLabel("bottom"); pos: "bottom"; role: "faceBottom"; buttonIndex: root.tables.faceBottom; on: root.pressed(root.tables.faceBottom); artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.effectiveLayout, "bottom", root.profile)) }
+    FaceButton { cx: root.geo.face[0] - 18; cy: root.geo.face[1];      label: root.faceLabel("left");   pos: "left";   role: "faceLeft";   buttonIndex: root.tables.faceLeft;   on: root.pressed(root.tables.faceLeft);   artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.effectiveLayout, "left", root.profile)) }
+    FaceButton { cx: root.geo.face[0] + 18; cy: root.geo.face[1];      label: root.faceLabel("right");  pos: "right";  role: "faceRight";  buttonIndex: root.tables.faceRight;  on: root.pressed(root.tables.faceRight);  artSource: Qt.resolvedUrl(GamepadModel.faceArt(root.effectiveLayout, "right", root.profile)) }
 
     // ---------------- center cluster ------------------------------------
     Item {
@@ -915,9 +947,9 @@ Item {
           border.color: root.pressed(root.tables.centerExtra) ? root.playerColor : root.bodyBorder
           border.width: root.pressed(root.tables.centerExtra) ? 2 : 1
           scale: root.pressed(root.tables.centerExtra) ? 0.97 : (psTouchMouse.containsMouse ? 1.02 : 1.0)
-          Behavior on color { ColorAnimation { duration: 50 } }
-          Behavior on y { NumberAnimation { duration: 40 } }
-          Behavior on scale { NumberAnimation { duration: 40 } }
+          Behavior on color { ColorAnimation { duration: 25 } }
+          Behavior on y { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+          Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
 
           MouseArea {
             id: psTouchMouse
@@ -980,8 +1012,8 @@ Item {
         buttonIndex: root.tables.centerTop
         on: root.pressed(root.tables.centerTop)
         accent: root.playerColor
-        showLabel: !root.isXbox && root.showLabels
-        artSource: root.isXbox ? Qt.resolvedUrl(GamepadModel.centerArt("xbox", "guide")) : ""
+        showLabel: !root.isXbox && !root.isSwitch && root.showLabels
+        artSource: Qt.resolvedUrl(GamepadModel.centerArt(root.effectiveLayout, "guide"))
       }
 
       // Left Center Key (View / Minus / Create)
@@ -995,7 +1027,7 @@ Item {
         on: root.pressed(root.tables.centerLeft)
         accent: root.playerColor
         showLabel: root.showLabels
-        artSource: root.isXbox ? Qt.resolvedUrl(GamepadModel.centerArt("xbox", "left")) : ""
+        artSource: Qt.resolvedUrl(GamepadModel.centerArt(root.effectiveLayout, "left"))
       }
 
       // Right Center Key (Menu / Plus / Options)
@@ -1009,7 +1041,7 @@ Item {
         on: root.pressed(root.tables.centerRight)
         accent: root.playerColor
         showLabel: root.showLabels
-        artSource: root.isXbox ? Qt.resolvedUrl(GamepadModel.centerArt("xbox", "right")) : ""
+        artSource: Qt.resolvedUrl(GamepadModel.centerArt(root.effectiveLayout, "right"))
       }
 
       // Extra Center Key (Switch Capture / Xbox Share)
@@ -1025,7 +1057,7 @@ Item {
         on: root.pressed(root.tables.centerExtra)
         accent: root.playerColor
         showLabel: root.showLabels
-        artSource: root.isXbox ? Qt.resolvedUrl(GamepadModel.centerArt("xbox", "extra")) : ""
+        artSource: Qt.resolvedUrl(GamepadModel.centerArt(root.effectiveLayout, "extra"))
       }
     }
 
@@ -1179,9 +1211,9 @@ Item {
         border.width: root.pressed(root.tables.triggerL) ? 1.5 : 1
         scale: root.pressed(root.tables.triggerL) ? 0.97 : (jtrigMouse.containsMouse ? 1.04 : 1.0)
 
-        Behavior on anchors.verticalCenterOffset { NumberAnimation { duration: 35 } }
-        Behavior on color { ColorAnimation { duration: 50 } }
-        Behavior on scale { NumberAnimation { duration: 35 } }
+        Behavior on anchors.verticalCenterOffset { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+        Behavior on color { ColorAnimation { duration: 25 } }
+        Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
 
         MouseArea {
           id: jtrigMouse
@@ -1281,7 +1313,7 @@ Item {
 
   function faceLabel(pos) {
     var role = pos === "top" ? "faceTop" : pos === "bottom" ? "faceBottom" : pos === "left" ? "faceLeft" : "faceRight"
-    return GamepadModel.buttonLabel(root.layout, role, root.profile)
+    return GamepadModel.buttonLabel(root.effectiveLayout, role, root.profile)
   }
 
   // ============================================================ components
@@ -1450,9 +1482,28 @@ Item {
         opacity: 0.95
       }
 
+      Image {
+        id: trigCapImg
+        visible: su.trigArtSource !== "" && status === Image.Ready
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: parent.top
+        anchors.topMargin: 1
+        width: 20
+        height: 14
+        source: su.trigArtSource
+        fillMode: Image.PreserveAspectFit
+        mipmap: true
+        smooth: true
+        layer.enabled: visible
+        layer.effect: MultiEffect {
+          colorization: 1.0
+          colorizationColor: su.fillAmount > 0.40 ? Color.popups.background : root.glyphColor
+        }
+      }
+
       // Trigger Label (Tucked cleanly at the top of the trigger blade)
       Text {
-        visible: root.showLabels
+        visible: root.showLabels && (!trigCapImg.visible || trigCapImg.status !== Image.Ready)
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.topMargin: 1
@@ -1484,9 +1535,9 @@ Item {
       border.width: su.bumpOn ? 1.5 : 1
       scale: su.bumpOn ? 0.97 : (bumpMouse.containsMouse ? 1.02 : 1.0)
 
-      Behavior on y { NumberAnimation { duration: 35 } }
-      Behavior on color { ColorAnimation { duration: 50 } }
-      Behavior on scale { NumberAnimation { duration: 35 } }
+      Behavior on y { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+      Behavior on color { ColorAnimation { duration: 25 } }
+      Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
 
       MouseArea {
         id: bumpMouse
@@ -1543,8 +1594,26 @@ Item {
         visible: !su.bumpOn
       }
 
+      Image {
+        id: bumpCapImg
+        visible: su.bumpArtSource !== "" && status === Image.Ready
+        anchors.centerIn: parent
+        width: 24
+        height: 14
+        source: su.bumpArtSource
+        fillMode: Image.PreserveAspectFit
+        mipmap: true
+        smooth: true
+        layer.enabled: visible
+        layer.effect: MultiEffect {
+          colorization: 1.0
+          colorizationColor: su.bumpOn ? Color.popups.background : root.glyphColor
+        }
+      }
+
       // Bumper Label
       Text {
+        visible: !bumpCapImg.visible || bumpCapImg.status !== Image.Ready
         anchors.centerIn: parent
         text: su.bumpLabel
         color: su.bumpOn ? Color.popups.background : root.glyphColor
@@ -2048,21 +2117,21 @@ Item {
       height: 44
       y: dp.isAny ? 5.5 : 4.0
 
-      Behavior on y { NumberAnimation { duration: 35 } }
+      Behavior on y { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
 
       // 3D Tilting Rocker Transform
       transform: [
         Rotation {
           origin.x: 22; origin.y: 22
           axis { x: 1; y: 0; z: 0 }
-          angle: dp.tiltY * 8.5
-          Behavior on angle { SpringAnimation { spring: 5.0; damping: 0.32; epsilon: 0.05 } }
+          angle: -dp.tiltY * 8.5
+          Behavior on angle { SpringAnimation { spring: 8.0; damping: 0.40; epsilon: 0.05 } }
         },
         Rotation {
           origin.x: 22; origin.y: 22
           axis { x: 0; y: 1; z: 0 }
           angle: dp.tiltX * 8.5
-          Behavior on angle { SpringAnimation { spring: 5.0; damping: 0.32; epsilon: 0.05 } }
+          Behavior on angle { SpringAnimation { spring: 8.0; damping: 0.40; epsilon: 0.05 } }
         }
       ]
 
@@ -2127,8 +2196,8 @@ Item {
           font.pixelSize: 8
           font.bold: true
           scale: dp.up ? 1.25 : (dishMouseUp.containsMouse ? 1.15 : 1.0)
-          Behavior on scale { NumberAnimation { duration: 35 } }
-          Behavior on color { ColorAnimation { duration: 40 } }
+          Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+          Behavior on color { ColorAnimation { duration: 25 } }
         }
         // Down Chevron
         Text {
@@ -2138,8 +2207,8 @@ Item {
           font.pixelSize: 8
           font.bold: true
           scale: dp.down ? 1.25 : (dishMouseDown.containsMouse ? 1.15 : 1.0)
-          Behavior on scale { NumberAnimation { duration: 35 } }
-          Behavior on color { ColorAnimation { duration: 40 } }
+          Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+          Behavior on color { ColorAnimation { duration: 25 } }
         }
         // Left Chevron
         Text {
@@ -2149,8 +2218,8 @@ Item {
           font.pixelSize: 8
           font.bold: true
           scale: dp.dpadLeft ? 1.25 : (dishMouseLeft.containsMouse ? 1.15 : 1.0)
-          Behavior on scale { NumberAnimation { duration: 35 } }
-          Behavior on color { ColorAnimation { duration: 40 } }
+          Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+          Behavior on color { ColorAnimation { duration: 25 } }
         }
         // Right Chevron
         Text {
@@ -2160,8 +2229,8 @@ Item {
           font.pixelSize: 8
           font.bold: true
           scale: dp.dpadRight ? 1.25 : (dishMouseRight.containsMouse ? 1.15 : 1.0)
-          Behavior on scale { NumberAnimation { duration: 35 } }
-          Behavior on color { ColorAnimation { duration: 40 } }
+          Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+          Behavior on color { ColorAnimation { duration: 25 } }
         }
 
         // Deep Center Concave Thumb Bowl (The Faceted Pivot Dish)
@@ -2208,15 +2277,22 @@ Item {
         cursorShape: Qt.PointingHandCursor
         onPressed: function(mouse) {
           if (mouse.button === Qt.RightButton || root.remapMode) {
-            root.requestRemap("dpadUp", dp.idxUp, GamepadModel.buttonLabel(root.layout, "dpadUp", root.profile))
+            root.requestRemap("dpadUp", dp.idxUp, GamepadModel.buttonLabel(root.effectiveLayout, "dpadUp", root.profile))
             return
           }
-          root.setVirtualButton(dp.idxUp, true)
+          if (dp.idxUp >= 0) root.setVirtualButton(dp.idxUp, true)
+          root.setVirtualDpad("up", true)
         }
         onReleased: function(mouse) {
-          if (mouse.button === Qt.LeftButton && !root.remapMode) root.setVirtualButton(dp.idxUp, false)
+          if (mouse.button === Qt.LeftButton && !root.remapMode) {
+            if (dp.idxUp >= 0) root.setVirtualButton(dp.idxUp, false)
+            root.setVirtualDpad("up", false)
+          }
         }
-        onCanceled: root.setVirtualButton(dp.idxUp, false)
+        onCanceled: {
+          if (dp.idxUp >= 0) root.setVirtualButton(dp.idxUp, false)
+          root.setVirtualDpad("up", false)
+        }
       }
       // Down Zone
       MouseArea {
@@ -2228,15 +2304,22 @@ Item {
         cursorShape: Qt.PointingHandCursor
         onPressed: function(mouse) {
           if (mouse.button === Qt.RightButton || root.remapMode) {
-            root.requestRemap("dpadDown", dp.idxDown, GamepadModel.buttonLabel(root.layout, "dpadDown", root.profile))
+            root.requestRemap("dpadDown", dp.idxDown, GamepadModel.buttonLabel(root.effectiveLayout, "dpadDown", root.profile))
             return
           }
-          root.setVirtualButton(dp.idxDown, true)
+          if (dp.idxDown >= 0) root.setVirtualButton(dp.idxDown, true)
+          root.setVirtualDpad("down", true)
         }
         onReleased: function(mouse) {
-          if (mouse.button === Qt.LeftButton && !root.remapMode) root.setVirtualButton(dp.idxDown, false)
+          if (mouse.button === Qt.LeftButton && !root.remapMode) {
+            if (dp.idxDown >= 0) root.setVirtualButton(dp.idxDown, false)
+            root.setVirtualDpad("down", false)
+          }
         }
-        onCanceled: root.setVirtualButton(dp.idxDown, false)
+        onCanceled: {
+          if (dp.idxDown >= 0) root.setVirtualButton(dp.idxDown, false)
+          root.setVirtualDpad("down", false)
+        }
       }
       // Left Zone
       MouseArea {
@@ -2248,15 +2331,22 @@ Item {
         cursorShape: Qt.PointingHandCursor
         onPressed: function(mouse) {
           if (mouse.button === Qt.RightButton || root.remapMode) {
-            root.requestRemap("dpadLeft", dp.idxLeft, GamepadModel.buttonLabel(root.layout, "dpadLeft", root.profile))
+            root.requestRemap("dpadLeft", dp.idxLeft, GamepadModel.buttonLabel(root.effectiveLayout, "dpadLeft", root.profile))
             return
           }
-          root.setVirtualButton(dp.idxLeft, true)
+          if (dp.idxLeft >= 0) root.setVirtualButton(dp.idxLeft, true)
+          root.setVirtualDpad("left", true)
         }
         onReleased: function(mouse) {
-          if (mouse.button === Qt.LeftButton && !root.remapMode) root.setVirtualButton(dp.idxLeft, false)
+          if (mouse.button === Qt.LeftButton && !root.remapMode) {
+            if (dp.idxLeft >= 0) root.setVirtualButton(dp.idxLeft, false)
+            root.setVirtualDpad("left", false)
+          }
         }
-        onCanceled: root.setVirtualButton(dp.idxLeft, false)
+        onCanceled: {
+          if (dp.idxLeft >= 0) root.setVirtualButton(dp.idxLeft, false)
+          root.setVirtualDpad("left", false)
+        }
       }
       // Right Zone
       MouseArea {
@@ -2268,15 +2358,22 @@ Item {
         cursorShape: Qt.PointingHandCursor
         onPressed: function(mouse) {
           if (mouse.button === Qt.RightButton || root.remapMode) {
-            root.requestRemap("dpadRight", dp.idxRight, GamepadModel.buttonLabel(root.layout, "dpadRight", root.profile))
+            root.requestRemap("dpadRight", dp.idxRight, GamepadModel.buttonLabel(root.effectiveLayout, "dpadRight", root.profile))
             return
           }
-          root.setVirtualButton(dp.idxRight, true)
+          if (dp.idxRight >= 0) root.setVirtualButton(dp.idxRight, true)
+          root.setVirtualDpad("right", true)
         }
         onReleased: function(mouse) {
-          if (mouse.button === Qt.LeftButton && !root.remapMode) root.setVirtualButton(dp.idxRight, false)
+          if (mouse.button === Qt.LeftButton && !root.remapMode) {
+            if (dp.idxRight >= 0) root.setVirtualButton(dp.idxRight, false)
+            root.setVirtualDpad("right", false)
+          }
         }
-        onCanceled: root.setVirtualButton(dp.idxRight, false)
+        onCanceled: {
+          if (dp.idxRight >= 0) root.setVirtualButton(dp.idxRight, false)
+          root.setVirtualDpad("right", false)
+        }
       }
     }
 
@@ -2287,6 +2384,22 @@ Item {
       id: classicCross
       visible: !root.isXbox
       anchors.fill: parent
+
+      // 3D Tilting Rocker Transform for Classic Cross
+      transform: [
+        Rotation {
+          origin.x: 26; origin.y: 26
+          axis { x: 1; y: 0; z: 0 }
+          angle: -dp.tiltY * 7.5
+          Behavior on angle { SpringAnimation { spring: 8.0; damping: 0.40; epsilon: 0.05 } }
+        },
+        Rotation {
+          origin.x: 26; origin.y: 26
+          axis { x: 0; y: 1; z: 0 }
+          angle: dp.tiltX * 7.5
+          Behavior on angle { SpringAnimation { spring: 8.0; damping: 0.40; epsilon: 0.05 } }
+        }
+      ]
 
       // 2. Extruded 3D Cross Base Sidewall (2px shadow under cross)
       Rectangle {
@@ -2354,7 +2467,7 @@ Item {
     id: dpadArmItem
     property string dir: "up"
     property string role: dir === "up" ? "dpadUp" : dir === "down" ? "dpadDown" : dir === "left" ? "dpadLeft" : "dpadRight"
-    property string label: GamepadModel.buttonLabel(root.layout, role, root.profile)
+    property string label: GamepadModel.buttonLabel(root.effectiveLayout, role, root.profile)
     property bool on: false
     property int buttonIndex: -1
     property color accent: root.playerColor
@@ -2371,10 +2484,10 @@ Item {
     border.width: on ? 2 : (dpadMouse.containsMouse ? 1 : 0)
     scale: on ? 0.94 : (dpadMouse.containsMouse ? 1.08 : 1.0)
 
-    Behavior on y { NumberAnimation { duration: 35 } }
-    Behavior on x { NumberAnimation { duration: 35 } }
-    Behavior on color { ColorAnimation { duration: 50 } }
-    Behavior on scale { NumberAnimation { duration: 35 } }
+    Behavior on y { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+    Behavior on x { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+    Behavior on color { ColorAnimation { duration: 25 } }
+    Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
 
     MouseArea {
       id: dpadMouse
@@ -2388,14 +2501,19 @@ Item {
           root.requestRemap(dpadArmItem.role, dpadArmItem.buttonIndex, dpadArmItem.label)
           return
         }
-        root.setVirtualButton(dpadArmItem.buttonIndex, true)
+        if (dpadArmItem.buttonIndex >= 0) root.setVirtualButton(dpadArmItem.buttonIndex, true)
+        root.setVirtualDpad(dpadArmItem.dir, true)
       }
       onReleased: function(mouse) {
         if (mouse.button === Qt.LeftButton && !root.remapMode) {
-          root.setVirtualButton(dpadArmItem.buttonIndex, false)
+          if (dpadArmItem.buttonIndex >= 0) root.setVirtualButton(dpadArmItem.buttonIndex, false)
+          root.setVirtualDpad(dpadArmItem.dir, false)
         }
       }
-      onCanceled: root.setVirtualButton(dpadArmItem.buttonIndex, false)
+      onCanceled: {
+        if (dpadArmItem.buttonIndex >= 0) root.setVirtualButton(dpadArmItem.buttonIndex, false)
+        root.setVirtualDpad(dpadArmItem.dir, false)
+      }
     }
 
     // Glow halo
@@ -2549,8 +2667,8 @@ Item {
       height: 24
       scale: fb.on ? 0.94 : (fbMouse.containsMouse ? 1.06 : 1.0)
 
-      Behavior on y { NumberAnimation { duration: 40 } }
-      Behavior on scale { NumberAnimation { duration: 40 } }
+      Behavior on y { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+      Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
 
       MouseArea {
         id: fbMouse
@@ -2734,9 +2852,9 @@ Item {
       border.width: ck.on ? 2 : (ck.isXboxGuide ? 1.5 : 1)
       scale: ck.on ? 0.94 : (ckMouse.containsMouse ? 1.08 : 1.0)
 
-      Behavior on y { NumberAnimation { duration: 35 } }
-      Behavior on color { ColorAnimation { duration: 50 } }
-      Behavior on scale { NumberAnimation { duration: 35 } }
+      Behavior on y { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+      Behavior on color { ColorAnimation { duration: 25 } }
+      Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
 
       MouseArea {
         id: ckMouse

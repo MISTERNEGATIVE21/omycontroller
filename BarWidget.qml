@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import Quickshell
+import Quickshell.Io
 import qs.Commons
 import qs.Ui
 import "GamepadModel.js" as GamepadModel
@@ -105,19 +106,33 @@ BarWidget {
     : false
 
   function open() {
-    if (panelLoader.item) panelLoader.item.open()
+    if (panelLoader.item && typeof panelLoader.item.open === "function") {
+      panelLoader.item.open()
+    }
   }
 
   function close() {
-    if (panelLoader.item) panelLoader.item.close()
+    if (panelLoader.item && typeof panelLoader.item.close === "function") {
+      panelLoader.item.close()
+    }
   }
 
   function toggle() {
-    if (panelLoader.item) panelLoader.item.toggle()
+    if (panelLoader.item && typeof panelLoader.item.toggle === "function") {
+      panelLoader.item.toggle()
+    } else if (root.opened) {
+      root.close()
+    } else if (panelLoader.item && typeof panelLoader.item.open === "function") {
+      panelLoader.item.open()
+    } else if (root.bar && typeof root.bar.run === "function") {
+      root.bar.run("omarchy-shell shell toggle omycontroller '{}'")
+    }
   }
 
   function closeForPopoutSwitch() {
-    if (panelLoader.item) panelLoader.item.closeForPopoutSwitch()
+    if (panelLoader.item && typeof panelLoader.item.closeForPopoutSwitch === "function") {
+      panelLoader.item.closeForPopoutSwitch()
+    }
   }
 
   function injectPanel() {
@@ -131,6 +146,17 @@ BarWidget {
   implicitHeight: button.implicitHeight
 
   onBarChanged: injectPanel()
+
+  IpcHandler {
+    target: "omycontroller"
+
+    function open() { root.open() }
+    function close() { root.close() }
+    function show() { root.open() }
+    function hide() { root.close() }
+    function toggle() { root.toggle() }
+  }
+
 
   Loader {
     id: panelLoader
@@ -152,19 +178,26 @@ BarWidget {
     keepSpace: true
     fixedWidth: contentRow.implicitWidth + (root.pillStyle === "compact" ? Style.space(8) : Style.space(14))
     tooltipText: root.tooltip
-    onPressed: function (buttonCode) {
-      if (buttonCode === Qt.LeftButton) root.toggle()
+    onPressed: function (b) {
+      if (b === Qt.RightButton) {
+        if (root.svc && typeof root.svc.rescan === "function") root.svc.rescan()
+      } else {
+        root.toggle()
+      }
     }
 
     Row {
       id: contentRow
       anchors.centerIn: parent
+      spacing: Style.space(4)
       // Plugin tray / bar SVG icon (always visible)
       Image {
         id: pluginIcon
         anchors.verticalCenter: parent.verticalCenter
         width: root.pillStyle === "compact" ? Style.space(14) : Style.space(16)
         height: root.pillStyle === "compact" ? Style.space(14) : Style.space(16)
+        sourceSize.width: width
+        sourceSize.height: height
         source: Qt.resolvedUrl("assets/tray_icon.svg")
         fillMode: Image.PreserveAspectFit
         mipmap: true
@@ -190,10 +223,14 @@ BarWidget {
         anchors.verticalCenter: parent.verticalCenter
         width: root.pillStyle === "compact" ? 12 : 14
         height: root.pillStyle === "compact" ? 12 : 14
+        implicitWidth: width
+        implicitHeight: height
 
         Image {
           id: connSvg
           anchors.fill: parent
+          sourceSize.width: width
+          sourceSize.height: height
           source: root.activePad ? Qt.resolvedUrl(GamepadModel.connectionIcon(root.activePad.bus, root.activePad.phys)) : ""
           fillMode: Image.PreserveAspectFit
           asynchronous: true

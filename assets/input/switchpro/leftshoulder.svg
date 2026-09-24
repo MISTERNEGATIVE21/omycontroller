@@ -1,0 +1,6 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ergonomic Nintendo Shoulder Bumper Outline -->
+  <path d="M 10 36 C 10 25, 18 18, 30 16 L 54 16 C 56.5 16, 58 18, 58 20.5 L 58 43.5 C 58 46, 56.5 48, 54 48 L 26 48 C 16 48, 10 43, 10 36 Z" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Bold Vector L Glyph -->
+  <path fill="#FFFFFF" d="M 28 23 L 34 23 L 34 37 L 42 37 L 42 42 L 28 42 Z"/>
+</svg>

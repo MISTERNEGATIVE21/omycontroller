@@ -1,0 +1,5 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="32" cy="32" r="26" fill="none" stroke="#FFFFFF" stroke-width="4"/>
+  <!-- Bold Vector B Glyph (South button on Nintendo Switch Pro) -->
+  <path fill="#FFFFFF" fill-rule="evenodd" d="M 23 18 L 33 18 C 38 18 41.5 20.5 41.5 25 C 41.5 28.5 39 30.5 36 31.2 C 40 32 43 34.5 43 38.5 C 43 43 39 46 33 46 L 23 46 Z M 28 22.5 L 32.5 22.5 C 35.5 22.5 36.8 23.5 36.8 25.5 C 36.8 27.5 35.5 28.5 32.5 28.5 L 28 28.5 Z M 28 33.5 L 33 33.5 C 36 33.5 37.8 34.5 37.8 37 C 37.8 39.5 36 41 33 41 L 28 41 Z"/>
+</svg>

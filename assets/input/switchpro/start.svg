@@ -1,0 +1,5 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="32" cy="32" r="26" fill="none" stroke="#FFFFFF" stroke-width="2.5" opacity="0.4"/>
+  <!-- Nintendo Plus (+) Symbol -->
+  <path fill="#FFFFFF" fill-rule="evenodd" d="M 29 20 L 35 20 L 35 29 L 44 29 L 44 35 L 35 35 L 35 44 L 29 44 L 29 35 L 20 35 L 20 29 L 29 29 Z"/>
+</svg>
