@@ -1901,6 +1901,40 @@ function rgbToHex(r, g, b) {
   return "#" + rh + gh + bh
 }
 
+// ---------------------------------------------------------------------------
+// Gyro motion processing & steering helpers
+// ---------------------------------------------------------------------------
+function computeGyroSteering(gyro, gyroBias, deadzoneDeg, maxDeflectionDeg) {
+  if (!gyro || typeof gyro !== "object") return 0.0
+  var rawRoll = Number(gyro.roll)
+  if (isNaN(rawRoll)) return 0.0
+
+  // Apply Y-axis (roll/drift) bias correction if provided
+  if (gyroBias && typeof gyroBias === "object" && !isNaN(Number(gyroBias.y))) {
+    rawRoll -= Number(gyroBias.y)
+  }
+
+  var dz = deadzoneDeg !== undefined && !isNaN(Number(deadzoneDeg)) ? Math.max(0, Number(deadzoneDeg)) : 3.0
+  var maxDeg = maxDeflectionDeg !== undefined && !isNaN(Number(maxDeflectionDeg)) ? Math.max(dz + 0.1, Number(maxDeflectionDeg)) : 25.0
+
+  var absRoll = Math.abs(rawRoll)
+  if (absRoll <= dz) return 0.0
+
+  var sign = rawRoll > 0 ? 1.0 : -1.0
+  var norm = Math.min(1.0, (absRoll - dz) / (maxDeg - dz))
+  return sign * norm
+}
+
+function computeGyroFlick(gyro, prevGyro, threshold) {
+  if (!gyro || !prevGyro || typeof gyro !== "object" || typeof prevGyro !== "object") return false
+  var pNow = Number(gyro.pitch)
+  var pPrev = Number(prevGyro.pitch)
+  if (isNaN(pNow) || isNaN(pPrev)) return false
+
+  var th = threshold !== undefined && !isNaN(Number(threshold)) ? Number(threshold) : 15.0
+  return (pNow - pPrev) >= th
+}
+
 
 // ---------------------------------------------------------------------------
 // CommonJS exports for Node.js test runner while preserving QML compatibility
@@ -1952,7 +1986,10 @@ if (typeof module !== "undefined" && module.exports) {
     exportMarkdownReport: exportMarkdownReport,
     PS_LED_PRESETS: PS_LED_PRESETS,
     hexToRgb: hexToRgb,
-    rgbToHex: rgbToHex
+    rgbToHex: rgbToHex,
+    computeGyroSteering: computeGyroSteering,
+    computeGyroFlick: computeGyroFlick
   }
 }
+
 

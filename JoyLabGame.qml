@@ -19,6 +19,11 @@ Item {
   property var liveButtons: ({})
   property var liveAxes: []
   property var axisMap: ({ lx: 0, ly: 1, rx: 2, ry: 3, lt: -1, rt: -1, hatX: -1, hatY: -1 })
+  property var liveGyro: null
+  property var gyroBias: null
+  property bool gyroSteeringEnabled: true
+  property real currentGyroSteer: 0.0
+  property real maxTiltAngle: 0.0
   property string layout: "generic"
   property color playerColor: Color.accent
   property color foregroundColor: Style.color.foreground
@@ -137,6 +142,8 @@ Item {
     sumStickError = 0
     stickSamples = 0
     avgStickError = 7.2
+    currentGyroSteer = 0
+    maxTiltAngle = 0
     runStartTime = Date.now()
     runActive = true
     runFinished = false
@@ -163,10 +170,30 @@ Item {
     var sx = root.stickX
     var sy = root.stickY
 
-    // 1. Digital or analog horizontal intent
+    // Gyro motion steering evaluation
+    var gyroSteer = 0.0
+    if (root.gyroSteeringEnabled && root.liveGyro) {
+      gyroSteer = GamepadModel.computeGyroSteering(root.liveGyro, root.gyroBias, 2.5, 25.0)
+      root.currentGyroSteer = gyroSteer
+      var curRoll = Math.abs(Number(root.liveGyro.roll) || 0)
+      if (curRoll > root.maxTiltAngle) root.maxTiltAngle = curRoll
+    } else {
+      root.currentGyroSteer = 0.0
+    }
+
+    // 1. Digital, analog, or tilt gyro horizontal intent
     var moveIntent = sx
     if (root.dpadLeft) moveIntent = -1.0
     else if (root.dpadRight) moveIntent = 1.0
+
+    // Blend or steer via gyro if tilted
+    if (Math.abs(gyroSteer) > 0.01) {
+      if (Math.abs(moveIntent) < 0.1) {
+        moveIntent = gyroSteer
+      } else {
+        moveIntent = Math.max(-1.0, Math.min(1.0, moveIntent + gyroSteer * 0.75))
+      }
+    }
 
     // 2. Measure instantaneous Stick Circularity Error during active tilt
     var mag = Math.hypot(sx, sy)
@@ -260,7 +287,9 @@ Item {
               jumps: root.jumpCount,
               coins: root.coinCount,
               actuations: root.totalActuations,
-              timeSec: elapsedSec
+              timeSec: elapsedSec,
+              gyroUsed: root.gyroSteeringEnabled && root.maxTiltAngle > 3.0,
+              maxTilt: Math.round(root.maxTiltAngle * 10) / 10
             })
           }
         }
@@ -677,20 +706,68 @@ Item {
             font.pixelSize: Style.font.caption
           }
         }
+
+        // Gyro Steering Live Tilt Gauge
+        Row {
+          spacing: Style.space(4)
+          visible: !!root.liveGyro
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "🧭 Tilt:"
+            color: Qt.darker(root.foregroundColor, 1.4)
+            font.pixelSize: Style.font.caption
+          }
+          // Visual mini bubble level / deflection bar
+          Rectangle {
+            anchors.verticalCenter: parent.verticalCenter
+            width: Style.space(46)
+            height: Style.space(12)
+            radius: 2
+            color: Qt.rgba(root.foregroundColor.r, root.foregroundColor.g, root.foregroundColor.b, 0.1)
+            border.color: Qt.rgba(root.foregroundColor.r, root.foregroundColor.g, root.foregroundColor.b, 0.25)
+            border.width: 1
+            clip: true
+
+            // Center zero line
+            Rectangle {
+              anchors.centerIn: parent
+              width: 1
+              height: parent.height
+              color: Qt.rgba(root.foregroundColor.r, root.foregroundColor.g, root.foregroundColor.b, 0.3)
+            }
+
+            // Moving tilt pip
+            Rectangle {
+              y: 2
+              height: parent.height - 4
+              width: Style.space(8)
+              radius: 1
+              x: (parent.width - width) / 2 + (root.currentGyroSteer * (parent.width - width) / 2)
+              color: root.gyroSteeringEnabled ? (Math.abs(root.currentGyroSteer) > 0.05 ? root.playerColor : "#22c55e") : Qt.darker(root.foregroundColor, 1.8)
+            }
+          }
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.liveGyro && isFinite(root.liveGyro.roll) ? ((root.liveGyro.roll >= 0 ? "+" : "") + root.liveGyro.roll.toFixed(1) + "°") : "0.0°"
+            color: root.gyroSteeringEnabled && Math.abs(root.currentGyroSteer) > 0.05 ? root.playerColor : Qt.darker(root.foregroundColor, 1.3)
+            font.bold: true
+            font.pixelSize: Style.font.caption
+          }
+        }
       }
     }
 
-    // ------------------------------------------------------------ Controls Banner & Reset Button
+    // ------------------------------------------------------------ Controls Banner & Action Buttons
     Row {
       anchors.bottom: parent.bottom
       anchors.bottomMargin: Style.space(8)
       anchors.horizontalCenter: parent.horizontalCenter
-      spacing: Style.space(12)
+      spacing: Style.space(10)
 
       // Button prompt guide
       Rectangle {
         height: Style.space(26)
-        width: Style.space(360)
+        width: Style.space(345)
         radius: 4
         color: Qt.rgba(0.06, 0.09, 0.16, 0.75)
         border.color: Qt.rgba(root.foregroundColor.r, root.foregroundColor.g, root.foregroundColor.b, 0.15)
@@ -698,19 +775,59 @@ Item {
         Text {
           anchors.centerIn: parent
           text: root.layout === "switch"
-            ? "Stick / D-Pad: Move · B: Jump (hold high) · Y/A/RT: Dash"
+            ? "Stick / D-Pad / Tilt: Move · B: Jump · Y/A/RT: Dash"
             : (root.layout === "ps"
-                ? "Stick / D-Pad: Move · ✕: Jump (hold high) · ▢/R2: Dash"
-                : "Stick / D-Pad: Move · A: Jump (hold high) · X/B/RT: Dash")
+                ? "Stick / D-Pad / Tilt: Move · ✕: Jump · ▢/R2: Dash"
+                : "Stick / D-Pad / Tilt: Move · A: Jump · X/B/RT: Dash")
           color: root.foregroundColor
           font.pixelSize: Style.font.caption
+        }
+      }
+
+      // Gyro Steering Toggle Pill Button
+      Rectangle {
+        height: Style.space(26)
+        width: Style.space(118)
+        radius: 4
+        color: root.gyroSteeringEnabled
+          ? (gyroToggleMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.3) : Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.16))
+          : (gyroToggleMouse.containsMouse ? Qt.rgba(root.foregroundColor.r, root.foregroundColor.g, root.foregroundColor.b, 0.15) : Qt.rgba(root.foregroundColor.r, root.foregroundColor.g, root.foregroundColor.b, 0.06))
+        border.color: root.gyroSteeringEnabled ? root.playerColor : Qt.rgba(root.foregroundColor.r, root.foregroundColor.g, root.foregroundColor.b, 0.25)
+        border.width: 1
+
+        Row {
+          anchors.centerIn: parent
+          spacing: Style.space(4)
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "🧭 Gyro:"
+            color: root.gyroSteeringEnabled ? root.playerColor : Qt.darker(root.foregroundColor, 1.4)
+            font.pixelSize: Style.font.caption
+          }
+          Text {
+            anchors.verticalCenter: parent.verticalCenter
+            text: root.gyroSteeringEnabled ? "ON" : "OFF"
+            color: root.gyroSteeringEnabled ? "#22c55e" : Qt.darker(root.foregroundColor, 1.5)
+            font.bold: true
+            font.pixelSize: Style.font.caption
+          }
+        }
+
+        MouseArea {
+          id: gyroToggleMouse
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: {
+            root.gyroSteeringEnabled = !root.gyroSteeringEnabled
+          }
         }
       }
 
       // Reset Button
       Rectangle {
         height: Style.space(26)
-        width: Style.space(100)
+        width: Style.space(90)
         radius: 4
         color: resetMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.25) : Qt.rgba(root.foregroundColor.r, root.foregroundColor.g, root.foregroundColor.b, 0.08)
         border.color: root.playerColor
@@ -718,7 +835,7 @@ Item {
 
         Text {
           anchors.centerIn: parent
-          text: "↺ Reset Run"
+          text: "↺ Reset"
           color: root.playerColor
           font.bold: true
           font.pixelSize: Style.font.caption

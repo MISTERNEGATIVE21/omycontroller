@@ -437,6 +437,10 @@ Item {
     var devId = d.id
     if (devId === "sim0") {
       d._gyroCal = []
+      d.calibratingGyro = true
+      d.gyroCalCount = 0
+      d.gyroCalProgress = 0.05
+      _touch(devId)
       root.actionResult("Calibrating gyro for " + d.modelLabel + " (Simulated)…")
       return true
     }
@@ -449,7 +453,47 @@ Item {
       return false
     }
     d._gyroCal = []
+    d.calibratingGyro = true
+    d.gyroCalCount = 0
+    d.gyroCalProgress = 0.05
+    _touch(devId)
     root.actionResult("Calibrating gyro — keep the pad still…")
+    return true
+  }
+
+  function resetGyroCalibration(target) {
+    var d = null
+    if (target !== undefined && target !== null && (typeof target === "number" || /^[1-4]$/.test(String(target)))) {
+      var slotNum = parseInt(target, 10)
+      for (var id in _devices) {
+        if (_devices[id].slot === slotNum) {
+          d = _devices[id]
+          break
+        }
+      }
+    }
+    if (!d && target) {
+      d = device(target)
+    }
+    if (!d) {
+      for (var k in _devices) {
+        if (_devices[k].slot === 1) { d = _devices[k]; break }
+      }
+      if (!d && deviceList.length > 0) d = deviceList[0]
+    }
+    if (!d) return false
+    var devId = d.id
+    d._gyroCal = null
+    d.calibratingGyro = false
+    d.gyroCalCount = 0
+    d.gyroCalProgress = 0
+    if (devId === "sim0") {
+      d.profile.gyroBias = { x: 0, y: 0, z: 0 }
+    } else {
+      storeProfile(d, { gyroBias: { x: 0, y: 0, z: 0 } })
+    }
+    _touch(devId)
+    root.actionResult("Gyro drift calibration reset for " + d.modelLabel)
     return true
   }
 
@@ -624,6 +668,8 @@ Item {
 
     if (sim._gyroCal) {
       sim._gyroCal.push([sim.gyro.gx, sim.gyro.gy, sim.gyro.gz])
+      sim.gyroCalCount = sim._gyroCal.length
+      sim.gyroCalProgress = sim._gyroCal.length / 20.0
       if (sim._gyroCal.length >= 20) {
         var sx = 0, sy = 0, sz = 0
         for (var i = 0; i < sim._gyroCal.length; i++) {
@@ -634,6 +680,10 @@ Item {
         var n = sim._gyroCal.length
         sim.profile.gyroBias = { x: sx / n, y: sy / n, z: sz / n }
         sim._gyroCal = null
+        sim.calibratingGyro = false
+        sim.gyroCalCount = 0
+        sim.gyroCalProgress = 0
+        _touch("sim0")
         root.actionResult("Gyro calibrated for " + sim.modelLabel + " — drift offset stored")
       }
     }
@@ -920,6 +970,8 @@ Item {
     // Drift calibration collection: ~0.8s of stationary samples.
     if (d._gyroCal) {
       d._gyroCal.push([d.gyro.gx, d.gyro.gy, d.gyro.gz])
+      d.gyroCalCount = d._gyroCal.length
+      d.gyroCalProgress = d._gyroCal.length / 20.0
       if (d._gyroCal.length >= 20) {
         var sx = 0, sy = 0, sz = 0
         for (var i = 0; i < d._gyroCal.length; i++) {
@@ -930,6 +982,10 @@ Item {
         var n = d._gyroCal.length
         storeProfile(d, { gyroBias: { x: sx / n, y: sy / n, z: sz / n } })
         d._gyroCal = null
+        d.calibratingGyro = false
+        d.gyroCalCount = 0
+        d.gyroCalProgress = 0
+        _touch(id)
         root.actionResult("Gyro calibrated for " + d.modelLabel + " — drift offset stored")
       }
     }

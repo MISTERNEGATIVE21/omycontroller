@@ -3433,39 +3433,205 @@ Panel {
                     }
                   }
 
-                  Row {
+                  // Gyroscope Zero-Drift Calibration Studio
+                  Rectangle {
                     width: parent.width
-                    spacing: Style.space(8)
+                    height: calCol.implicitHeight + Style.space(24)
+                    radius: Math.max(6, Style.cornerRadius)
+                    color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04)
+                    border.color: (root.sel && root.sel.calibratingGyro)
+                      ? root.playerColor
+                      : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                    border.width: 1
 
-                    Button {
-                      width: Style.space(190)
-                      text: "⌖ Calibrate Zero Drift"
-                      focusable: true
-                      foreground: root.barForeground
-                      accent: root.playerColor
-                      onClicked: if (root.svc && root.sel) root.svc.calibrateGyro(root.sel.id)
+                    Column {
+                      id: calCol
+                      anchors.fill: parent
+                      anchors.margins: Style.space(12)
+                      spacing: Style.space(10)
+
+                      // Header Row
+                      Item {
+                        width: parent.width
+                        height: Style.space(24)
+
+                        Text {
+                          anchors.left: parent.left
+                          anchors.verticalCenter: parent.verticalCenter
+                          text: "🎯 Gyroscope Recalibration & Zero-Drift Nulling"
+                          color: root.barForeground
+                          font.family: Style.font.family
+                          font.pixelSize: Style.font.subtitle
+                          font.bold: true
+                        }
+
+                        // Status Badge
+                        Rectangle {
+                          anchors.right: parent.right
+                          anchors.verticalCenter: parent.verticalCenter
+                          height: Style.space(22)
+                          radius: height / 2
+                          color: (root.sel && root.sel.calibratingGyro)
+                            ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22)
+                            : (root.sel && root.sel.profile && root.sel.profile.gyroBias && (root.sel.profile.gyroBias.x !== 0 || root.sel.profile.gyroBias.y !== 0 || root.sel.profile.gyroBias.z !== 0))
+                              ? Qt.rgba(0.13, 0.77, 0.37, 0.18)
+                              : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08)
+                          border.color: (root.sel && root.sel.calibratingGyro)
+                            ? root.playerColor
+                            : (root.sel && root.sel.profile && root.sel.profile.gyroBias && (root.sel.profile.gyroBias.x !== 0 || root.sel.profile.gyroBias.y !== 0 || root.sel.profile.gyroBias.z !== 0))
+                              ? "#22c55e"
+                              : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.2)
+                          border.width: 1
+                          width: calBadgeRow.implicitWidth + Style.space(14)
+
+                          Row {
+                            id: calBadgeRow
+                            anchors.centerIn: parent
+                            spacing: Style.space(6)
+                            Rectangle {
+                              anchors.verticalCenter: parent.verticalCenter
+                              width: 6; height: 6; radius: 3
+                              color: (root.sel && root.sel.calibratingGyro)
+                                ? root.playerColor
+                                : (root.sel && root.sel.profile && root.sel.profile.gyroBias && (root.sel.profile.gyroBias.x !== 0 || root.sel.profile.gyroBias.y !== 0 || root.sel.profile.gyroBias.z !== 0))
+                                  ? "#22c55e"
+                                  : Qt.darker(root.barForeground, 1.6)
+                            }
+                            Text {
+                              anchors.verticalCenter: parent.verticalCenter
+                              text: (root.sel && root.sel.calibratingGyro)
+                                ? ("Sampling (" + (root.sel.gyroCalCount || 0) + "/20)…")
+                                : (root.sel && root.sel.profile && root.sel.profile.gyroBias && (root.sel.profile.gyroBias.x !== 0 || root.sel.profile.gyroBias.y !== 0 || root.sel.profile.gyroBias.z !== 0))
+                                  ? "Calibrated & Active"
+                                  : "Factory Zero"
+                              color: (root.sel && root.sel.calibratingGyro)
+                                ? root.playerColor
+                                : (root.sel && root.sel.profile && root.sel.profile.gyroBias && (root.sel.profile.gyroBias.x !== 0 || root.sel.profile.gyroBias.y !== 0 || root.sel.profile.gyroBias.z !== 0))
+                                  ? "#22c55e"
+                                  : Qt.darker(root.barForeground, 1.4)
+                              font.family: Style.font.family
+                              font.pixelSize: Style.font.caption
+                              font.bold: true
+                            }
+                          }
+                        }
+                      }
+
+                      // Instruction and stored bias readout
+                      Row {
+                        width: parent.width
+                        spacing: Style.space(12)
+
+                        // 3 Bias Pills
+                        Rectangle {
+                          height: Style.space(28)
+                          radius: 4
+                          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.06)
+                          border.color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                          width: biasPillRow.implicitWidth + Style.space(16)
+
+                          Row {
+                            id: biasPillRow
+                            anchors.centerIn: parent
+                            spacing: Style.space(10)
+                            Text {
+                              text: "Bias X: " + (root.sel && root.sel.profile && root.sel.profile.gyroBias ? (root.sel.profile.gyroBias.x >= 0 ? "+" : "") + root.sel.profile.gyroBias.x.toFixed(2) + "°/s" : "0.00°/s")
+                              color: root.playerColor
+                              font.family: Style.font.family
+                              font.pixelSize: Style.font.caption
+                              font.bold: true
+                            }
+                            Text { text: "·"; color: Qt.darker(root.barForeground, 1.6); font.pixelSize: Style.font.caption }
+                            Text {
+                              text: "Bias Y: " + (root.sel && root.sel.profile && root.sel.profile.gyroBias ? (root.sel.profile.gyroBias.y >= 0 ? "+" : "") + root.sel.profile.gyroBias.y.toFixed(2) + "°/s" : "0.00°/s")
+                              color: root.playerColor
+                              font.family: Style.font.family
+                              font.pixelSize: Style.font.caption
+                              font.bold: true
+                            }
+                            Text { text: "·"; color: Qt.darker(root.barForeground, 1.6); font.pixelSize: Style.font.caption }
+                            Text {
+                              text: "Bias Z: " + (root.sel && root.sel.profile && root.sel.profile.gyroBias ? (root.sel.profile.gyroBias.z >= 0 ? "+" : "") + root.sel.profile.gyroBias.z.toFixed(2) + "°/s" : "0.00°/s")
+                              color: root.playerColor
+                              font.family: Style.font.family
+                              font.pixelSize: Style.font.caption
+                              font.bold: true
+                            }
+                          }
+                        }
+
+                        Text {
+                          anchors.verticalCenter: parent.verticalCenter
+                          width: parent.width - biasPillRow.implicitWidth - Style.space(28)
+                          text: "Offsets are subtracted from gyroscope telemetry to eliminate angular drift."
+                          color: Qt.darker(root.barForeground, 1.4)
+                          font.family: Style.font.family
+                          font.pixelSize: Style.font.caption
+                          wrapMode: Text.WordWrap
+                          elide: Text.ElideRight
+                        }
+                      }
+
+                      // Progress bar during calibration
+                      Rectangle {
+                        visible: !!(root.sel && root.sel.calibratingGyro)
+                        width: parent.width
+                        height: Style.space(4)
+                        radius: 2
+                        color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.1)
+                        clip: true
+
+                        Rectangle {
+                          anchors.left: parent.left
+                          anchors.top: parent.top
+                          anchors.bottom: parent.bottom
+                          width: parent.width * Math.max(0.05, Math.min(1.0, (root.sel && root.sel.gyroCalProgress) ? root.sel.gyroCalProgress : 0))
+                          color: root.playerColor
+                          radius: 2
+                        }
+                      }
+
+                      // Action Buttons
+                      Row {
+                        width: parent.width
+                        spacing: Style.space(8)
+
+                        Button {
+                          width: Style.space(220)
+                          text: (root.sel && root.sel.calibratingGyro) ? "⏳ Calibrating Gyro…" : "🎯 Recalibrate Gyro Sensor"
+                          focusable: true
+                          foreground: root.barForeground
+                          accent: root.playerColor
+                          onClicked: {
+                            if (root.svc && root.sel) {
+                              root.svc.calibrateGyro(root.sel.id)
+                            }
+                          }
+                        }
+
+                        Button {
+                          width: Style.space(130)
+                          text: "↺ Reset Bias"
+                          focusable: true
+                          foreground: root.barForeground
+                          accent: root.playerColor
+                          onClicked: {
+                            if (root.svc && root.sel) {
+                              root.svc.resetGyroCalibration(root.sel.id)
+                            }
+                          }
+                        }
+
+                        Text {
+                          anchors.verticalCenter: parent.verticalCenter
+                          text: "Keep pad flat & still on desk during calibration"
+                          color: Qt.darker(root.barForeground, 1.5)
+                          font.family: Style.font.family
+                          font.pixelSize: Style.font.caption
+                          elide: Text.ElideRight
+                        }
+                      }
                     }
-
-                    Text {
-                      anchors.verticalCenter: parent.verticalCenter
-                      width: parent.width - Style.space(198)
-                      text: root.sel && root.sel.profile && root.sel.profile.gyroBias
-                        ? "Drift bias stored: X=" + root.sel.profile.gyroBias.x.toFixed(1) + " Y=" + root.sel.profile.gyroBias.y.toFixed(1)
-                        : "Uncalibrated bias"
-                      color: Qt.darker(root.barForeground, 1.4)
-                      font.family: Style.font.family
-                      font.pixelSize: Style.font.caption
-                      elide: Text.ElideRight
-                    }
-                  }
-
-                  Text {
-                    width: parent.width
-                    text: "Hold pad completely stationary on a flat surface while calibrating. Drift offsets persist across restarts."
-                    color: Qt.darker(root.barForeground, 1.5)
-                    font.family: Style.font.family
-                    font.pixelSize: Style.font.caption
-                    wrapMode: Text.WordWrap
                   }
                 }
 
@@ -3495,6 +3661,8 @@ Panel {
                     height: Style.space(380)
                     liveButtons: root.liveButtons
                     liveAxes: root.liveAxes
+                    liveGyro: root.liveGyro
+                    gyroBias: root.sel && root.sel.profile && root.sel.profile.gyroBias ? root.sel.profile.gyroBias : null
                     axisMap: root.axisMap
                     layout: root.sel ? root.sel.layout : "generic"
                     playerColor: root.playerColor

@@ -674,3 +674,38 @@ test('RGB / LED Utilities and Presets', (t) => {
   assert.strictEqual(Model.PS_LED_PRESETS[0].name, 'PS Blue');
   assert.strictEqual(Model.PS_LED_PRESETS[0].hex, '#0066ff');
 });
+
+test('Gyro Steering & Motion Processing', (t) => {
+  // 1. computeGyroSteering with null / empty gyro
+  assert.strictEqual(Model.computeGyroSteering(null), 0.0);
+  assert.strictEqual(Model.computeGyroSteering({}), 0.0);
+
+  // 2. Deadzone handling
+  // roll = 2.0 with default 3.0 deg deadzone -> should be 0.0
+  assert.strictEqual(Model.computeGyroSteering({ roll: 2.0 }), 0.0);
+  assert.strictEqual(Model.computeGyroSteering({ roll: -2.5 }), 0.0);
+
+  // 3. Proportional steering
+  // roll = 14.0 with deadzone = 3.0, max = 25.0 -> (14 - 3) / (25 - 3) = 11 / 22 = 0.5
+  const steerHalf = Model.computeGyroSteering({ roll: 14.0 }, null, 3.0, 25.0);
+  assert.ok(Math.abs(steerHalf - 0.5) < 0.001, `Expected 0.5, got ${steerHalf}`);
+
+  const steerNegHalf = Model.computeGyroSteering({ roll: -14.0 }, null, 3.0, 25.0);
+  assert.ok(Math.abs(steerNegHalf - (-0.5)) < 0.001, `Expected -0.5, got ${steerNegHalf}`);
+
+  // 4. Clamping past max deflection
+  assert.strictEqual(Model.computeGyroSteering({ roll: 45.0 }, null, 3.0, 25.0), 1.0);
+  assert.strictEqual(Model.computeGyroSteering({ roll: -50.0 }, null, 3.0, 25.0), -1.0);
+
+  // 5. Gyro Bias compensation
+  // roll = 5.0, bias.y = 3.0 -> effective roll = 2.0 -> within 3.0 deadzone -> 0.0
+  const biasedSteer = Model.computeGyroSteering({ roll: 5.0 }, { y: 3.0 }, 3.0, 25.0);
+  assert.strictEqual(biasedSteer, 0.0);
+
+  // 6. computeGyroFlick
+  assert.strictEqual(Model.computeGyroFlick(null, null), false);
+  assert.strictEqual(Model.computeGyroFlick({ pitch: 10 }, { pitch: 12 }, 15.0), false);
+  // Sudden upward pitch jerk: pitch 35 vs prev 10 -> delta 25 > threshold 15
+  assert.strictEqual(Model.computeGyroFlick({ pitch: 35 }, { pitch: 10 }, 15.0), true);
+});
+
