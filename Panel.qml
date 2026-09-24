@@ -24,13 +24,14 @@ Panel {
   id: root
   moduleName: "omycontroller"
   ipcTarget: "omycontroller"
-  manageIpc: true
+  manageIpc: false
 
   property var anchorItem: null
   property var hostWidget: null
 
   // ------------------------------------------------------------ service
   readonly property var svc: {
+    if (hostWidget && hostWidget.svc) return hostWidget.svc
     if (bar && bar.shell && typeof bar.shell.serviceFor === "function") {
       var s = bar.shell.serviceFor("omycontroller")
       if (s) return s
@@ -103,6 +104,8 @@ Panel {
   property var liveButtons: ({})
   property var liveAxes: []
   property var liveGyro: null
+  readonly property var axisMap: GamepadModel.axesMap(root.sel ? root.sel.layout : "generic", root.liveAxes ? root.liveAxes.length : 0, root.sel ? root.sel.axisNames : [])
+
 
   // Live rumble visual haptic state
   property bool rumbleActive: false
@@ -141,16 +144,12 @@ Panel {
   }
 
   onSelChanged: {
-    if (root.sel && root.selectedId !== root.sel.id) {
-      root.selectedId = root.sel.id
-    }
     root.refreshLive()
   }
 
   Connections {
     target: svc
     function onLiveUpdated(id) {
-      if (!root.selectedId && root.sel) root.selectedId = root.sel.id
       if (!root.sel || id === root.sel.id || id === root.selectedId) {
         root.refreshLive()
       }
@@ -229,7 +228,6 @@ Panel {
     }
   }
 
-  onSelChanged: root.refreshLive()
   onOpenedChanged: {
     if (!opened) {
       rhythmTimer.stop()
@@ -244,7 +242,7 @@ Panel {
 
   // ------------------------------------------------------------ navigation
   property int currentTab: 0
-  readonly property var tabNames: ["Overview", "Sticks & Triggers", "Haptics", "Motion", "Device Specs"]
+  readonly property var tabNames: ["Overview", "Sticks & Triggers", "Haptics & Audio", "Motion & Gyro", "JoyLab", "Device Specs"]
 
   // ------------------------------------------------------------ actions & tuning
   property string actionMsg: ""
@@ -253,6 +251,13 @@ Panel {
   property string selectedTriggerMode: "Rigid"
   property real triggerStartPos: 0.15
   property real triggerForce: 0.85
+
+  // JoyLab & Scorecard Telemetry
+  property var latestJoyLabStats: null
+  readonly property var scorecard: GamepadModel.computePerformanceScorecard(root.sel, root.stats, root.latestJoyLabStats)
+  property string selectedMidiTrack: "mario"
+  property real midiVolume: 0.85
+  property string activeAudioTest: ""
 
   // Haptics rhythm runner
   property var rhythmSteps: []
@@ -307,6 +312,42 @@ Panel {
   function triggerRumble(w, s, ms) {
     if (!root.svc || !root.sel) return
     root.svc.rumble(root.sel.id, w, s, ms)
+  }
+
+  function playMelody(track, vol) {
+    if (!root.svc || !root.sel) return
+    root.svc.playMelody(root.sel.id, track, vol)
+  }
+
+  function stopMelody() {
+    if (!root.svc) return
+    root.svc.stopMelody()
+  }
+
+  function playAudioTone(channel, sink) {
+    if (!root.svc) return
+    root.activeAudioTest = channel
+    root.svc.playAudioTone(channel, sink)
+    audioToneResetTimer.restart()
+  }
+
+  function copyReportToClipboard() {
+    var md = GamepadModel.exportMarkdownReport(root.sel, root.scorecard)
+    clipProc.command = ["sh", "-c", "printf '%s' \"$1\" | wl-copy || printf '%s' \"$1\" | xclip -selection clipboard", "sh", md]
+    clipProc.running = true
+    if (root.svc) root.svc.actionResult("Diagnostic report copied to clipboard!")
+  }
+
+  Process {
+    id: clipProc
+    running: false
+  }
+
+  Timer {
+    id: audioToneResetTimer
+    interval: 900
+    repeat: false
+    onTriggered: root.activeAudioTest = ""
   }
 
   function applyTriggerEffect(start, force) {
@@ -374,6 +415,24 @@ Panel {
       delete b[idx]
     }
     root.liveButtons = b
+  }
+
+  function handleVirtualDpad(dir, pressed) {
+    var axes = (root.liveAxes || []).slice()
+    while (axes.length < 8) axes.push(0)
+    var layout = root.sel ? root.sel.layout : "xbox"
+    var axisNames = root.sel ? root.sel.axisNames : []
+    var am = GamepadModel.axesMap(layout, axes.length, axisNames)
+    if (dir === "up") {
+      if (am.hatY >= 0 && am.hatY < axes.length) axes[am.hatY] = pressed ? -1.0 : 0.0
+    } else if (dir === "down") {
+      if (am.hatY >= 0 && am.hatY < axes.length) axes[am.hatY] = pressed ? 1.0 : 0.0
+    } else if (dir === "left") {
+      if (am.hatX >= 0 && am.hatX < axes.length) axes[am.hatX] = pressed ? -1.0 : 0.0
+    } else if (dir === "right") {
+      if (am.hatX >= 0 && am.hatX < axes.length) axes[am.hatX] = pressed ? 1.0 : 0.0
+    }
+    root.liveAxes = axes
   }
 
   function handleVirtualStick(side, sx, sy, active) {
@@ -446,7 +505,7 @@ Panel {
     var axes = root.liveAxes
     var axisNames = root.sel ? root.sel.axisNames : []
     var axisMap = GamepadModel.axesMap(layout, axes ? axes.length : 0, axisNames)
-    var tables = GamepadModel.buttonTables(layout)
+    var tables = GamepadModel.buttonTables(layout, root.sel ? root.sel.profile : null)
     var idx = side === "l" ? axisMap.lt : axisMap.rt
     var btnPressed = side === "l"
       ? !!(root.liveButtons && root.liveButtons[tables.triggerL])
@@ -459,6 +518,13 @@ Panel {
   // ------------------------------------------------------------ lifecycle
   function open() { root.controller.show() }
   function close() { root.controller.hide() }
+  function toggle() {
+    if (root.opened) root.close()
+    else root.open()
+  }
+  function closeForPopoutSwitch() {
+    root.close()
+  }
   function switchPanel(direction) {
     if (root.bar && typeof root.bar.switchPanelFrom === "function") {
       return root.bar.switchPanelFrom(root.hostWidget || root, direction)
@@ -716,6 +782,8 @@ Panel {
                     ControllerArt {
                       mini: true
                       layout: slotPill.pad ? slotPill.pad.layout : "generic"
+                      modelLabel: slotPill.pad ? (slotPill.pad.modelLabel || slotPill.pad.name) : ""
+                      maker: slotPill.pad ? slotPill.pad.maker : ""
                       playerColor: slotPill.slotColor
                       buttons: slotPill.isSel ? root.liveButtons : (slotPill.pad ? slotPill.pad.buttons : ({}))
                     }
@@ -879,9 +947,10 @@ Panel {
                 Repeater {
                   model: [
                     { name: "Overview", icon: "🎮" },
-                    { name: "Sticks & Triggers", icon: "🕹" },
-                    { name: "Haptics", icon: "📳" },
-                    { name: "Motion", icon: "🧭" },
+                    { name: "Sticks & Triggers", icon: "🎯" },
+                    { name: "Haptics & Audio", icon: "🔊" },
+                    { name: "Motion & Gyro", icon: "🧭" },
+                    { name: "JoyLab", icon: "🕹️" },
                     { name: "Device Specs", icon: "📋" }
                   ]
 
@@ -980,6 +1049,8 @@ Panel {
                     id: overviewArt
                     anchors.horizontalCenter: parent.horizontalCenter
                     layout: root.sel ? root.sel.layout : "generic"
+                    modelLabel: root.sel ? (root.sel.modelLabel || root.sel.name) : ""
+                    maker: root.sel ? root.sel.maker : ""
                     playerColor: root.playerColor
                     buttons: root.liveButtons
                     axes: root.liveAxes
@@ -999,6 +1070,9 @@ Panel {
                     }
                     onButtonClicked: function(index, pressed) {
                       root.handleVirtualButton(index, pressed)
+                    }
+                    onDpadClicked: function(dir, pressed) {
+                      root.handleVirtualDpad(dir, pressed)
                     }
                     onStickMoved: function(side, sx, sy) {
                       root.handleVirtualStick(side, sx, sy, true)
@@ -1677,11 +1751,11 @@ Panel {
                         }
                       }
 
-                      // Row 1: 4 face buttons
+                      // Row 1: Action Face Buttons
                       Row {
                         width: parent.width
                         spacing: Style.space(6)
-                        readonly property var t: GamepadModel.buttonTables(root.sel ? root.sel.layout : "generic", root.sel ? root.sel.profile : null)
+                        readonly property var t: GamepadModel.buttonTables(root.sel ? (root.sel.buttonPreset || root.sel.layout) : "generic", root.sel ? (root.sel.profile || root.sel.buttonPreset) : null)
 
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
@@ -1740,7 +1814,7 @@ Panel {
                       Row {
                         width: parent.width
                         spacing: Style.space(6)
-                        readonly property var t: GamepadModel.buttonTables(root.sel ? root.sel.layout : "generic", root.sel ? root.sel.profile : null)
+                        readonly property var t: GamepadModel.buttonTables(root.sel ? (root.sel.buttonPreset || root.sel.layout) : "generic", root.sel ? (root.sel.profile || root.sel.buttonPreset) : null)
 
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
@@ -1775,7 +1849,8 @@ Panel {
                           label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "triggerL", root.sel ? root.sel.profile : null)
                           svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "triggerL", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.triggerL
-                          active: root.triggerNorm("l") > 0.15
+                          axisHint: "Axis LT"
+                          active: root.triggerNorm("l") > 0.15 || (root.liveButtons && !!root.liveButtons[parent.t.triggerL])
                           accent: root.playerColor
                           foreground: root.barForeground
                           onClicked: remapModal.open(roleKey, btnIdx, label)
@@ -1788,18 +1863,19 @@ Panel {
                           label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "triggerR", root.sel ? root.sel.profile : null)
                           svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "triggerR", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.triggerR
-                          active: root.triggerNorm("r") > 0.15
+                          axisHint: "Axis RT"
+                          active: root.triggerNorm("r") > 0.15 || (root.liveButtons && !!root.liveButtons[parent.t.triggerR])
                           accent: root.playerColor
                           foreground: root.barForeground
                           onClicked: remapModal.open(roleKey, btnIdx, label)
                         }
                       }
 
-                      // Row 3: D-Pad Directions
+                      // Row 3: D-Pad Directions (supports digital buttons and Hat0X/Hat0Y axes)
                       Row {
                         width: parent.width
                         spacing: Style.space(6)
-                        readonly property var t: GamepadModel.buttonTables(root.sel ? root.sel.layout : "generic", root.sel ? root.sel.profile : null)
+                        readonly property var t: GamepadModel.buttonTables(root.sel ? (root.sel.buttonPreset || root.sel.layout) : "generic", root.sel ? (root.sel.profile || root.sel.buttonPreset) : null)
 
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
@@ -1808,7 +1884,8 @@ Panel {
                           label: "▲"
                           svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "dpadUp", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.dpadUp
-                          active: root.liveButtons && !!root.liveButtons[parent.t.dpadUp]
+                          axisHint: "Hat0Y -"
+                          active: GamepadModel.isDpadActive("up", root.liveButtons, root.liveAxes, parent.t, root.axisMap)
                           accent: root.playerColor
                           foreground: root.barForeground
                           onClicked: remapModal.open(roleKey, btnIdx, label)
@@ -1821,7 +1898,8 @@ Panel {
                           label: "▼"
                           svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "dpadDown", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.dpadDown
-                          active: root.liveButtons && !!root.liveButtons[parent.t.dpadDown]
+                          axisHint: "Hat0Y +"
+                          active: GamepadModel.isDpadActive("down", root.liveButtons, root.liveAxes, parent.t, root.axisMap)
                           accent: root.playerColor
                           foreground: root.barForeground
                           onClicked: remapModal.open(roleKey, btnIdx, label)
@@ -1834,7 +1912,8 @@ Panel {
                           label: "◀"
                           svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "dpadLeft", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.dpadLeft
-                          active: root.liveButtons && !!root.liveButtons[parent.t.dpadLeft]
+                          axisHint: "Hat0X -"
+                          active: GamepadModel.isDpadActive("left", root.liveButtons, root.liveAxes, parent.t, root.axisMap)
                           accent: root.playerColor
                           foreground: root.barForeground
                           onClicked: remapModal.open(roleKey, btnIdx, label)
@@ -1847,18 +1926,19 @@ Panel {
                           label: "▶"
                           svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "dpadRight", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.dpadRight
-                          active: root.liveButtons && !!root.liveButtons[parent.t.dpadRight]
+                          axisHint: "Hat0X +"
+                          active: GamepadModel.isDpadActive("right", root.liveButtons, root.liveAxes, parent.t, root.axisMap)
                           accent: root.playerColor
                           foreground: root.barForeground
                           onClicked: remapModal.open(roleKey, btnIdx, label)
                         }
                       }
 
-                      // Row 4: Stick Clicks and Center Buttons
+                      // Row 4: Stick Clicks and Back/Start Center Buttons
                       Row {
                         width: parent.width
                         spacing: Style.space(6)
-                        readonly property var t: GamepadModel.buttonTables(root.sel ? root.sel.layout : "generic", root.sel ? root.sel.profile : null)
+                        readonly property var t: GamepadModel.buttonTables(root.sel ? (root.sel.buttonPreset || root.sel.layout) : "generic", root.sel ? (root.sel.profile || root.sel.buttonPreset) : null)
 
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
@@ -1889,7 +1969,7 @@ Panel {
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
                           roleKey: "centerLeft"
-                          role: "Back / View"
+                          role: root.sel && root.sel.layout === "switch" ? "Minus (-)" : (root.sel && root.sel.layout === "playstation" ? "Share / Create" : "Back / View")
                           label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "centerLeft", root.sel ? root.sel.profile : null)
                           svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "centerLeft", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.centerLeft
@@ -1902,11 +1982,44 @@ Panel {
                         RemapPill {
                           width: (parent.width - 3 * Style.space(6)) / 4
                           roleKey: "centerRight"
-                          role: "Start / Menu"
+                          role: root.sel && root.sel.layout === "switch" ? "Plus (+)" : (root.sel && root.sel.layout === "playstation" ? "Options" : "Start / Menu")
                           label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "centerRight", root.sel ? root.sel.profile : null)
                           svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "centerRight", root.sel ? root.sel.profile : null))
                           btnIdx: parent.t.centerRight
                           active: root.liveButtons && !!root.liveButtons[parent.t.centerRight]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
+                        }
+                      }
+
+                      // Row 5: System Center Buttons (Guide / Home and Share / Capture / Touchpad)
+                      Row {
+                        width: parent.width
+                        spacing: Style.space(6)
+                        readonly property var t: GamepadModel.buttonTables(root.sel ? (root.sel.buttonPreset || root.sel.layout) : "generic", root.sel ? (root.sel.profile || root.sel.buttonPreset) : null)
+
+                        RemapPill {
+                          width: (parent.width - Style.space(6)) / 2
+                          roleKey: "centerTop"
+                          role: root.sel && root.sel.layout === "switch" ? "Home Button" : (root.sel && root.sel.layout === "playstation" ? "PS Button" : "Guide Button")
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "centerTop", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "centerTop", root.sel ? root.sel.profile : null))
+                          btnIdx: parent.t.centerTop
+                          active: root.liveButtons && !!root.liveButtons[parent.t.centerTop]
+                          accent: root.playerColor
+                          foreground: root.barForeground
+                          onClicked: remapModal.open(roleKey, btnIdx, label)
+                        }
+
+                        RemapPill {
+                          width: (parent.width - Style.space(6)) / 2
+                          roleKey: "centerExtra"
+                          role: root.sel && root.sel.layout === "switch" ? "Capture Button" : (root.sel && root.sel.layout === "playstation" ? "Touchpad Click" : "Share Button")
+                          label: GamepadModel.buttonLabel(root.sel ? root.sel.layout : "xbox", "centerExtra", root.sel ? root.sel.profile : null)
+                          svgSource: Qt.resolvedUrl(GamepadModel.buttonArt(root.sel ? root.sel.layout : "xbox", "centerExtra", root.sel ? root.sel.profile : null))
+                          btnIdx: parent.t.centerExtra
+                          active: root.liveButtons && !!root.liveButtons[parent.t.centerExtra]
                           accent: root.playerColor
                           foreground: root.barForeground
                           onClicked: remapModal.open(roleKey, btnIdx, label)
@@ -1931,6 +2044,8 @@ Panel {
                   ControllerArt {
                     anchors.horizontalCenter: parent.horizontalCenter
                     layout: root.sel ? root.sel.layout : "generic"
+                    modelLabel: root.sel ? (root.sel.modelLabel || root.sel.name) : ""
+                    maker: root.sel ? root.sel.maker : ""
                     playerColor: root.playerColor
                     buttons: root.liveButtons
                     axes: root.liveAxes
@@ -2034,6 +2149,260 @@ Panel {
                       foreground: root.barForeground
                       accent: root.playerColor
                       onClicked: root.playRhythm("burst")
+                    }
+                  }
+
+                  // -------------------------------------------------- HD Rumble Melodic Player
+                  PanelSectionHeader {
+                    text: "Nintendo HD Rumble Melodic MIDI Player"
+                    foreground: root.barForeground
+                    font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                  }
+
+                  Text {
+                    width: parent.width
+                    text: "Plays acoustic musical tones through controller Linear Resonant Actuators (LRAs) by driving force feedback pulses at pitch frequencies."
+                    color: Qt.darker(root.barForeground, 1.4)
+                    font.pixelSize: Style.font.caption
+                    wrapMode: Text.WordWrap
+                  }
+
+                  Column {
+                    width: parent.width
+                    spacing: Style.space(4)
+
+                    // Track selector row 1
+                    Row {
+                      width: parent.width
+                      spacing: Style.space(6)
+
+                      Repeater {
+                        model: [
+                          { id: "mario", name: "🍄 Mario Ground Theme" },
+                          { id: "zelda", name: "⚔️ Zelda Overworld" }
+                        ]
+                        delegate: Rectangle {
+                          id: mBtn1
+                          required property var modelData
+                          readonly property bool isSel: root.selectedMidiTrack === modelData.id
+                          width: (parent.width - Style.space(6)) / 2
+                          height: Style.space(30)
+                          radius: Math.max(4, Style.cornerRadius)
+                          color: isSel ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.25) : (mMouse1.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08) : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04))
+                          border.color: isSel ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                          border.width: isSel ? 1.5 : 1
+
+                          Text {
+                            anchors.centerIn: parent
+                            text: mBtn1.modelData.name
+                            color: mBtn1.isSel ? root.playerColor : root.barForeground
+                            font.bold: mBtn1.isSel
+                            font.pixelSize: Style.font.caption
+                          }
+                          MouseArea {
+                            id: mMouse1
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.selectedMidiTrack = mBtn1.modelData.id
+                          }
+                        }
+                      }
+                    }
+
+                    // Track selector row 2
+                    Row {
+                      width: parent.width
+                      spacing: Style.space(6)
+
+                      Repeater {
+                        model: [
+                          { id: "tetris", name: "🧱 Tetris Type A" },
+                          { id: "pokemon", name: "⚡ Pokémon Battle" }
+                        ]
+                        delegate: Rectangle {
+                          id: mBtn2
+                          required property var modelData
+                          readonly property bool isSel: root.selectedMidiTrack === modelData.id
+                          width: (parent.width - Style.space(6)) / 2
+                          height: Style.space(30)
+                          radius: Math.max(4, Style.cornerRadius)
+                          color: isSel ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.25) : (mMouse2.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08) : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04))
+                          border.color: isSel ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                          border.width: isSel ? 1.5 : 1
+
+                          Text {
+                            anchors.centerIn: parent
+                            text: mBtn2.modelData.name
+                            color: mBtn2.isSel ? root.playerColor : root.barForeground
+                            font.bold: mBtn2.isSel
+                            font.pixelSize: Style.font.caption
+                          }
+                          MouseArea {
+                            id: mMouse2
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.selectedMidiTrack = mBtn2.modelData.id
+                          }
+                        }
+                      }
+                    }
+
+                    // Track selector row 3: Quick jingles
+                    Row {
+                      width: parent.width
+                      spacing: Style.space(6)
+
+                      Repeater {
+                        model: [
+                          { id: "coin", name: "🪙 Coin Pickup" },
+                          { id: "oneup", name: "🍄 1-Up Fanfare" },
+                          { id: "sine", name: "〰️ Sine Sweep" }
+                        ]
+                        delegate: Rectangle {
+                          id: mBtn3
+                          required property var modelData
+                          readonly property bool isSel: root.selectedMidiTrack === modelData.id
+                          width: (parent.width - 2 * Style.space(6)) / 3
+                          height: Style.space(28)
+                          radius: Math.max(4, Style.cornerRadius)
+                          color: isSel ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.25) : (mMouse3.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08) : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04))
+                          border.color: isSel ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                          border.width: isSel ? 1.5 : 1
+
+                          Text {
+                            anchors.centerIn: parent
+                            text: mBtn3.modelData.name
+                            color: mBtn3.isSel ? root.playerColor : root.barForeground
+                            font.bold: mBtn3.isSel
+                            font.pixelSize: Style.font.caption
+                          }
+                          MouseArea {
+                            id: mMouse3
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.selectedMidiTrack = mBtn3.modelData.id
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  // Melodic Player Play/Stop Bar
+                  Row {
+                    width: parent.width
+                    spacing: Style.space(8)
+
+                    Button {
+                      width: (parent.width - Style.space(8)) * 0.70
+                      text: (root.svc && root.svc.isMelodyPlaying) ? "⏹ Stop Playing Melody" : ("▶ Play " + root.selectedMidiTrack.toUpperCase() + " Haptic Track")
+                      focusable: true
+                      foreground: root.barForeground
+                      accent: root.playerColor
+                      onClicked: {
+                        if (root.svc && root.svc.isMelodyPlaying) root.stopMelody()
+                        else root.playMelody(root.selectedMidiTrack, root.midiVolume)
+                      }
+                    }
+
+                    Rectangle {
+                      width: (parent.width - Style.space(8)) * 0.30
+                      height: Style.space(32)
+                      radius: Math.max(4, Style.cornerRadius)
+                      color: (root.svc && root.svc.isMelodyPlaying) ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.25) : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.06)
+                      border.color: (root.svc && root.svc.isMelodyPlaying) ? root.playerColor : "transparent"
+
+                      Text {
+                        anchors.centerIn: parent
+                        text: (root.svc && root.svc.isMelodyPlaying) ? "♫ VIBRATING..." : "READY"
+                        color: (root.svc && root.svc.isMelodyPlaying) ? root.playerColor : Qt.darker(root.barForeground, 1.4)
+                        font.bold: true
+                        font.pixelSize: Style.font.caption
+                      }
+                    }
+                  }
+
+                  // -------------------------------------------------- Speaker & 3.5mm Audio Jack Diagnostic Bench
+                  PanelSectionHeader {
+                    text: "Speaker & 3.5mm Audio Jack Diagnostic"
+                    foreground: root.barForeground
+                    font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                  }
+
+                  // Audio sink status card
+                  Rectangle {
+                    width: parent.width
+                    height: Style.space(42)
+                    radius: Math.max(4, Style.cornerRadius)
+                    color: Qt.rgba(0.06, 0.09, 0.16, 0.65)
+                    border.color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.15)
+                    border.width: 1
+
+                    Row {
+                      anchors.fill: parent
+                      anchors.margins: Style.space(8)
+                      spacing: Style.space(10)
+
+                      Text {
+                        text: "🎧"
+                        font.pixelSize: 18
+                        anchors.verticalCenter: parent.verticalCenter
+                      }
+
+                      Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        spacing: Style.space(2)
+
+                        Text {
+                          text: (root.svc && root.svc.audioInfo && root.svc.audioInfo.activeLabel) ? root.svc.audioInfo.activeLabel : "Host Audio Jack / Headphones"
+                          color: root.barForeground
+                          font.bold: true
+                          font.pixelSize: Style.font.caption
+                        }
+
+                        Text {
+                          text: (root.svc && root.svc.audioInfo && root.svc.audioInfo.hasControllerSink)
+                            ? "Controller Onboard DAC Active · 48 kHz Stereo"
+                            : "Host Audio Output · Smart Fallback for Nintendo Switch Pro"
+                          color: Qt.darker(root.barForeground, 1.4)
+                          font.pixelSize: 10
+                        }
+                      }
+                    }
+                  }
+
+                  // Audio Channel Test Buttons
+                  Row {
+                    width: parent.width
+                    spacing: Style.space(6)
+
+                    Button {
+                      width: (parent.width - 2 * Style.space(6)) / 3
+                      text: "◀ Left Tone"
+                      focusable: true
+                      foreground: root.barForeground
+                      accent: root.playerColor
+                      onClicked: root.playAudioTone("left", "")
+                    }
+
+                    Button {
+                      width: (parent.width - 2 * Style.space(6)) / 3
+                      text: "Right Tone ▶"
+                      focusable: true
+                      foreground: root.barForeground
+                      accent: root.playerColor
+                      onClicked: root.playAudioTone("right", "")
+                    }
+
+                    Button {
+                      width: (parent.width - 2 * Style.space(6)) / 3
+                      text: "▶ Stereo Ping"
+                      focusable: true
+                      foreground: root.barForeground
+                      accent: root.playerColor
+                      onClicked: root.playAudioTone("stereo", "")
                     }
                   }
 
@@ -2191,7 +2560,7 @@ Panel {
                   // 3D Motion Orientation Viewport
                   Rectangle {
                     width: parent.width
-                    height: Style.space(165)
+                    height: Style.space(220)
                     radius: Math.max(4, Style.cornerRadius)
                     color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04)
                     border.color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
@@ -2200,7 +2569,11 @@ Panel {
 
                     ControllerArt {
                       anchors.centerIn: parent
+                      width: Math.min(parent.width - Style.space(24), Style.space(320))
+                      height: Style.space(195)
                       layout: root.sel ? root.sel.layout : "generic"
+                      modelLabel: root.sel ? (root.sel.modelLabel || root.sel.name) : ""
+                      maker: root.sel ? root.sel.maker : ""
                       playerColor: root.playerColor
                       buttons: root.liveButtons
                       axes: root.liveAxes
@@ -2208,8 +2581,25 @@ Panel {
                       profile: root.sel && root.sel.profile ? root.sel.profile : null
                       buttonPreset: (root.sel && (root.sel.buttonPreset || (root.sel.profile && root.sel.profile.buttonPreset))) ? (root.sel.buttonPreset || root.sel.profile.buttonPreset) : ""
                       gyro: root.liveGyro
-                      width: Style.space(250)
-                      height: Style.space(150)
+                      rumbleActive: root.rumbleActive
+                      rumbleWeak: root.rumbleWeak
+                      rumbleStrong: root.rumbleStrong
+                      interactive: true
+                      onButtonClicked: function(index, pressed) {
+                        root.handleVirtualButton(index, pressed)
+                      }
+                      onDpadClicked: function(dir, pressed) {
+                        root.handleVirtualDpad(dir, pressed)
+                      }
+                      onStickMoved: function(side, sx, sy) {
+                        root.handleVirtualStick(side, sx, sy, true)
+                      }
+                      onStickReleased: function(side) {
+                        root.handleVirtualStick(side, 0, 0, false)
+                      }
+                      onTriggerMoved: function(side, val) {
+                        root.handleVirtualTrigger(side, val)
+                      }
                     }
 
                     // Live Orientation Degrees Badge
@@ -2243,6 +2633,19 @@ Panel {
                         }
                         Text {
                           text: "ROLL " + (root.liveGyro && isFinite(root.liveGyro.roll) ? ((root.liveGyro.roll >= 0 ? "+" : "") + root.liveGyro.roll.toFixed(1) + "°") : "0.0°")
+                          color: root.playerColor
+                          font.family: Style.font.family
+                          font.pixelSize: Style.font.caption
+                          font.bold: true
+                        }
+                        Text {
+                          text: "·"
+                          color: root.playerColor
+                          font.family: Style.font.family
+                          font.pixelSize: Style.font.caption
+                        }
+                        Text {
+                          text: "YAW " + (root.liveGyro && isFinite(root.liveGyro.yaw) ? ((root.liveGyro.yaw >= 0 ? "+" : "") + root.liveGyro.yaw.toFixed(1) + "°") : "0.0°")
                           color: root.playerColor
                           font.family: Style.font.family
                           font.pixelSize: Style.font.caption
@@ -2364,11 +2767,200 @@ Panel {
                   }
                 }
 
-                // ---------------------------------------------------- TAB 4: DEVICE SPECS
+                // ---------------------------------------------------- TAB 4: JOYLAB BENCHMARK GAME
                 Column {
                   visible: root.currentTab === 4
                   width: parent.width
+                  spacing: Style.space(8)
+
+                  PanelSectionHeader {
+                    text: "JoyLab: Retro Mario Performance Arena"
+                    foreground: root.barForeground
+                    font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                  }
+
+                  Text {
+                    width: parent.width
+                    text: "Interactive 60 FPS platformer benchmark. Jump, run, and collect coins using physical gamepad inputs to evaluate stick circularity, jump actuation latency, and spring snapback in real time."
+                    color: Qt.darker(root.barForeground, 1.4)
+                    font.pixelSize: Style.font.caption
+                    wrapMode: Text.WordWrap
+                  }
+
+                  JoyLabGame {
+                    id: joyLabInstance
+                    width: parent.width
+                    height: Style.space(380)
+                    liveButtons: root.liveButtons
+                    liveAxes: root.liveAxes
+                    axisMap: root.axisMap
+                    layout: root.sel ? root.sel.layout : "generic"
+                    playerColor: root.playerColor
+                    foregroundColor: root.barForeground
+                    onRequestRumble: function(w, s, ms) {
+                      root.triggerRumble(w, s, ms)
+                    }
+                    onRunCompleted: function(telemetry) {
+                      root.latestJoyLabStats = telemetry
+                      if (root.svc) root.svc.actionResult("JoyLab Run Complete: " + telemetry.stickError.toFixed(1) + "% error · " + telemetry.coins + " coins collected")
+                    }
+                  }
+
+                  Row {
+                    width: parent.width
+                    spacing: Style.space(8)
+
+                    Button {
+                      width: (parent.width - Style.space(8)) / 2
+                      text: "↺ Restart Arena"
+                      foreground: root.barForeground
+                      accent: root.playerColor
+                      onClicked: joyLabInstance.resetGame()
+                    }
+
+                    Button {
+                      width: (parent.width - Style.space(8)) / 2
+                      text: "📊 View Performance Scorecard →"
+                      foreground: root.barForeground
+                      accent: root.playerColor
+                      onClicked: {
+                        root.currentTab = 5
+                        tabFlick.contentY = 0
+                      }
+                    }
+                  }
+                }
+
+                // ---------------------------------------------------- TAB 5: DEVICE SPECS & SCORECARD
+                Column {
+                  visible: root.currentTab === 5
+                  width: parent.width
                   spacing: Style.space(6)
+
+                  // Multi-Sector Performance Scorecard Card
+                  PanelSectionHeader {
+                    text: "Multi-Sector Performance Scorecard"
+                    foreground: root.barForeground
+                    font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                  }
+
+                  Rectangle {
+                    width: parent.width
+                    height: Style.space(165)
+                    radius: Math.max(6, Style.cornerRadius)
+                    color: Qt.rgba(0.06, 0.09, 0.16, 0.70)
+                    border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.40)
+                    border.width: 1
+
+                    Row {
+                      anchors.fill: parent
+                      anchors.margins: Style.space(10)
+                      spacing: Style.space(12)
+
+                      // Left badge: Big Grade Letter
+                      Rectangle {
+                        width: Style.space(110)
+                        height: parent.height
+                        radius: Math.max(6, Style.cornerRadius)
+                        color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.18)
+                        border.color: root.playerColor
+                        border.width: 2
+
+                        Column {
+                          anchors.centerIn: parent
+                          spacing: Style.space(2)
+
+                          Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: root.scorecard.overallGrade
+                            color: root.scorecard.overallScore >= 88 ? "#22c55e" : (root.scorecard.overallScore >= 75 ? "#38bdf8" : "#f59e0b")
+                            font.bold: true
+                            font.pixelSize: 42
+                          }
+
+                          Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: root.scorecard.overallScore + " / 100"
+                            color: root.barForeground
+                            font.bold: true
+                            font.pixelSize: Style.font.caption
+                          }
+
+                          Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            text: "GRADE TIER"
+                            color: Qt.darker(root.barForeground, 1.5)
+                            font.pixelSize: 9
+                          }
+                        }
+                      }
+
+                      // Right side: 6 sector status rows
+                      Column {
+                        width: parent.width - Style.space(126)
+                        height: parent.height
+                        spacing: Style.space(4)
+
+                        Repeater {
+                          model: [
+                            { name: "Stick Precision", sec: root.scorecard.sectors.sticks },
+                            { name: "Polling & Latency", sec: root.scorecard.sectors.latency },
+                            { name: "Buttons & Switches", sec: root.scorecard.sectors.buttons },
+                            { name: "Haptics & HD Rumble", sec: root.scorecard.sectors.haptics },
+                            { name: "6-DOF IMU Motion", sec: root.scorecard.sectors.motion },
+                            { name: "Connectivity & Bus", sec: root.scorecard.sectors.connectivity }
+                          ]
+
+                          delegate: Row {
+                            id: secRow
+                            required property var modelData
+                            width: parent.width
+                            spacing: Style.space(6)
+
+                            Rectangle {
+                              width: Style.space(20)
+                              height: Style.space(16)
+                              radius: 3
+                              color: secRow.modelData.sec.tier === "S" ? "#22c55e" : (secRow.modelData.sec.tier === "A" ? "#38bdf8" : (secRow.modelData.sec.tier === "B" ? "#eab308" : "#94a3b8"))
+                              Text {
+                                anchors.centerIn: parent
+                                text: secRow.modelData.sec.tier
+                                color: "#0f172a"
+                                font.bold: true
+                                font.pixelSize: 9
+                              }
+                            }
+
+                            Text {
+                              width: Style.space(110)
+                              anchors.verticalCenter: parent.verticalCenter
+                              text: secRow.modelData.name
+                              color: root.barForeground
+                              font.bold: true
+                              font.pixelSize: Style.font.caption
+                            }
+
+                            Text {
+                              anchors.verticalCenter: parent.verticalCenter
+                              text: secRow.modelData.sec.label
+                              color: Qt.darker(root.barForeground, 1.3)
+                              font.pixelSize: Style.font.caption
+                              elide: Text.ElideRight
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+
+                  // Copy Diagnostic Report Button
+                  Button {
+                    width: parent.width
+                    text: "📋 Copy Markdown Diagnostic Report to Clipboard"
+                    foreground: root.barForeground
+                    accent: root.playerColor
+                    onClicked: root.copyReportToClipboard()
+                  }
 
                   PanelSectionHeader {
                     text: "Hardware Diagnostic Specification Sheet"
@@ -3058,6 +3650,7 @@ Panel {
     property string label: ""
     property string svgSource: ""
     property int btnIdx: -1
+    property string axisHint: ""
     property bool active: false
     property color accent: root.playerColor
     property color foreground: root.barForeground
@@ -3065,6 +3658,7 @@ Panel {
 
     height: Style.space(46)
     radius: Math.max(4, Style.cornerRadius - 1)
+    scale: active ? 0.95 : (pillMouse.containsMouse ? 1.02 : 1.0)
     color: active
       ? Qt.rgba(accent.r, accent.g, accent.b, 0.28)
       : (pillMouse.containsMouse
@@ -3076,8 +3670,9 @@ Panel {
     border.width: active || pillMouse.containsMouse ? 1.5 : 1
     clip: true
 
-    Behavior on color { ColorAnimation { duration: 40 } }
-    Behavior on border.color { ColorAnimation { duration: 40 } }
+    Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+    Behavior on color { ColorAnimation { duration: 25 } }
+    Behavior on border.color { ColorAnimation { duration: 25 } }
 
     MouseArea {
       id: pillMouse
@@ -3127,7 +3722,7 @@ Panel {
         }
 
         Text {
-          text: rp.btnIdx >= 0 ? ("Btn " + rp.btnIdx) : "Unmapped"
+          text: rp.btnIdx >= 0 ? ("Btn " + rp.btnIdx) : (rp.axisHint !== "" ? rp.axisHint : "Unmapped")
           color: rp.active ? rp.accent : Qt.darker(rp.foreground, 1.6)
           font.family: Style.font.family
           font.pixelSize: 8
