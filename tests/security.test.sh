@@ -94,6 +94,18 @@ assert_fail "triggers.py: rejects invalid mode" python3 scripts/triggers.py "aut
 assert_fail "triggers.py: rejects malformed hidraw node" python3 scripts/triggers.py "/dev/input/event0" off off
 assert_fail "triggers.py: rejects regular file as hidraw" python3 scripts/triggers.py "/etc/issue" off off
 
+# --- 3b. led.py security checks ---
+printf '\n%s\n' '--- Testing scripts/led.py ---'
+assert_fail "led.py: rejects missing arguments" python3 scripts/led.py
+assert_fail "led.py: rejects path traversal" python3 scripts/led.py "../../etc/passwd" 0 0 0
+assert_fail "led.py: rejects non-integer RGB" python3 scripts/led.py "auto" "red" 0 0
+assert_fail "led.py: rejects out-of-range RGB" python3 scripts/led.py "auto" 300 0 0
+assert_fail "led.py: rejects negative RGB" python3 scripts/led.py "auto" -10 0 0
+assert_fail "led.py: rejects malformed node" python3 scripts/led.py "/dev/input/js0" 0 0 0
+assert_fail "led.py: rejects regular file" python3 scripts/led.py "/etc/issue" 0 0 0
+assert_pass "led.py: accepts auto with valid RGB" python3 scripts/led.py auto 0 102 255
+
+
 # --- 4. File permission standards ---
 printf '\n%s\n' '--- Testing File Permissions ---'
 for f in scripts/*.py scripts/*.sh install.sh uninstall.sh tests/*.sh; do

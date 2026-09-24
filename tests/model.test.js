@@ -10,6 +10,8 @@ test('Classification - Xbox Series, DualSense, Switch Pro, and others', (t) => {
   assert.strictEqual(xboxSeries.modelLabel, 'Xbox Series pad');
   assert.strictEqual(xboxSeries.protocol, 'XInput');
   assert.strictEqual(xboxSeries.maker, 'Microsoft');
+  assert.strictEqual(xboxSeries.hasTouchpad, false);
+  assert.strictEqual(xboxSeries.hasRgbLed, false);
 
   // DualSense
   const dualSense = Model.classify('Wireless Controller', 'hid-playstation', '054c', '0ce6', 6, 16);
@@ -17,12 +19,16 @@ test('Classification - Xbox Series, DualSense, Switch Pro, and others', (t) => {
   assert.strictEqual(dualSense.modelLabel, 'DualSense');
   assert.strictEqual(dualSense.protocol, 'DualSense');
   assert.strictEqual(dualSense.maker, 'Sony');
+  assert.strictEqual(dualSense.hasTouchpad, true);
+  assert.strictEqual(dualSense.hasRgbLed, true);
 
   // DualSense Edge
   const dualSenseEdge = Model.classify('DualSense Edge Wireless Controller', 'hid-playstation', '054c', '0df2', 6, 16);
   assert.strictEqual(dualSenseEdge.layout, 'ps');
   assert.strictEqual(dualSenseEdge.modelLabel, 'DualSense Edge');
   assert.strictEqual(dualSenseEdge.protocol, 'DualSense');
+  assert.strictEqual(dualSenseEdge.hasTouchpad, true);
+  assert.strictEqual(dualSenseEdge.hasRgbLed, true);
 
   // Switch Pro
   const switchPro = Model.classify('Nintendo Switch Pro Controller', 'hid-nintendo', '057e', '2009', 6, 16);
@@ -30,6 +36,8 @@ test('Classification - Xbox Series, DualSense, Switch Pro, and others', (t) => {
   assert.strictEqual(switchPro.modelLabel, 'Switch Pro pad');
   assert.strictEqual(switchPro.protocol, 'Nintendo Switch');
   assert.strictEqual(switchPro.maker, 'Nintendo');
+  assert.strictEqual(switchPro.hasTouchpad, false);
+  assert.strictEqual(switchPro.hasRgbLed, false);
 
   // Flight / Arcade Stick
   const stick = Model.classify('T.Flight Hotas X', 'usbhid', '044f', 'b108', 4, 8);
@@ -648,6 +656,21 @@ test('Markdown Diagnostic Report Export', (t) => {
   assert.match(md, /Polling & Latency/);
 });
 
+test('RGB / LED Utilities and Presets', (t) => {
+  // hexToRgb
+  assert.deepStrictEqual(Model.hexToRgb('#0066ff'), { r: 0, g: 102, b: 255 });
+  assert.deepStrictEqual(Model.hexToRgb('#ff0000'), { r: 255, g: 0, b: 0 });
+  assert.deepStrictEqual(Model.hexToRgb('#fff'), { r: 255, g: 255, b: 255 });
+  assert.deepStrictEqual(Model.hexToRgb(null), { r: 0, g: 102, b: 255 });
 
+  // rgbToHex
+  assert.strictEqual(Model.rgbToHex(0, 102, 255), '#0066ff');
+  assert.strictEqual(Model.rgbToHex(255, 0, 0), '#ff0000');
+  assert.strictEqual(Model.rgbToHex(255, 255, 255), '#ffffff');
 
-
+  // PS_LED_PRESETS
+  assert.ok(Array.isArray(Model.PS_LED_PRESETS));
+  assert.ok(Model.PS_LED_PRESETS.length >= 8);
+  assert.strictEqual(Model.PS_LED_PRESETS[0].name, 'PS Blue');
+  assert.strictEqual(Model.PS_LED_PRESETS[0].hex, '#0066ff');
+});

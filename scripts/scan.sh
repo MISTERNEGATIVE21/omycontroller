@@ -23,8 +23,8 @@ SYS="${OMYCONTROLLER_SYSFS:-${QUATRO_SYSFS:-/sys}}"
 
 emit_json() {
   # Minimal key:value string emitter; values are pre-escaped.
-  printf '{"id":"%s","input":"%s","event":"%s","name":"%s","driver":"%s","bus":"%s","vendor":"%s","product":"%s","phys":"%s","percent":%s,"charging":%s,"motion":"%s"}\n' \
-    "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}"
+  printf '{"id":"%s","input":"%s","event":"%s","name":"%s","driver":"%s","bus":"%s","vendor":"%s","product":"%s","phys":"%s","percent":%s,"charging":%s,"motion":"%s","touchpad":"%s"}\n' \
+    "$1" "$2" "$3" "$4" "$5" "$6" "$7" "$8" "$9" "${10}" "${11}" "${12}" "${13}"
 }
 
 json_escape() {
@@ -105,21 +105,38 @@ for js in "$SYS"/class/input/js*; do
   # parent: hid-playstation/hid-sony/hid-nintendo expose it as a sibling
   # input device named "... Motion Sensors" / "... IMU".
   motion=""
+  touchpad=""
   for sib in "$parent"/input/input* "$parent"/input* "$parent"/../input*; do
     [ -d "$sib" ] || continue
     sib_name="$(cat "$sib/name" 2>/dev/null || printf '')"
-    case "$(printf '%s' "$sib_name" | tr '[:upper:]' '[:lower:]')" in
-      *motion*|*imu*|*gyro*|*accelerometer*|*accel*) ;;
-      *) continue ;;
-    esac
-    for ev in "$sib"/event*; do
-      [ -d "$ev" ] || continue
-      ev_base="$(basename "$ev")"
-      case "$ev_base" in
-        event[0-9]*) motion="$ev_base"; break ;;
+    sib_name_lower="$(printf '%s' "$sib_name" | tr '[:upper:]' '[:lower:]')"
+    if [ -z "$motion" ]; then
+      case "$sib_name_lower" in
+        *motion*|*imu*|*gyro*|*accelerometer*|*accel*)
+          for ev in "$sib"/event*; do
+            [ -d "$ev" ] || continue
+            ev_base="$(basename "$ev")"
+            case "$ev_base" in
+              event[0-9]*) motion="$ev_base"; break ;;
+            esac
+          done
+          ;;
       esac
-    done
-    [ -n "$motion" ] && break
+    fi
+    if [ -z "$touchpad" ]; then
+      case "$sib_name_lower" in
+        *touchpad*|*trackpad*)
+          for ev in "$sib"/event*; do
+            [ -d "$ev" ] || continue
+            ev_base="$(basename "$ev")"
+            case "$ev_base" in
+              event[0-9]*) touchpad="$ev_base"; break ;;
+            esac
+          done
+          ;;
+      esac
+    fi
+    [ -n "$motion" ] && [ -n "$touchpad" ] && break
   done
 
   raw_battery="$(battery_for_input "$(readlink -f "$dev_dir" 2>/dev/null || printf '')")"
@@ -144,7 +161,8 @@ for js in "$SYS"/class/input/js*; do
     "$(json_escape "$phys")" \
     "$percent" \
     "$charging" \
-    "$(json_escape "$motion")"
+    "$(json_escape "$motion")" \
+    "$(json_escape "$touchpad")"
 done
 
 exit 0

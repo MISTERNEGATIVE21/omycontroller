@@ -107,10 +107,136 @@ Panel {
   readonly property var axisMap: GamepadModel.axesMap(root.sel ? root.sel.layout : "generic", root.liveAxes ? root.liveAxes.length : 0, root.sel ? root.sel.axisNames : [])
 
 
-  // Live rumble visual haptic state
+  // Live rumble visual haptic state & duration
   property bool rumbleActive: false
   property real rumbleWeak: 0.0
   property real rumbleStrong: 0.0
+  property int rumbleDurationMs: 1200
+
+  // Live LED lightbar state & PlayStation presets
+  property color currentLedColor: (root.sel && root.sel.profile && root.sel.profile.ledColor) ? root.sel.profile.ledColor : "#0066ff"
+  property int ledR: GamepadModel.hexToRgb(root.currentLedColor).r
+  property int ledG: GamepadModel.hexToRgb(root.currentLedColor).g
+  property int ledB: GamepadModel.hexToRgb(root.currentLedColor).b
+
+  // Live capacitive touchpad diagnostics state
+  property var touchpadState: ({
+    active: false,
+    fingers: [],
+    trails: [],
+    pressure: 0.85,
+    zone: "Center Surface"
+  })
+
+  function handleTouchpadInteraction(normX, normY, pressed) {
+    var x = Math.max(0, Math.min(1.0, normX))
+    var y = Math.max(0, Math.min(1.0, normY))
+    var zoneName = (y > 0.8) ? (x < 0.5 ? "Left Click Zone" : "Right Click Zone") : "Center Surface"
+    var trails = root.touchpadState.trails ? root.touchpadState.trails.slice() : []
+    if (pressed) {
+      trails.push({ x: x, y: y, ts: Date.now() })
+      if (trails.length > 35) trails.shift()
+    }
+    root.touchpadState = {
+      active: pressed,
+      fingers: pressed ? [{ id: 0, x: x, y: y, pressed: true }] : [],
+      trails: trails,
+      pressure: pressed ? 0.90 : 0.0,
+      zone: zoneName
+    }
+  }
+
+  function simulateGesture(gestureType) {
+    if (gestureType === "tap") {
+      root.touchpadState = {
+        active: true,
+        fingers: [{ id: 0, x: 0.5, y: 0.5, pressed: true }],
+        trails: [{ x: 0.5, y: 0.5, ts: Date.now() }],
+        pressure: 0.95,
+        zone: "Center Surface"
+      }
+      gestureTimer.interval = 350
+      gestureTimer.restart()
+    } else if (gestureType === "twofinger") {
+      root.touchpadState = {
+        active: true,
+        fingers: [
+          { id: 0, x: 0.70, y: 0.88, pressed: true },
+          { id: 1, x: 0.85, y: 0.88, pressed: true }
+        ],
+        trails: [{ x: 0.70, y: 0.88, ts: Date.now() }, { x: 0.85, y: 0.88, ts: Date.now() }],
+        pressure: 0.95,
+        zone: "Right Click Zone"
+      }
+      gestureTimer.interval = 400
+      gestureTimer.restart()
+    } else if (gestureType === "pinch") {
+      root.touchpadState = {
+        active: true,
+        fingers: [
+          { id: 0, x: 0.35, y: 0.40, pressed: true },
+          { id: 1, x: 0.65, y: 0.60, pressed: true }
+        ],
+        trails: [
+          { x: 0.25, y: 0.30, ts: Date.now() },
+          { x: 0.35, y: 0.40, ts: Date.now() },
+          { x: 0.75, y: 0.70, ts: Date.now() },
+          { x: 0.65, y: 0.60, ts: Date.now() }
+        ],
+        pressure: 0.85,
+        zone: "Multi-Touch Pinch"
+      }
+      gestureTimer.interval = 600
+      gestureTimer.restart()
+    } else if (gestureType === "swipe") {
+      root.touchpadState = {
+        active: true,
+        fingers: [{ id: 0, x: 0.85, y: 0.50, pressed: true }],
+        trails: [
+          { x: 0.98, y: 0.50, ts: Date.now() },
+          { x: 0.92, y: 0.50, ts: Date.now() },
+          { x: 0.85, y: 0.50, ts: Date.now() }
+        ],
+        pressure: 0.90,
+        zone: "Edge Swipe Inward"
+      }
+      gestureTimer.interval = 500
+      gestureTimer.restart()
+    } else if (gestureType === "clear") {
+      root.touchpadState = {
+        active: false,
+        fingers: [],
+        trails: [],
+        pressure: 0.0,
+        zone: "Ready"
+      }
+    }
+  }
+
+  Timer {
+    id: gestureTimer
+    repeat: false
+    onTriggered: {
+      if (root.touchpadState && root.touchpadState.active) {
+        root.touchpadState.active = false
+        if (root.touchpadState.fingers) {
+          for (var i = 0; i < root.touchpadState.fingers.length; i++) {
+            root.touchpadState.fingers[i].pressed = false
+          }
+        }
+      }
+    }
+  }
+
+  function applyLedColor(r, g, b) {
+    if (!root.svc) return
+    var targetId = root.sel ? root.sel.id : "js0"
+    root.svc.setLed(targetId, r, g, b)
+    root.currentLedColor = GamepadModel.rgbToHex(r, g, b)
+    root.ledR = r
+    root.ledG = g
+    root.ledB = b
+  }
 
   Timer {
     id: rumbleDecayTimer
@@ -171,6 +297,14 @@ Panel {
         root.rumbleActive = true
         rumbleDecayTimer.interval = Math.max(100, ms || 500)
         rumbleDecayTimer.restart()
+      }
+    }
+    function onLedColorChanged(id, r, g, b, hex) {
+      if (!root.sel || id === root.sel.id || id === root.selectedId) {
+        root.currentLedColor = hex
+        root.ledR = r
+        root.ledG = g
+        root.ledB = b
       }
     }
   }
@@ -273,23 +407,35 @@ Panel {
   function playRhythm(patternName) {
     if (patternName === "pulse") {
       rhythmSteps = [
-        { w: 0.6, s: 0.8, d: 160 }
+        { w: 0.7, s: 0.9, d: 200 },
+        { w: 0.0, s: 0.0, d: 120 },
+        { w: 0.7, s: 0.9, d: 200 },
+        { w: 0.0, s: 0.0, d: 120 },
+        { w: 0.8, s: 1.0, d: 220 },
+        { w: 0.0, s: 0.0, d: 120 },
+        { w: 0.9, s: 1.0, d: 250 }
       ]
     } else if (patternName === "heartbeat") {
       rhythmSteps = [
-        { w: 0.7, s: 0.4, d: 100 },
+        { w: 0.8, s: 0.5, d: 150 },
         { w: 0.0, s: 0.0, d: 120 },
-        { w: 0.9, s: 0.8, d: 220 }
+        { w: 1.0, s: 0.9, d: 280 },
+        { w: 0.0, s: 0.0, d: 350 },
+        { w: 0.8, s: 0.5, d: 150 },
+        { w: 0.0, s: 0.0, d: 120 },
+        { w: 1.0, s: 1.0, d: 330 }
       ]
     } else if (patternName === "ramp") {
       rhythmSteps = [
-        { w: 0.25, s: 0.3, d: 140 },
-        { w: 0.55, s: 0.6, d: 140 },
-        { w: 1.0,  s: 1.0, d: 240 }
+        { w: 0.20, s: 0.25, d: 250 },
+        { w: 0.40, s: 0.45, d: 250 },
+        { w: 0.65, s: 0.70, d: 300 },
+        { w: 0.85, s: 0.90, d: 300 },
+        { w: 1.00, s: 1.00, d: 350 }
       ]
     } else if (patternName === "burst") {
       rhythmSteps = [
-        { w: 1.0, s: 1.0, d: 600 }
+        { w: 1.0, s: 1.0, d: 1500 }
       ]
     }
     rhythmStepIdx = 0
@@ -654,12 +800,17 @@ Panel {
               mini: false
               layout: "xbox"
               playerColor: Color.accent
+              ledColor: root.currentLedColor
+              touchpadState: root.touchpadState
               buttons: root.liveButtons
               axes: root.liveAxes
               width: Style.space(280)
               height: Style.space(170)
               showLabels: true
 
+              onTouchpadInteracted: function(tx, ty, pressed) {
+                root.handleTouchpadInteraction(tx, ty, pressed)
+              }
               onButtonClicked: function(index, pressed) {
                 root.handleVirtualButton(index, pressed)
               }
@@ -785,6 +936,7 @@ Panel {
                       modelLabel: slotPill.pad ? (slotPill.pad.modelLabel || slotPill.pad.name) : ""
                       maker: slotPill.pad ? slotPill.pad.maker : ""
                       playerColor: slotPill.slotColor
+                      ledColor: (slotPill.pad && slotPill.pad.profile && slotPill.pad.profile.ledColor) ? slotPill.pad.profile.ledColor : slotPill.slotColor
                       buttons: slotPill.isSel ? root.liveButtons : (slotPill.pad ? slotPill.pad.buttons : ({}))
                     }
                   }
@@ -1052,6 +1204,8 @@ Panel {
                     modelLabel: root.sel ? (root.sel.modelLabel || root.sel.name) : ""
                     maker: root.sel ? root.sel.maker : ""
                     playerColor: root.playerColor
+                    ledColor: root.currentLedColor
+                    touchpadState: root.touchpadState
                     buttons: root.liveButtons
                     axes: root.liveAxes
                     axisNames: root.sel && root.sel.axisNames ? root.sel.axisNames : []
@@ -1065,6 +1219,9 @@ Panel {
                     width: Style.space(310)
                     height: Style.space(190)
 
+                    onTouchpadInteracted: function(tx, ty, pressed) {
+                      root.handleTouchpadInteraction(tx, ty, pressed)
+                    }
                     onRequestRemap: function(role, index, label) {
                       remapModal.open(role, index, label)
                     }
@@ -2027,6 +2184,282 @@ Panel {
                       }
                     }
                   }
+
+                  // -------------------------------------------------- Capacitive Touchpad Diagnostic Bench
+                  PanelSectionHeader {
+                    text: "Capacitive Touchpad / Trackpad Diagnostic Bench"
+                    foreground: root.barForeground
+                    font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                  }
+
+                  Rectangle {
+                    width: parent.width
+                    height: Style.space(260)
+                    radius: Math.max(6, Style.cornerRadius)
+                    color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.03)
+                    border.color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                    border.width: 1
+
+                    Column {
+                      anchors.fill: parent
+                      anchors.margins: Style.space(10)
+                      spacing: Style.space(8)
+
+                      // Header / Status Line
+                      Row {
+                        width: parent.width
+                        spacing: Style.space(8)
+
+                        Text {
+                          text: (root.sel && root.sel.touchpadNode)
+                            ? ("Companion Node: " + root.sel.touchpadNode)
+                            : ((root.sel && root.sel.hasTouchpad) ? "Capacitive Touchpad Active" : "Interactive Trackpad Simulator")
+                          color: (root.sel && root.sel.hasTouchpad) ? root.playerColor : Qt.darker(root.barForeground, 1.3)
+                          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                          font.bold: true
+                          font.pixelSize: Style.font.caption
+                        }
+
+                        Item { width: 1; height: 1 }
+
+                        Rectangle {
+                          width: Style.space(110)
+                          height: Style.space(20)
+                          radius: 10
+                          color: root.touchpadState.active ? Qt.rgba(0, 0.9, 1.0, 0.20) : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.06)
+                          border.color: root.touchpadState.active ? "#00e5ff" : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.15)
+                          border.width: 1
+
+                          Text {
+                            anchors.centerIn: parent
+                            text: root.touchpadState.active ? "TOUCH DETECTED" : "IDLE / READY"
+                            color: root.touchpadState.active ? "#00e5ff" : Qt.darker(root.barForeground, 1.4)
+                            font.bold: true
+                            font.pixelSize: Style.font.caption - 1
+                          }
+                        }
+                      }
+
+                      // Interactive Touchpad Canvas Surface
+                      Rectangle {
+                        id: trackpadCanvas
+                        width: parent.width
+                        height: Style.space(145)
+                        radius: Math.max(6, Style.cornerRadius)
+                        color: Qt.rgba(0, 0, 0, 0.45)
+                        border.color: root.touchpadState.active ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.5) : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.15)
+                        border.width: root.touchpadState.active ? 1.5 : 1
+                        clip: true
+
+                        // Subtle grid lines
+                        Rectangle {
+                          x: parent.width * 0.5; y: 0
+                          width: 1; height: parent.height
+                          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.07)
+                        }
+                        Rectangle {
+                          x: 0; y: parent.height * 0.5
+                          width: parent.width; height: 1
+                          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.07)
+                        }
+
+                        // Bottom 20% Physical Click Divider
+                        Rectangle {
+                          x: 0; y: parent.height * 0.80
+                          width: parent.width; height: 1
+                          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                        }
+                        Rectangle {
+                          x: parent.width * 0.5; y: parent.height * 0.80
+                          width: 1; height: parent.height * 0.20
+                          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.20)
+                        }
+
+                        // Click zone labels
+                        Text {
+                          x: parent.width * 0.25 - width / 2; y: parent.height * 0.88 - height / 2
+                          text: "LEFT CLICK ZONE"
+                          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.25)
+                          font.pixelSize: Style.font.caption - 2
+                          font.bold: true
+                        }
+                        Text {
+                          x: parent.width * 0.75 - width / 2; y: parent.height * 0.88 - height / 2
+                          text: "RIGHT CLICK ZONE"
+                          color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.25)
+                          font.pixelSize: Style.font.caption - 2
+                          font.bold: true
+                        }
+
+                        // Motion drag trails
+                        Repeater {
+                          model: root.touchpadState.trails || []
+                          delegate: Rectangle {
+                            required property var modelData
+                            required property int index
+                            x: modelData.x * trackpadCanvas.width - width / 2
+                            y: modelData.y * trackpadCanvas.height - height / 2
+                            width: 6; height: 6; radius: 3
+                            color: "#00e5ff"
+                            opacity: Math.max(0.15, 0.85 * ((index + 1) / Math.max(1, (root.touchpadState.trails ? root.touchpadState.trails.length : 1))))
+                          }
+                        }
+
+                        // Active finger contact indicators
+                        Repeater {
+                          model: root.touchpadState.fingers || []
+                          delegate: Item {
+                            required property var modelData
+                            required property int index
+                            x: modelData.x * trackpadCanvas.width
+                            y: modelData.y * trackpadCanvas.height
+
+                            // Outer pulse aura
+                            Rectangle {
+                              anchors.centerIn: parent
+                              width: 32; height: 32; radius: 16
+                              color: "transparent"
+                              border.color: index === 0 ? "#00e5ff" : "#ff007f"
+                              border.width: 1.5
+                              opacity: 0.5
+                            }
+
+                            // Inner contact point
+                            Rectangle {
+                              anchors.centerIn: parent
+                              width: 14; height: 14; radius: 7
+                              color: index === 0 ? "#00e5ff" : "#ff007f"
+                              border.color: "#ffffff"
+                              border.width: 2
+                            }
+
+                            // Coordinate label tag
+                            Rectangle {
+                              anchors.left: parent.right
+                              anchors.leftMargin: 6
+                              anchors.verticalCenter: parent.verticalCenter
+                              width: Style.space(90); height: Style.space(18); radius: 3
+                              color: Qt.rgba(0, 0, 0, 0.75)
+                              border.color: index === 0 ? "#00e5ff" : "#ff007f"
+                              border.width: 1
+
+                              Text {
+                                anchors.centerIn: parent
+                                text: "F" + (index + 1) + ": " + Math.round(modelData.x * 1920) + ", " + Math.round(modelData.y * 1080)
+                                color: "#ffffff"
+                                font.pixelSize: Style.font.caption - 2
+                                font.bold: true
+                              }
+                            }
+                          }
+                        }
+
+                        MouseArea {
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.CrossCursor
+                          onPressed: function(mouse) {
+                            root.handleTouchpadInteraction(mouse.x / width, mouse.y / height, true)
+                          }
+                          onPositionChanged: function(mouse) {
+                            if (pressed) {
+                              root.handleTouchpadInteraction(mouse.x / width, mouse.y / height, true)
+                            }
+                          }
+                          onReleased: function(mouse) {
+                            root.handleTouchpadInteraction(mouse.x / width, mouse.y / height, false)
+                          }
+                          onCanceled: {
+                            root.handleTouchpadInteraction(0.5, 0.5, false)
+                          }
+                        }
+                      }
+
+                      // Quick Gesture Simulation Pills & Coordinate HUD
+                      Row {
+                        width: parent.width
+                        spacing: Style.space(6)
+
+                        Button {
+                          width: (parent.width - 4 * Style.space(6)) / 5
+                          text: "Tap"
+                          fontSize: Style.font.caption
+                          focusable: true
+                          foreground: root.barForeground
+                          accent: root.playerColor
+                          onClicked: root.simulateGesture("tap")
+                        }
+
+                        Button {
+                          width: (parent.width - 4 * Style.space(6)) / 5
+                          text: "2-Finger"
+                          fontSize: Style.font.caption
+                          focusable: true
+                          foreground: root.barForeground
+                          accent: root.playerColor
+                          onClicked: root.simulateGesture("twofinger")
+                        }
+
+                        Button {
+                          width: (parent.width - 4 * Style.space(6)) / 5
+                          text: "Pinch"
+                          fontSize: Style.font.caption
+                          focusable: true
+                          foreground: root.barForeground
+                          accent: root.playerColor
+                          onClicked: root.simulateGesture("pinch")
+                        }
+
+                        Button {
+                          width: (parent.width - 4 * Style.space(6)) / 5
+                          text: "Swipe"
+                          fontSize: Style.font.caption
+                          focusable: true
+                          foreground: root.barForeground
+                          accent: root.playerColor
+                          onClicked: root.simulateGesture("swipe")
+                        }
+
+                        Button {
+                          width: (parent.width - 4 * Style.space(6)) / 5
+                          text: "Clear"
+                          fontSize: Style.font.caption
+                          focusable: true
+                          foreground: root.barForeground
+                          accent: root.playerColor
+                          onClicked: root.simulateGesture("clear")
+                        }
+                      }
+
+                      // Bottom HUD Status Readout
+                      Row {
+                        width: parent.width
+                        spacing: Style.space(12)
+
+                        Text {
+                          text: "ZONE: " + root.touchpadState.zone
+                          color: root.barForeground
+                          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                          font.pixelSize: Style.font.caption
+                          font.bold: true
+                        }
+
+                        Text {
+                          text: "CONTACT: " + (root.touchpadState.fingers && root.touchpadState.fingers.length > 0 ? (root.touchpadState.fingers.length + " Finger(s)") : "None")
+                          color: root.touchpadState.active ? "#00e5ff" : Qt.darker(root.barForeground, 1.4)
+                          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                          font.pixelSize: Style.font.caption
+                        }
+
+                        Text {
+                          text: "PRESSURE: " + Math.round(root.touchpadState.pressure * 100) + "%"
+                          color: Qt.darker(root.barForeground, 1.3)
+                          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                          font.pixelSize: Style.font.caption
+                        }
+                      }
+                    }
+                  }
                 }
 
                 // ---------------------------------------------------- TAB 2: HAPTICS STUDIO
@@ -2047,6 +2480,8 @@ Panel {
                     modelLabel: root.sel ? (root.sel.modelLabel || root.sel.name) : ""
                     maker: root.sel ? root.sel.maker : ""
                     playerColor: root.playerColor
+                    ledColor: root.currentLedColor
+                    touchpadState: root.touchpadState
                     buttons: root.liveButtons
                     axes: root.liveAxes
                     axisNames: root.sel && root.sel.axisNames ? root.sel.axisNames : []
@@ -2094,13 +2529,69 @@ Panel {
                     }
                   }
 
+                  DeadzoneSlider {
+                    width: parent.width
+                    labelText: "Rumble Duration (" + (root.rumbleDurationMs / 1000).toFixed(1) + "s)"
+                    minValue: 0.20
+                    maxValue: 3.00
+                    value: root.rumbleDurationMs / 1000.0
+                    foreground: root.barForeground
+                    accent: root.playerColor
+                    onMoved: function (v) {
+                      root.rumbleDurationMs = Math.round(v * 10) * 100
+                    }
+                  }
+
+                  // Quick duration preset pills
+                  Row {
+                    width: parent.width
+                    spacing: Style.space(6)
+
+                    Repeater {
+                      model: [
+                        { label: "0.5s", ms: 500 },
+                        { label: "1.2s", ms: 1200 },
+                        { label: "2.0s", ms: 2000 },
+                        { label: "3.0s", ms: 3000 }
+                      ]
+                      delegate: Rectangle {
+                        id: durPill
+                        required property var modelData
+                        readonly property bool isSelected: root.rumbleDurationMs === modelData.ms
+                        width: (parent.width - 3 * Style.space(6)) / 4
+                        height: Style.space(26)
+                        radius: Math.max(3, Style.cornerRadius)
+                        color: isSelected ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.22) : (durMouse.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08) : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04))
+                        border.color: isSelected ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                        border.width: isSelected ? 1.5 : 1
+
+                        Text {
+                          anchors.centerIn: parent
+                          text: durPill.modelData.label
+                          color: durPill.isSelected ? root.playerColor : root.barForeground
+                          font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                          font.bold: durPill.isSelected
+                          font.pixelSize: Style.font.caption
+                        }
+
+                        MouseArea {
+                          id: durMouse
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: root.rumbleDurationMs = durPill.modelData.ms
+                        }
+                      }
+                    }
+                  }
+
                   Button {
                     width: parent.width
-                    text: "▶ Test Rumble Mix (0.5s)"
+                    text: "▶ Test Rumble Mix (" + (root.rumbleDurationMs / 1000).toFixed(1) + "s)"
                     focusable: true
                     foreground: root.barForeground
                     accent: root.playerColor
-                    onClicked: root.triggerRumble(root.hfMixer, root.lfMixer, 500)
+                    onClicked: root.triggerRumble(root.hfMixer, root.lfMixer, root.rumbleDurationMs)
                   }
 
                   // Rhythm Test Patterns
@@ -2543,6 +3034,215 @@ Panel {
                     font.pixelSize: Style.font.caption
                     wrapMode: Text.WordWrap
                   }
+
+                  // -------------------------------------------------- PS4 & PS5 RGB Lightbar Studio
+                  PanelSectionHeader {
+                    text: "PlayStation 4 & 5 RGB Lightbar Studio"
+                    foreground: root.barForeground
+                    font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                  }
+
+                  Text {
+                    width: parent.width
+                    text: (root.sel && root.sel.hasRgbLed)
+                      ? "Direct sysfs & hidraw hardware lightbar control for connected DualSense / DualShock 4. Changes synchronize live with the on-screen deck."
+                      : "Lightbar studio and color simulator. Select presets or calibrate custom RGB lighting curves."
+                    color: Qt.darker(root.barForeground, 1.4)
+                    font.family: Style.font.family
+                    font.pixelSize: Style.font.caption
+                    wrapMode: Text.WordWrap
+                  }
+
+                  // Glowing Lightbar Preview
+                  Rectangle {
+                    width: parent.width
+                    height: Style.space(48)
+                    radius: Math.max(6, Style.cornerRadius)
+                    color: Qt.rgba(0, 0, 0, 0.40)
+                    border.color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.15)
+                    border.width: 1
+
+                    // Diffuse outer glow
+                    Rectangle {
+                      anchors.centerIn: parent
+                      width: parent.width * 0.78
+                      height: Style.space(22)
+                      radius: height / 2
+                      color: root.currentLedColor
+                      opacity: 0.35
+                    }
+
+                    // Intense core light tube
+                    Rectangle {
+                      anchors.centerIn: parent
+                      width: parent.width * 0.72
+                      height: Style.space(10)
+                      radius: height / 2
+                      color: root.currentLedColor
+                      border.color: Qt.rgba(1, 1, 1, 0.85)
+                      border.width: 1.5
+                    }
+
+                    // Hex code pill badge
+                    Rectangle {
+                      anchors.right: parent.right
+                      anchors.rightMargin: Style.space(10)
+                      anchors.verticalCenter: parent.verticalCenter
+                      width: Style.space(85)
+                      height: Style.space(22)
+                      radius: 4
+                      color: Qt.rgba(0, 0, 0, 0.6)
+                      border.color: root.currentLedColor
+                      border.width: 1
+
+                      Text {
+                        anchors.centerIn: parent
+                        text: String(root.currentLedColor).toUpperCase()
+                        color: root.barForeground
+                        font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                        font.bold: true
+                        font.pixelSize: Style.font.caption
+                      }
+                    }
+                  }
+
+                  // Preset Palette Chips (Row 1)
+                  Row {
+                    width: parent.width
+                    spacing: Style.space(6)
+
+                    Repeater {
+                      model: GamepadModel.PS_LED_PRESETS.slice(0, 4)
+                      delegate: Rectangle {
+                        id: psChip1
+                        required property var modelData
+                        readonly property bool isSelected: root.currentLedColor.toString().toLowerCase() === modelData.hex.toLowerCase()
+                        width: (parent.width - 3 * Style.space(6)) / 4
+                        height: Style.space(30)
+                        radius: Math.max(4, Style.cornerRadius)
+                        color: isSelected ? Qt.rgba(modelData.r / 255.0, modelData.g / 255.0, modelData.b / 255.0, 0.25) : (chipMouse1.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08) : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04))
+                        border.color: isSelected ? modelData.hex : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.15)
+                        border.width: isSelected ? 1.5 : 1
+
+                        Row {
+                          anchors.centerIn: parent
+                          spacing: Style.space(4)
+
+                          Rectangle {
+                            width: 8; height: 8; radius: 4
+                            color: psChip1.modelData.hex
+                            border.color: "#ffffff"
+                            border.width: 0.5
+                          }
+
+                          Text {
+                            text: psChip1.modelData.name
+                            color: psChip1.isSelected ? root.barForeground : Qt.darker(root.barForeground, 1.2)
+                            font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                            font.pixelSize: Style.font.caption
+                            font.bold: psChip1.isSelected
+                          }
+                        }
+
+                        MouseArea {
+                          id: chipMouse1
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: root.applyLedColor(psChip1.modelData.r, psChip1.modelData.g, psChip1.modelData.b)
+                        }
+                      }
+                    }
+                  }
+
+                  // Preset Palette Chips (Row 2)
+                  Row {
+                    width: parent.width
+                    spacing: Style.space(6)
+
+                    Repeater {
+                      model: GamepadModel.PS_LED_PRESETS.slice(4, 8)
+                      delegate: Rectangle {
+                        id: psChip2
+                        required property var modelData
+                        readonly property bool isSelected: root.currentLedColor.toString().toLowerCase() === modelData.hex.toLowerCase()
+                        width: (parent.width - 3 * Style.space(6)) / 4
+                        height: Style.space(30)
+                        radius: Math.max(4, Style.cornerRadius)
+                        color: isSelected ? Qt.rgba(modelData.r / 255.0, modelData.g / 255.0, modelData.b / 255.0, 0.25) : (chipMouse2.containsMouse ? Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08) : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04))
+                        border.color: isSelected ? modelData.hex : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.15)
+                        border.width: isSelected ? 1.5 : 1
+
+                        Row {
+                          anchors.centerIn: parent
+                          spacing: Style.space(4)
+
+                          Rectangle {
+                            width: 8; height: 8; radius: 4
+                            color: psChip2.modelData.hex
+                            border.color: "#ffffff"
+                            border.width: 0.5
+                          }
+
+                          Text {
+                            text: psChip2.modelData.name
+                            color: psChip2.isSelected ? root.barForeground : Qt.darker(root.barForeground, 1.2)
+                            font.family: root.bar ? root.bar.fontFamily : Style.font.family
+                            font.pixelSize: Style.font.caption
+                            font.bold: psChip2.isSelected
+                          }
+                        }
+
+                        MouseArea {
+                          id: chipMouse2
+                          anchors.fill: parent
+                          hoverEnabled: true
+                          cursorShape: Qt.PointingHandCursor
+                          onClicked: root.applyLedColor(psChip2.modelData.r, psChip2.modelData.g, psChip2.modelData.b)
+                        }
+                      }
+                    }
+                  }
+
+                  // Channel Sliders (Red, Green, Blue)
+                  DeadzoneSlider {
+                    width: parent.width
+                    labelText: "Red Channel (" + root.ledR + " / 255)"
+                    minValue: 0
+                    maxValue: 255
+                    value: root.ledR
+                    foreground: root.barForeground
+                    accent: "#ff3b30"
+                    onMoved: function (v) {
+                      root.applyLedColor(Math.round(v), root.ledG, root.ledB)
+                    }
+                  }
+
+                  DeadzoneSlider {
+                    width: parent.width
+                    labelText: "Green Channel (" + root.ledG + " / 255)"
+                    minValue: 0
+                    maxValue: 255
+                    value: root.ledG
+                    foreground: root.barForeground
+                    accent: "#34c759"
+                    onMoved: function (v) {
+                      root.applyLedColor(root.ledR, Math.round(v), root.ledB)
+                    }
+                  }
+
+                  DeadzoneSlider {
+                    width: parent.width
+                    labelText: "Blue Channel (" + root.ledB + " / 255)"
+                    minValue: 0
+                    maxValue: 255
+                    value: root.ledB
+                    foreground: root.barForeground
+                    accent: "#007aff"
+                    onMoved: function (v) {
+                      root.applyLedColor(root.ledR, root.ledG, Math.round(v))
+                    }
+                  }
                 }
 
                 // ---------------------------------------------------- TAB 3: MOTION & GYRO
@@ -2575,6 +3275,8 @@ Panel {
                       modelLabel: root.sel ? (root.sel.modelLabel || root.sel.name) : ""
                       maker: root.sel ? root.sel.maker : ""
                       playerColor: root.playerColor
+                      ledColor: root.currentLedColor
+                      touchpadState: root.touchpadState
                       buttons: root.liveButtons
                       axes: root.liveAxes
                       axisNames: root.sel && root.sel.axisNames ? root.sel.axisNames : []

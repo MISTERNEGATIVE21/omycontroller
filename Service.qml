@@ -103,6 +103,13 @@ Item {
       return "audio tone triggered: " + channel
     }
 
+    function setLed(r: int, g: int, b: int, id: string): string {
+      var d = root.device(id || "js0")
+      var targetId = d ? d.id : (id || "sim0")
+      root.setLed(targetId, r, g, b)
+      return "setLed called: " + GamepadModel.rgbToHex(r, g, b)
+    }
+
     function getStatus(): string {
       var dev = root.device("js0")
       return JSON.stringify({
@@ -179,6 +186,7 @@ Item {
   readonly property string triggersScript: root.localPath("scripts/triggers.py")
   readonly property string gyroScript: root.localPath("scripts/gyro.py")
   readonly property string streamScript: root.localPath("scripts/stream.py")
+  readonly property string ledScript: root.localPath("scripts/led.py")
 
   // Audio sink diagnostics
   property var audioInfo: ({ sinks: [], hasControllerSink: false, controllerSink: null, activeSink: "", activeLabel: "Probing audio..." })
@@ -223,6 +231,7 @@ Item {
   signal actionResult(string message)
   signal liveUpdated(string id)
   signal rumbleTriggered(string id, real weak, real strong, int ms)
+  signal ledColorChanged(string id, int r, int g, int b, string hex)
 
   // Per-pad deadzone profiles, persisted across reloads and restarts.
   PersistentProperties {
@@ -265,6 +274,7 @@ Item {
       }
       var r = Number(raw.rumble)
       p.rumble = isFinite(r) ? Math.min(1, Math.max(0.1, r)) : 1
+      if (raw.ledColor) p.ledColor = String(raw.ledColor)
     } else {
       p.rumble = 1
     }
@@ -287,6 +297,7 @@ Item {
     var p = GamepadModel.normalizeProfile(prev)
     var r = Number(prev.rumble)
     p.rumble = isFinite(r) ? Math.min(1, Math.max(0.1, r)) : 1
+    if (prev.ledColor) p.ledColor = prev.ledColor
     if (prev.gyroBias && typeof prev.gyroBias === "object") p.gyroBias = prev.gyroBias
     for (var e in values) p[e] = values[e]
     all[pk] = p
@@ -320,7 +331,7 @@ Item {
     if (!root.demoMode) {
       root.demoMode = true
     } else {
-      var d = _devices["sim:1"]
+      var d = _devices["sim0"] || _devices["sim:1"]
       if (d) {
         if (d.layout === "xbox") {
           d.layout = "ps"
@@ -329,6 +340,8 @@ Item {
           d.protocol = "DualSense (Simulated)"
           d.vendor = "054c"
           d.product = "0ce6"
+          d.hasTouchpad = true
+          d.hasRgbLed = true
         } else if (d.layout === "ps") {
           d.layout = "switch"
           d.modelLabel = "Nintendo Switch Pro Controller (Simulated)"
@@ -336,6 +349,8 @@ Item {
           d.protocol = "SwitchPro (Simulated)"
           d.vendor = "057e"
           d.product = "2009"
+          d.hasTouchpad = false
+          d.hasRgbLed = false
         } else {
           d.layout = "xbox"
           d.modelLabel = "Xbox Wireless Controller (Simulated)"
@@ -343,6 +358,8 @@ Item {
           d.protocol = "XInput (Simulated)"
           d.vendor = "045e"
           d.product = "0b12"
+          d.hasTouchpad = false
+          d.hasRgbLed = false
         }
         root.devicesChanged()
       }
@@ -729,12 +746,15 @@ Item {
     state.percent = (rec.percent === undefined || rec.percent === null) ? -1 : Number(rec.percent)
     state.charging = !!rec.charging
     state.motionNode = String(rec.motion || "")
+    state.touchpadNode = String(rec.touchpad || "")
     var cls = GamepadModel.classify(state.name, state.driver, state.vendor, state.product,
                                     state.axisCount, state.buttonCount)
     state.layout = cls.layout
     state.modelLabel = cls.modelLabel
     state.protocol = cls.protocol
     state.maker = cls.maker
+    state.hasTouchpad = Boolean(cls.hasTouchpad || (state.touchpadNode !== ""))
+    state.hasRgbLed = Boolean(cls.hasRgbLed)
     if (cls.buttonPreset) state.buttonPreset = cls.buttonPreset
     state.connection = GamepadModel.connection(state.bus, state.name, state.phys)
     state.profile = root.profileFor(id, state)
@@ -748,7 +768,7 @@ Item {
       devicesChanged()
       root.startStream(id)
     } else if (existing.percent !== state.percent || existing.charging !== state.charging ||
-               existing.motionNode !== state.motionNode) {
+               existing.motionNode !== state.motionNode || existing.touchpadNode !== state.touchpadNode) {
       _touch(id)
     }
   }
@@ -1082,6 +1102,27 @@ Item {
       args.push(String(sp), String(fc))
     }
     return runAction(args, "triggers")
+  }
+
+  // PlayStation 4 & 5 RGB Lightbar LED control
+  function setLed(id, r, g, b) {
+    var d = device(id)
+    var rVal = Math.max(0, Math.min(255, parseInt(r, 10) || 0))
+    var gVal = Math.max(0, Math.min(255, parseInt(g, 10) || 0))
+    var bVal = Math.max(0, Math.min(255, parseInt(b, 10) || 0))
+    var hex = GamepadModel.rgbToHex(rVal, gVal, bVal)
+
+    if (d) {
+      storeProfile(d, { ledColor: hex })
+      d.ledColor = hex
+    }
+
+    root.ledColorChanged(d ? d.id : id, rVal, gVal, bVal, hex)
+
+    var target = (d && d.event && /^event\d+$/.test(String(d.event))) ? ("/dev/input/" + d.event) : "auto"
+    runAction(["python3", root.ledScript, target, String(rVal), String(gVal), String(bVal)], "led")
+    root.actionResult("Lightbar color set to " + hex)
+    return true
   }
 
   // ------------------------------------------------------------ melody playback

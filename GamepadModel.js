@@ -650,6 +650,13 @@ function classify(name, driver, vendor, product, axisCount, buttonCount) {
     maker: VENDORS[v] || ""
   }
 
+  function finish(o) {
+    var isPs = o.layout === "ps" || n.indexOf("dualsense") !== -1 || n.indexOf("dualshock") !== -1
+    o.hasTouchpad = Boolean(isPs || n.indexOf("steam controller") !== -1 || n.indexOf("trackpad") !== -1 || n.indexOf("touchpad") !== -1)
+    o.hasRgbLed = Boolean(isPs)
+    return o
+  }
+
   // 1. Direct hardware lookup in KERNEL_DEVICES (kernel drivers & hwdata)
   var vidPid = v + ":" + p
   var dev = (v && p && typeof KERNEL_DEVICES !== "undefined") ? KERNEL_DEVICES[vidPid] : null
@@ -682,7 +689,7 @@ function classify(name, driver, vendor, product, axisCount, buttonCount) {
     if (d === "xpadneo" || d === "xpad") out.protocol = "XInput"
     else if (d === "xone") out.protocol = "XInput (xone)"
 
-    return out
+    return finish(out)
   }
 
   // Plain joysticks -------------------------------------------------------
@@ -701,7 +708,7 @@ function classify(name, driver, vendor, product, axisCount, buttonCount) {
     if (n.indexOf("hotas") !== -1) out.modelLabel = "HOTAS stick"
     else if (n.indexOf("arcade") !== -1 || n.indexOf("fight") !== -1) out.modelLabel = "Arcade stick"
     else if (n.indexOf("flight") !== -1 || n.indexOf("yoke") !== -1) out.modelLabel = "Flight stick"
-    return out
+    return finish(out)
   }
 
   // Sony ---------------------------------------------------------------
@@ -724,7 +731,7 @@ function classify(name, driver, vendor, product, axisCount, buttonCount) {
       out.layout = "ps"
       out.protocol = "PS HID"
     }
-    return out
+    return finish(out)
   }
 
   // Nintendo -----------------------------------------------------------
@@ -733,7 +740,7 @@ function classify(name, driver, vendor, product, axisCount, buttonCount) {
     out.layout = "switch"
     out.modelLabel = n.indexOf("joy-con") !== -1 ? "Joy-Cons" : "Switch Pro pad"
     out.protocol = "Nintendo Switch"
-    return out
+    return finish(out)
   }
 
   // Xbox-family drivers --------------------------------------------------
@@ -747,7 +754,7 @@ function classify(name, driver, vendor, product, axisCount, buttonCount) {
     if (n.indexOf("series") !== -1) out.modelLabel = "Xbox Series pad"
     else if (n.indexOf("360") !== -1) out.modelLabel = "Xbox 360 pad"
     else out.modelLabel = "Xbox pad"
-    return out
+    return finish(out)
   }
 
   // Steam ----------------------------------------------------------------
@@ -755,7 +762,7 @@ function classify(name, driver, vendor, product, axisCount, buttonCount) {
     out.layout = "xbox"
     out.protocol = "Steam Input"
     out.maker = "Valve"
-    return out
+    return finish(out)
   }
 
   // ZhiXu / DragonRise / Generic PC gamepad clones ----------------------
@@ -765,7 +772,7 @@ function classify(name, driver, vendor, product, axisCount, buttonCount) {
     out.maker = "ZhiXu"
     out.modelLabel = "ZhiXu Gamepad"
     out.buttonPreset = "zhixu"
-    return out
+    return finish(out)
   }
 
   // 8BitDo and friends — mode often leaks into the product string --------
@@ -785,14 +792,14 @@ function classify(name, driver, vendor, product, axisCount, buttonCount) {
       out.protocol = "HID gamepad"
     }
     out.modelLabel = String(name || "8BitDo pad")
-    return out
+    return finish(out)
   }
 
   // Everything else — keep the maker string short and honest --------------
   if (n.indexOf("gamepad") !== -1 || n.indexOf("controller") !== -1 || n.indexOf("joystick") !== -1) {
     out.protocol = "HID gamepad"
   }
-  return out
+  return finish(out)
 }
 
 // ---------------------------------------------------------------------------
@@ -1855,6 +1862,47 @@ function exportMarkdownReport(dev, card) {
 }
 
 // ---------------------------------------------------------------------------
+// RGB / LED color helpers & PlayStation presets
+// ---------------------------------------------------------------------------
+var PS_LED_PRESETS = [
+  { name: "PS Blue", hex: "#0066ff", r: 0, g: 102, b: 255 },
+  { name: "Crimson", hex: "#ff0033", r: 255, g: 0, b: 51 },
+  { name: "Emerald", hex: "#00e676", r: 0, g: 230, b: 118 },
+  { name: "Neon Violet", hex: "#9d00ff", r: 157, g: 0, b: 255 },
+  { name: "Amber Gold", hex: "#ffaa00", r: 255, g: 170, b: 0 },
+  { name: "Cyber Cyan", hex: "#00e5ff", r: 0, g: 229, b: 255 },
+  { name: "Hot Pink", hex: "#ff1493", r: 255, g: 20, b: 147 },
+  { name: "Studio White", hex: "#ffffff", r: 255, g: 255, b: 255 }
+]
+
+function hexToRgb(hex) {
+  if (!hex) return { r: 0, g: 102, b: 255 }
+  var clean = String(hex).replace("#", "").trim()
+  if (clean.length === 3) {
+    clean = clean[0] + clean[0] + clean[1] + clean[1] + clean[2] + clean[2]
+  }
+  var num = parseInt(clean, 16)
+  if (isNaN(num)) return { r: 0, g: 102, b: 255 }
+  return {
+    r: (num >> 16) & 255,
+    g: (num >> 8) & 255,
+    b: num & 255
+  }
+}
+
+function rgbToHex(r, g, b) {
+  var clamp = function(v) { return Math.max(0, Math.min(255, Math.round(Number(v) || 0))) }
+  var rh = clamp(r).toString(16)
+  if (rh.length < 2) rh = "0" + rh
+  var gh = clamp(g).toString(16)
+  if (gh.length < 2) gh = "0" + gh
+  var bh = clamp(b).toString(16)
+  if (bh.length < 2) bh = "0" + bh
+  return "#" + rh + gh + bh
+}
+
+
+// ---------------------------------------------------------------------------
 // CommonJS exports for Node.js test runner while preserving QML compatibility
 // ---------------------------------------------------------------------------
 if (typeof module !== "undefined" && module.exports) {
@@ -1901,7 +1949,10 @@ if (typeof module !== "undefined" && module.exports) {
     triggerNorm: triggerNorm,
     isDpadActive: isDpadActive,
     computePerformanceScorecard: computePerformanceScorecard,
-    exportMarkdownReport: exportMarkdownReport
+    exportMarkdownReport: exportMarkdownReport,
+    PS_LED_PRESETS: PS_LED_PRESETS,
+    hexToRgb: hexToRgb,
+    rgbToHex: rgbToHex
   }
 }
 

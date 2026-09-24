@@ -36,6 +36,8 @@ Item {
 
   property string layout: "generic"      // xbox | ps | switch | generic | joystick
   property color playerColor: Color.accent
+  property color ledColor: playerColor
+  property var touchpadState: null       // { active: bool, fingers: [ { x: 0..1, y: 0..1, id: 0, pressed: bool } ] }
   property var buttons: ({})             // js button index -> bool
   property var axes: []                  // normalized -1..1
   property var axisNames: []             // jstest header names ("X","Throttle"…)
@@ -64,6 +66,7 @@ Item {
   signal stickReleased(string side)
   signal triggerMoved(string side, real value)
   signal requestRemap(string role, int buttonIndex, string currentLabel)
+  signal touchpadInteracted(real normX, real normY, bool pressed)
 
   // Live motion telemetry derivations with automatic fallbacks
   readonly property real rawPitch: {
@@ -360,8 +363,15 @@ Item {
     transform: [
       Translate {
         id: rumbleTranslate
-        x: root.rumbleActive ? (Math.sin(root.rumblePhase * 3.7) * (1.8 * Math.max(0.2, (root.rumbleWeak + root.rumbleStrong)))) : 0
-        y: root.rumbleActive ? (Math.cos(root.rumblePhase * 4.3) * (1.2 * Math.max(0.2, (root.rumbleWeak + root.rumbleStrong)))) : 0
+        x: root.rumbleActive ? (Math.sin(art.rumblePhase * 6.7) * (2.4 * Math.max(0.2, root.rumbleStrong)) + Math.cos(art.rumblePhase * 17.3) * (1.2 * Math.max(0.2, root.rumbleWeak))) : 0
+        y: root.rumbleActive ? (Math.cos(art.rumblePhase * 7.1) * (1.8 * Math.max(0.2, root.rumbleStrong)) + Math.sin(art.rumblePhase * 19.1) * (0.9 * Math.max(0.2, root.rumbleWeak))) : 0
+      },
+      Rotation {
+        id: rumbleTorqueRot
+        origin.x: 170
+        origin.y: 104
+        axis { x: 0; y: 0; z: 1 }
+        angle: root.rumbleActive ? ((Math.sin(art.rumblePhase * 11.2) * root.rumbleStrong - Math.cos(art.rumblePhase * 15.4) * root.rumbleWeak) * 1.5) : 0
       },
       Rotation {
         id: pitchRot
@@ -916,7 +926,7 @@ Item {
           height: parent.height + 4
           radius: 10
           color: "transparent"
-          border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.45)
+          border.color: Qt.rgba(root.ledColor.r, root.ledColor.g, root.ledColor.b, 0.45)
           border.width: 3
           opacity: 0.85
         }
@@ -928,7 +938,7 @@ Item {
           height: parent.height
           radius: 9
           color: "transparent"
-          border.color: root.playerColor
+          border.color: root.ledColor
           border.width: 1.5
         }
 
@@ -957,9 +967,23 @@ Item {
             enabled: root.interactive
             hoverEnabled: true
             cursorShape: Qt.PointingHandCursor
-            onPressed: root.setVirtualButton(root.tables.centerExtra, true)
-            onReleased: root.setVirtualButton(root.tables.centerExtra, false)
-            onCanceled: root.setVirtualButton(root.tables.centerExtra, false)
+            onPressed: function(mouse) {
+              root.setVirtualButton(root.tables.centerExtra, true)
+              root.touchpadInteracted(Math.max(0, Math.min(1.0, mouse.x / width)), Math.max(0, Math.min(1.0, mouse.y / height)), true)
+            }
+            onPositionChanged: function(mouse) {
+              if (pressed) {
+                root.touchpadInteracted(Math.max(0, Math.min(1.0, mouse.x / width)), Math.max(0, Math.min(1.0, mouse.y / height)), true)
+              }
+            }
+            onReleased: function(mouse) {
+              root.setVirtualButton(root.tables.centerExtra, false)
+              root.touchpadInteracted(Math.max(0, Math.min(1.0, mouse.x / width)), Math.max(0, Math.min(1.0, mouse.y / height)), false)
+            }
+            onCanceled: {
+              root.setVirtualButton(root.tables.centerExtra, false)
+              root.touchpadInteracted(0.5, 0.5, false)
+            }
           }
 
           // Top chamfer specular highlight
@@ -987,6 +1011,29 @@ Item {
             border.color: root.pressed(root.tables.centerExtra) ? root.playerColor : root.dimGlyph
             border.width: 1
           }
+
+          // Live Touchpad Finger Contact Dots
+          Item {
+            anchors.fill: parent
+            visible: root.touchpadState && root.touchpadState.active && root.touchpadState.fingers && root.touchpadState.fingers.length > 0
+
+            Repeater {
+              model: (root.touchpadState && root.touchpadState.fingers) ? root.touchpadState.fingers : []
+              delegate: Rectangle {
+                required property var modelData
+                required property int index
+                x: Math.max(0, Math.min(parent.width - width, modelData.x * parent.width - width / 2))
+                y: Math.max(0, Math.min(parent.height - height, modelData.y * parent.height - height / 2))
+                width: 8
+                height: 8
+                radius: 4
+                color: index === 0 ? "#00e5ff" : "#ff007f"
+                border.color: "#ffffff"
+                border.width: 1
+                opacity: modelData.pressed ? 1.0 : 0.65
+              }
+            }
+          }
         }
 
         // DualSense player indicator dot below touchpad
@@ -997,7 +1044,7 @@ Item {
           width: 5
           height: 3
           radius: 1.5
-          color: root.playerColor
+          color: root.ledColor
         }
       }
 

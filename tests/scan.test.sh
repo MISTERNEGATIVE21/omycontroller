@@ -56,9 +56,10 @@ ln -sfn "$DEV1_INPUT" "$MOCK_SYS/class/input/js0/device"
 # -----------------------------------------------------------------------------
 DEV2_PARENT="$MOCK_SYS/devices/pci0000:00/0000:00:14.0/usb1/1-1/1-1:1.0/0003:054C:0CE6.0002"
 DEV2_INPUT="$DEV2_PARENT/input/input8"
+DEV2_TOUCHPAD="$DEV2_PARENT/input/input9"
 DEV2_PS="$DEV2_PARENT/power_supply/ps-controller-battery"
 
-mkdir -p "$DEV2_PARENT/id" "$DEV2_INPUT/event15" "$DEV2_PS"
+mkdir -p "$DEV2_PARENT/id" "$DEV2_INPUT/event15" "$DEV2_TOUCHPAD/event16" "$DEV2_PS"
 printf '0003' > "$DEV2_PARENT/id/bustype"
 printf '054c' > "$DEV2_PARENT/id/vendor"
 printf '0ce6' > "$DEV2_PARENT/id/product"
@@ -70,6 +71,9 @@ ln -sfn "$MOCK_SYS/bus/hid/drivers/hid-playstation" "$DEV2_PARENT/driver"
 
 printf 'Sony Interactive Entertainment Wireless Controller\n' > "$DEV2_INPUT/name"
 ln -sfn "$DEV2_PARENT" "$DEV2_INPUT/device"
+
+printf 'Sony Interactive Entertainment Wireless Controller Touchpad\n' > "$DEV2_TOUCHPAD/name"
+ln -sfn "$DEV2_PARENT" "$DEV2_TOUCHPAD/device"
 
 printf '100\n' > "$DEV2_PS/capacity"
 printf 'Full\n' > "$DEV2_PS/status"
@@ -125,6 +129,7 @@ const expectedJs0 = {
   vendor: "045e",
   product: "0b12",
   motion: "event23",
+  touchpad: "",
   percent: 85,
   charging: false
 };
@@ -152,6 +157,7 @@ const expectedJs1 = {
   vendor: "054c",
   product: "0ce6",
   motion: "",
+  touchpad: "event16",
   percent: 100,
   charging: true
 };
