@@ -81,6 +81,28 @@ Item {
       return "rumble sent to " + id + " (weak=" + weak + ", strong=" + strong + ", ms=" + ms + ")"
     }
 
+    function playMelody(track: string, volume: real): string {
+      var d = root.device("js0")
+      var id = d ? "js0" : "sim0"
+      root.playMelody(id, track, volume !== undefined ? volume : 1.0)
+      return "melody started: " + track
+    }
+
+    function stopMelody(): string {
+      root.stopMelody()
+      return "melody stopped"
+    }
+
+    function probeAudio(): string {
+      root.probeAudio()
+      return "audio probe started"
+    }
+
+    function playAudioTone(channel: string, sink: string): string {
+      root.playAudioTone(channel, sink)
+      return "audio tone triggered: " + channel
+    }
+
     function getStatus(): string {
       var dev = root.device("js0")
       return JSON.stringify({
@@ -152,9 +174,16 @@ Item {
   // so this works from ~/.config/omarchy/plugins and first-party checkouts.
   readonly property string scanScript: root.localPath("scripts/scan.sh")
   readonly property string rumbleScript: root.localPath("scripts/rumble.py")
+  readonly property string hapticMidiScript: root.localPath("scripts/haptic_midi.py")
+  readonly property string audioTestScript: root.localPath("scripts/audio_test.py")
   readonly property string triggersScript: root.localPath("scripts/triggers.py")
   readonly property string gyroScript: root.localPath("scripts/gyro.py")
   readonly property string streamScript: root.localPath("scripts/stream.py")
+
+  // Audio sink diagnostics
+  property var audioInfo: ({ sinks: [], hasControllerSink: false, controllerSink: null, activeSink: "", activeLabel: "Probing audio..." })
+  property string currentMelodyTrack: ""
+  property bool isMelodyPlaying: false
 
   function localPath(rel) {
     var url = Qt.resolvedUrl(rel).toString()
@@ -551,13 +580,24 @@ Item {
     sim.buttons = btn
 
     // 4. Sinusoidal gyro pitch/roll stream
+    var sax = 2.0 * Math.sin(_simTick * 2.0)
+    var say = 2.0 * Math.cos(_simTick * 2.0)
+    var saz = 9.81 + 0.5 * Math.sin(_simTick)
+    var sgx = 30.0 * Math.sin(_simTick * 2.5)
+    var sgy = 25.0 * Math.cos(_simTick * 2.0)
+    var sgz = 15.0 * Math.sin(_simTick * 1.5)
+    var spitchRad = -Math.atan2(say, Math.sqrt(sax * sax + saz * saz))
+    var srollRad = Math.atan2(sax, saz)
     sim.gyro = {
-      ax: 2.0 * Math.sin(_simTick * 2.0),
-      ay: 2.0 * Math.cos(_simTick * 2.0),
-      az: 9.81 + 0.5 * Math.sin(_simTick),
-      gx: 30.0 * Math.sin(_simTick * 2.5),
-      gy: 25.0 * Math.cos(_simTick * 2.0),
-      gz: 15.0 * Math.sin(_simTick * 1.5),
+      ax: sax,
+      ay: say,
+      az: saz,
+      gx: sgx,
+      gy: sgy,
+      gz: sgz,
+      pitch: Math.max(-85, Math.min(85, spitchRad * 180 / Math.PI)),
+      roll: Math.max(-180, Math.min(180, srollRad * 180 / Math.PI)),
+      yaw: Math.max(-45, Math.min(45, sgz * 1.5)),
       afs: 32767,
       gfs: 32767
     }
@@ -967,7 +1007,7 @@ Item {
       waitForEnd: true
       onStreamFinished: root._actionStderr = text
     }
-    onExited: {
+    onExited: function(exitCode) {
       var msg = "ok"
       if (exitCode !== 0) msg = String(root._actionStderr || "").trim() || ("failed (exit " + exitCode + ")")
       root.actionResult(msg)
@@ -1041,6 +1081,132 @@ Item {
     return runAction(args, "triggers")
   }
 
+  // ------------------------------------------------------------ melody playback
+  Process {
+    id: melodyProc
+    running: false
+    stderr: SplitParser {
+      split: "\n"
+      onRead: function(line) {
+        if (line && line.trim()) {
+          root._actionStderr = (root._actionStderr ? root._actionStderr + "\n" : "") + line
+        }
+      }
+    }
+    onStarted: {
+      root.isMelodyPlaying = true
+    }
+    onExited: function(exitCode) {
+      root.isMelodyPlaying = false
+      root.currentMelodyTrack = ""
+      if (exitCode !== 0) {
+        var msg = String(root._actionStderr || "").trim() || ("Melody stopped (exit " + exitCode + ")")
+        root.actionResult(msg)
+      } else {
+        root.actionResult("Melody playback complete")
+      }
+    }
+  }
+
+  Timer {
+    id: melodySimTimer
+    interval: 3500
+    repeat: false
+    onTriggered: {
+      root.isMelodyPlaying = false
+      root.currentMelodyTrack = ""
+    }
+  }
+
+  function playMelody(id, trackName, volume) {
+    var d = device(id)
+    if (melodyProc.running) {
+      stopMelody()
+    }
+    var track = String(trackName || "mario").toLowerCase()
+    var vol = isFinite(Number(volume)) ? Math.max(0.1, Math.min(1.0, Number(volume))) : 1.0
+    root.currentMelodyTrack = track
+    root._actionStderr = ""
+
+    if (!d || !d.event || !/^event\d+$/.test(String(d.event))) {
+      root.actionResult("Melody simulated (" + track + ") on " + (d ? d.modelLabel : id))
+      root.isMelodyPlaying = true
+      melodySimTimer.interval = 3500
+      melodySimTimer.restart()
+      return true
+    }
+
+    if (!root.evdevAvailable) {
+      root.actionResult("Melody simulated (" + track + ") — python-evdev missing")
+      root.isMelodyPlaying = true
+      melodySimTimer.interval = 3500
+      melodySimTimer.restart()
+      return true
+    }
+
+    melodyProc.command = [
+      "python3", root.hapticMidiScript, "/dev/input/" + d.event,
+      track, "--volume", String(vol)
+    ]
+    melodyProc.running = true
+    root.rumbleTriggered(id, 0.5 * vol, 0.8 * vol, 3500)
+    return true
+  }
+
+  function stopMelody() {
+    if (melodyProc.running) {
+      melodyProc.running = false
+    }
+    melodySimTimer.stop()
+    root.isMelodyPlaying = false
+    root.currentMelodyTrack = ""
+    return true
+  }
+
+  // ------------------------------------------------------------ audio diagnostics
+  property string _audioProbeBuf: ""
+  Process {
+    id: audioProbeProc
+    running: false
+    command: ["python3", root.audioTestScript, "probe"]
+    stdout: SplitParser {
+      split: "\n"
+      onRead: function(line) {
+        if (!line || !line.trim()) return
+        root._audioProbeBuf = (root._audioProbeBuf ? root._audioProbeBuf : "") + line + "\n"
+      }
+    }
+    onExited: function(code) {
+      if (code === 0 && root._audioProbeBuf) {
+        try {
+          var parsed = JSON.parse(root._audioProbeBuf)
+          root.audioInfo = parsed
+        } catch (e) {}
+      }
+      root._audioProbeBuf = ""
+    }
+  }
+
+  Process {
+    id: audioToneProc
+    running: false
+  }
+
+  function probeAudio() {
+    if (audioProbeProc.running) return
+    root._audioProbeBuf = ""
+    audioProbeProc.running = true
+  }
+
+  function playAudioTone(channel, sink) {
+    if (audioToneProc.running) return false
+    var args = ["python3", root.audioTestScript, "play", channel || "stereo"]
+    if (sink) args.push(sink)
+    audioToneProc.command = args
+    audioToneProc.running = true
+    return true
+  }
+
   // ------------------------------------------------------------ env probing
   Process {
     id: envProc
@@ -1059,6 +1225,7 @@ Item {
 
   Component.onCompleted: {
     envProc.running = true
+    root.probeAudio()
     if (root.demoMode) root.startSimulator()
   }
   Component.onDestruction: {
