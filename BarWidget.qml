@@ -155,7 +155,29 @@ BarWidget {
     function show() { root.open() }
     function hide() { root.close() }
     function toggle() { root.toggle() }
+
+    function playMelody(track: string, volume: real) {
+      if (root.svc && typeof root.svc.playMelody === "function") {
+        root.svc.playMelody("js0", track || "mario", volume !== undefined ? volume : 1.0)
+      }
+    }
+    function stopMelody() {
+      if (root.svc && typeof root.svc.stopMelody === "function") {
+        root.svc.stopMelody()
+      }
+    }
+    function probeAudio() {
+      if (root.svc && typeof root.svc.probeAudio === "function") {
+        root.svc.probeAudio()
+      }
+    }
+    function playAudioTone(channel: string, sink: string) {
+      if (root.svc && typeof root.svc.playAudioTone === "function") {
+        root.svc.playAudioTone(channel, sink)
+      }
+    }
   }
+
 
 
   Loader {
