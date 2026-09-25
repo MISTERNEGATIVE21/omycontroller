@@ -85,6 +85,28 @@ for js in "$SYS"/class/input/js*; do
   phys="$(cat "$dev_dir/phys" 2>/dev/null || cat "$parent/phys" 2>/dev/null || printf '')"
   phys="$(basename "$phys" 2>/dev/null || printf '')"
 
+  # Detect USB parent device details (useful for 2.4G wireless dongles/adapters where xpad
+  # overrides controller name to generic "Microsoft X-Box 360 pad")
+  usb_parent="$parent"
+  case "$usb_parent" in
+    *:*.*) usb_parent="$(dirname "$usb_parent")" ;;
+  esac
+  usb_mfr="$(cat "$usb_parent/manufacturer" 2>/dev/null || printf '')"
+  usb_prod="$(cat "$usb_parent/product" 2>/dev/null || printf '')"
+
+  if [ -n "$usb_mfr" ] && [ "$usb_mfr" != "Microsoft" ] && [ "$vendor" = "045e" ] && [ "$product" = "028e" ]; then
+    name="$usb_mfr $usb_prod (Wireless Receiver)"
+  elif [ -n "$usb_prod" ]; then
+    case "$usb_prod" in
+      *[Rr]eceiver*|*[Dd]ongle*|*[Aa]dapter*)
+        case "$name" in
+          *[Rr]eceiver*|*[Dd]ongle*|*[Aa]dapter*) ;;
+          *) name="$name ($usb_prod)" ;;
+        esac
+        ;;
+    esac
+  fi
+
   input_name="$(basename "$(readlink -f "$dev_dir" 2>/dev/null || printf '')" 2>/dev/null || printf '')"
   case "$input_name" in
     input[0-9]*) ;;
@@ -163,6 +185,26 @@ for js in "$SYS"/class/input/js*; do
     "$charging" \
     "$(json_escape "$motion")" \
     "$(json_escape "$touchpad")"
+done
+
+# Check if a 2.4G wireless receiver is connected in standby/pairing mode without an active pad node
+for dev in "$SYS"/bus/usb/devices/*; do
+  [ -f "$dev/idVendor" ] || continue
+  v="$(cat "$dev/idVendor" 2>/dev/null || printf '')"
+  p="$(cat "$dev/idProduct" 2>/dev/null || printf '')"
+  prod="$(cat "$dev/product" 2>/dev/null || printf '')"
+  case "$v:$p" in
+    1a34:f517)
+      printf '{"id":"dongle_standby","status":"standby","name":"ZhiXu / EasySMX Wireless Receiver","vendor":"%s","product":"%s"}\n' "$v" "$p"
+      break
+      ;;
+  esac
+  case "$prod" in
+    *"Receiver Update"*|*"Wireless Receiver Standby"*)
+      printf '{"id":"dongle_standby","status":"standby","name":"%s","vendor":"%s","product":"%s"}\n' "$(json_escape "$prod")" "$v" "$p"
+      break
+      ;;
+  esac
 done
 
 exit 0

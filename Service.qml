@@ -227,6 +227,9 @@ Item {
   property bool evdevAvailable: false
   readonly property bool liveInputReady: jstestAvailable && count > 0
 
+  // 2.4G Wireless Dongle in standby/pairing mode (when pad is off/pairing)
+  property var standbyDongle: null
+
   // Last hardware-action feedback line for the panel footer.
   signal actionResult(string message)
   signal liveUpdated(string id)
@@ -754,6 +757,9 @@ Item {
         changed = true
       }
     }
+    if (!root._seenThisScan["dongle_standby"]) {
+      root.standbyDongle = null
+    }
     if (changed) {
       _devices = next
       root.stats = computeStats()
@@ -767,8 +773,20 @@ Item {
     var rec
     try { rec = JSON.parse(raw) } catch (e) { return }
     if (!rec || !rec.id) return
+
+    if (rec.id === "dongle_standby" || rec.status === "standby") {
+      root._seenThisScan["dongle_standby"] = true
+      root.standbyDongle = {
+        name: String(rec.name || "Wireless Receiver"),
+        vendor: String(rec.vendor || ""),
+        product: String(rec.product || "")
+      }
+      return
+    }
+
     var id = String(rec.id)
     root._seenThisScan[id] = true
+    root.standbyDongle = null
     var existing = _devices[id]
 
     // Detect if this device has changed hardware identity (e.g. mode switch between Switch, Xbox, and DirectInput)

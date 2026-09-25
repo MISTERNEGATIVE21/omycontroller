@@ -497,6 +497,58 @@ test('Kernel Device Database & Multi-Vendor Classification', (t) => {
   assert.strictEqual(joyconL.layout, 'switch');
 });
 
+test('2.4G Wireless Dongle Detection & ZhiXu Dongle Mode', (t) => {
+  // Dongle detection via KNOWN_DONGLES
+  assert.strictEqual(Model.looksLikeDongle('ZhiXu Controller (Wireless Receiver)', 'input0'), true);
+  assert.strictEqual(Model.looksLikeDongle('ACRUX Receiver Update', 'input0'), true);
+  assert.strictEqual(Model.looksLikeDongle('EasySMX Wireless Dongle', 'input0'), true);
+
+  // Connection classification
+  const conn = Model.connection('0003', 'ZhiXu Controller (Wireless Receiver)', 'input0');
+  assert.strictEqual(conn, 'USB Dongle');
+  assert.strictEqual(Model.connectionShort(conn), 'Dongle');
+
+  // Classification for ZhiXu 2.4G receiver standby PID (1a34:f517)
+  const standby = Model.classify('ZhiXu / EasySMX 2.4G Receiver', 'xpad', '1a34', 'f517', 6, 16);
+  assert.strictEqual(standby.maker, 'ZhiXu');
+  assert.strictEqual(standby.layout, 'xbox');
+  assert.strictEqual(standby.buttonPreset, 'zhixu');
+
+  // Classification for ZhiXu controller operating over dongle (045e:028e with ZhiXu name)
+  const dongleActive = Model.classify('ZhiXu Controller (Wireless Receiver)', 'xpad', '045e', '028e', 6, 16);
+  assert.strictEqual(dongleActive.maker, 'ZhiXu');
+  assert.strictEqual(dongleActive.modelLabel, 'ZhiXu Gamepad (2.4G)');
+  assert.strictEqual(dongleActive.layout, 'xbox');
+  assert.strictEqual(dongleActive.buttonPreset, 'zhixu');
+  assert.strictEqual(dongleActive.protocol, 'XInput');
+
+  // Button tables over dongle: must use standard Xbox 11-button mapping (LB=4, RB=5, Back=6, Start=7, LS=9, RS=10)
+  // NOT 15-button DragonRise mapping which swaps LB to button 6 and RS to button 14!
+  const dongleTable = Model.buttonTables(dongleActive.layout, dongleActive);
+  assert.strictEqual(dongleTable.faceBottom, 0); // A
+  assert.strictEqual(dongleTable.faceRight, 1);  // B
+  assert.strictEqual(dongleTable.faceLeft, 2);   // X
+  assert.strictEqual(dongleTable.faceTop, 3);    // Y
+  assert.strictEqual(dongleTable.bumperL, 4);    // LB (Left Shoulder Bumper)
+  assert.strictEqual(dongleTable.bumperR, 5);    // RB
+  assert.strictEqual(dongleTable.centerLeft, 6); // Back
+  assert.strictEqual(dongleTable.centerRight, 7);// Start
+  assert.strictEqual(dongleTable.centerTop, 8);  // Guide
+  assert.strictEqual(dongleTable.stickL, 9);     // LS
+  assert.strictEqual(dongleTable.stickR, 10);    // RS (Right Thumbstick Click)
+
+  // 8-axis joydev mapping: Left Trigger (axis 2) and Right Stick (axes 3, 4) must NOT be swapped
+  const generic8 = Model.axesMap('generic', 8);
+  assert.strictEqual(generic8.lx, 0);
+  assert.strictEqual(generic8.ly, 1);
+  assert.strictEqual(generic8.lt, 2); // Left Trigger is Axis 2 (ABS_Z)
+  assert.strictEqual(generic8.rx, 3); // Right Stick X is Axis 3 (ABS_RX)
+  assert.strictEqual(generic8.ry, 4); // Right Stick Y is Axis 4 (ABS_RY)
+  assert.strictEqual(generic8.rt, 5); // Right Trigger is Axis 5 (ABS_RZ)
+  assert.strictEqual(generic8.hatX, 6);
+  assert.strictEqual(generic8.hatY, 7);
+});
+
 test('Nintendo Switch Pro Controller button tables and axes map', (t) => {
   const swTable = Model.buttonTables('switch');
   // hid-nintendo evdev keycodes:

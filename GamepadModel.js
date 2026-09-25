@@ -11,7 +11,8 @@
 
 var KNOWN_DONGLES = [
   "receiver", "dongle", "adapter", "wireless adapter",
-  "xbox one pads", "8bitdo usb", "wireless receiver"
+  "xbox one pads", "8bitdo usb", "wireless receiver",
+  "acrux", "zhixu", "easysmx", "receiver update"
 ]
 
 // 75+ Linux Kernel Gamepad & Joystick Vendors
@@ -33,6 +34,7 @@ var VENDORS = {
   "05fe": "Chic",
   "062a": "Logic3",
   "068e": "CH Products",
+  "1a34": "ACRUX",
   "06a3": "Saitek",
   "0738": "Mad Catz",
   "07ff": "Mad Catz",
@@ -502,6 +504,7 @@ var KERNEL_DEVICES = {
   "18d1:9400": { name: "Google Stadia Controller", layout: "xbox", protocol: "HID gamepad", maker: "Google" },
   "1949:0402": { name: "Amazon Luna Controller", layout: "xbox", protocol: "HID gamepad", maker: "Amazon" },
   "1949:041a": { name: "Amazon Game Controller", layout: "xbox", protocol: "XInput", maker: "Amazon" },
+  "1a34:f517": { name: "ZhiXu / EasySMX 2.4G Receiver", layout: "xbox", protocol: "XInput", maker: "ZhiXu", buttonPreset: "zhixu" },
   "1a86:e310": { name: "Legion Go S", layout: "xbox", protocol: "XInput", maker: "WCH" },
   "1bad:0002": { name: "Harmonix Rock Band Guitar", layout: "xbox", protocol: "XInput", maker: "Harmonix" },
   "1bad:0003": { name: "Harmonix Rock Band Drumkit", layout: "xbox", protocol: "XInput", maker: "Harmonix" },
@@ -667,7 +670,14 @@ function classify(name, driver, vendor, product, axisCount, buttonCount) {
     if (dev.buttonPreset) out.buttonPreset = dev.buttonPreset
 
     // Determine modelLabel with respect for device/family quirks
-    if (n.indexOf("series") !== -1 || (dev.name && dev.name.toLowerCase().indexOf("series") !== -1)) {
+    if (n.indexOf("zhixu") !== -1) {
+      out.maker = "ZhiXu"
+      out.modelLabel = (n.indexOf("receiver") !== -1 || n.indexOf("dongle") !== -1 || n.indexOf("2.4g") !== -1 || n.indexOf("wireless") !== -1) ? "ZhiXu Gamepad (2.4G)" : "ZhiXu Gamepad"
+      out.buttonPreset = "zhixu"
+    } else if (n.indexOf("easysmx") !== -1) {
+      out.maker = "EasySMX"
+      out.modelLabel = "EasySMX Pad (2.4G)"
+    } else if (n.indexOf("series") !== -1 || (dev.name && dev.name.toLowerCase().indexOf("series") !== -1)) {
       out.modelLabel = "Xbox Series pad"
     } else if (n.indexOf("360") !== -1 || (dev.name && dev.name.indexOf("360") !== -1)) {
       out.modelLabel = "Xbox 360 pad"
@@ -939,7 +949,15 @@ function buttonTables(layout, profile) {
     if (l === "zhixu" || l === "dragonrise") preset = "zhixu";
   }
 
-  if (preset === "zhixu" || layout === "zhixu" || (profile && profile.isZhiXu)) {
+  var bc = (profile && typeof profile === "object") ? (Number(profile.buttonCount) || 0) : 0;
+  var isXinputOrDongle = (profile && typeof profile === "object") && (
+    profile.driver === "xpad" || profile.driver === "xpadneo" ||
+    (profile.protocol && String(profile.protocol).indexOf("XInput") !== -1) ||
+    (profile.modelLabel && (profile.modelLabel.indexOf("2.4G") !== -1 || profile.modelLabel.indexOf("Dongle") !== -1 || profile.modelLabel.indexOf("Receiver") !== -1)) ||
+    (bc > 0 && bc <= 11)
+  );
+
+  if ((preset === "zhixu" || layout === "zhixu" || (profile && profile.isZhiXu)) && !isXinputOrDongle) {
     // ZhiXu / DragonRise 15-button HID map (kernel joydev keycodes):
     // 0: A (BTN_SOUTH), 1: B (BTN_EAST), 2: C (BTN_C), 3: Y (BTN_NORTH), 4: X (BTN_WEST),
     // 5: Z (BTN_Z), 6: LB (BTN_TL), 7: RB (BTN_TR), 8: LT (BTN_TL2), 9: RT (BTN_TR2),
@@ -954,7 +972,7 @@ function buttonTables(layout, profile) {
       dpadUp: -1, dpadDown: -1, dpadLeft: -1, dpadRight: -1,
       known: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
     };
-  } else if (layout === "xbox") {
+  } else if (layout === "xbox" || isXinputOrDongle) {
     // xpad / xpadneo standard Linux kernel joydev mapping:
     // A0 B1 X2 Y3, LB4 RB5, Back6 Start7 Guide8, LS9 RS10, Share11
     // D-Pad is on Hat0X and Hat0Y (axes 6 and 7). Triggers are analog axes.
@@ -1099,12 +1117,15 @@ function axesMap(layout, axisCount, axisNames) {
   }
 
   if (lt === -1 && rt === -1) {
-    if (layout === "switch" || (axisCount >= 6 && hatX === 4 && hatY === 5)) {
+    if (layout === "switch" || (axisCount >= 6 && hatX === 4 && hatY === 5 && axisCount === 6)) {
       lt = -1; rt = -1;
       rx = 2; ry = 3;
     } else if (axisCount >= 8) {
-      lt = 4; rt = 5;
-      rx = 2; ry = 3;
+      lt = 2; rt = 5;
+      rx = 3; ry = 4;
+    } else if (axisCount === 6 && (layout === "xbox" || layout === "xinput" || (hatX === -1 && hatY === -1))) {
+      lt = 2; rt = 5;
+      rx = 3; ry = 4;
     }
   }
 
@@ -1118,23 +1139,35 @@ function isDpadActive(dir, buttons, axes, tables, axisMap) {
 
   // 1. Hat Axes (Primary D-Pad for Linux gamepads)
   if (axisMap && axes && axes.length > 0) {
-    if (d === "up" && axisMap.hatY !== undefined && axisMap.hatY >= 0 && axisMap.hatY < axes.length) {
-      if (Number(axes[axisMap.hatY]) < -0.45) return true
+    var hx = axisMap.hatX
+    var hy = axisMap.hatY
+    if (d === "up" && hy !== undefined && hy >= 0 && hy < axes.length) {
+      if (Number(axes[hy]) < -0.45) return true
     }
-    if (d === "down" && axisMap.hatY !== undefined && axisMap.hatY >= 0 && axisMap.hatY < axes.length) {
-      if (Number(axes[axisMap.hatY]) > 0.45) return true
+    if (d === "down" && hy !== undefined && hy >= 0 && hy < axes.length) {
+      if (Number(axes[hy]) > 0.45) return true
     }
-    if (d === "left" && axisMap.hatX !== undefined && axisMap.hatX >= 0 && axisMap.hatX < axes.length) {
-      if (Number(axes[axisMap.hatX]) < -0.45) return true
+    if (d === "left" && hx !== undefined && hx >= 0 && hx < axes.length) {
+      if (Number(axes[hx]) < -0.45) return true
     }
-    if (d === "right" && axisMap.hatX !== undefined && axisMap.hatX >= 0 && axisMap.hatX < axes.length) {
-      if (Number(axes[axisMap.hatX]) > 0.45) return true
+    if (d === "right" && hx !== undefined && hx >= 0 && hx < axes.length) {
+      if (Number(axes[hx]) > 0.45) return true
     }
   }
 
   // 2. Digital button check (for custom profiles or digital D-pad devices)
   if (tables && tables[role] !== undefined && tables[role] >= 0 && buttons && !!buttons[tables[role]]) {
     return true
+  }
+
+  // 3. Fallback standard button indices if tables has -1 for dpad
+  // Common Linux joydev button assignments for discrete D-pad buttons:
+  // Up: 11 (or 13, 16), Down: 12 (or 14, 17), Left: 13 (or 15, 18), Right: 14 (or 16, 19)
+  if (buttons && (!tables || tables[role] === undefined || tables[role] < 0)) {
+    if (d === "up" && (buttons[11] || buttons[13] || buttons[16])) return true
+    if (d === "down" && (buttons[12] || buttons[14] || buttons[17])) return true
+    if (d === "left" && (buttons[13] || buttons[15] || buttons[18])) return true
+    if (d === "right" && (buttons[14] || buttons[16] || buttons[19])) return true
   }
 
   return false
@@ -1169,8 +1202,11 @@ function hatIndices(axisNames) {
   var names = axisNameList(axisNames)
   var out = { x: -1, y: -1 }
   for (var i = 0; i < names.length; i++) {
-    if (/^hat\d*x$/.test(names[i])) out.x = i
-    else if (/^hat\d*y$/.test(names[i])) out.y = i
+    var n = names[i]
+    if (/^hat\d*x$/i.test(n) || /dpad_?x/i.test(n) || /pov\d*x/i.test(n)) out.x = i
+    else if (/^hat\d*y$/i.test(n) || /dpad_?y/i.test(n) || /pov\d*y/i.test(n)) out.y = i
+    else if (n === "hat0x" || n === "hatx") out.x = i
+    else if (n === "hat0y" || n === "haty") out.y = i
   }
   return out
 }

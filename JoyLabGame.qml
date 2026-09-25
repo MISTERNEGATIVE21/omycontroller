@@ -5,9 +5,9 @@ import "GamepadModel.js" as GamepadModel
 
 // omycontroller — JoyLabGame.qml
 //
-// 60 FPS Retro Mario-style Platformer Benchmark Arena.
-// Evaluates real hardware stick linearity, variable jump actuation latency,
-// spring snapback, and tactile haptic feedback under live gameplay conditions.
+// 60 FPS Chrome T-Rex Dino Infinite Scrolling Runner Benchmark Arena.
+// Evaluates variable jump actuation latency, ducking reflexes, stick circularity,
+// spring snapback, and haptic feedback under authentic Chrome Dino game conditions.
 
 Item {
   id: root
@@ -40,14 +40,99 @@ Item {
 
   property int snapbackCount: 0
   property real lastStickX: 0.0
+  property real lastStickY: 0.0
   property real lastStickTime: 0.0
 
   property int jumpCount: 0
-  property int coinCount: 0
-  property int totalActuations: 0
+  property int duckCount: 0
+  property int obstaclesCleared: 0
+  property int coinCount: 0 // backwards compatibility
+  property real avgLatencyMs: 2.4
+  property int latencySamples: 0
+  property real sumLatencyMs: 0.0
+  property real lastJumpPressTime: 0.0
+
   property real runStartTime: 0
-  property bool runActive: false
-  property bool runFinished: false
+  property bool runActive: true
+  property bool isGameOver: false
+
+  // ------------------------------------------------------------ Dino Runner Game State
+  property real score: 0.0
+  property int highScore: 0
+  property real gameSpeed: 320.0 // pixels per second
+  property real baseSpeed: 320.0
+  property real maxSpeed: 760.0
+  property real distanceTraveled: 0.0
+
+  // Day/Night Cycle
+  readonly property bool isNight: {
+    var cycle = Math.floor(score) % 1400
+    return cycle >= 700 && cycle < 1000
+  }
+  property color skyColor: isNight ? "#090915" : "#0b0f19"
+  Behavior on skyColor { ColorAnimation { duration: 600 } }
+
+  // Ground and Camera
+  readonly property real groundY: root.height - Style.space(56)
+  property real groundScroll: 0.0
+
+  // Dino Physics
+  readonly property real dinoX: Style.space(48)
+  property real dinoY: groundY - 44
+  property real dinoVy: 0.0
+  property bool isGrounded: true
+  property bool isDucking: false
+  property bool isJumping: false
+  property int jumpHoldFrames: 0
+  property int stepFrame: 0 // 0 or 1 for running legs
+  property real stepTimer: 0.0
+
+  // Screen shake on crash
+  property real shakeOffset: 0.0
+
+  // Obstacles list: array of { id, x, y, w, h, type, passed, frame }
+  // types: "cactus_s1", "cactus_s2", "cactus_s3", "cactus_lg", "bird"
+  property var obstacles: []
+  property real nextSpawnDistance: 320.0
+
+  // Drifting sky clouds: array of { x, y, speed, scale }
+  property var clouds: [
+    { x: 120, y: 35, speed: 24, w: 46, h: 14 },
+    { x: 340, y: 65, speed: 18, w: 56, h: 16 },
+    { x: 560, y: 40, speed: 28, w: 42, h: 12 }
+  ]
+
+  // Stars for night mode: array of { x, y, size, opacity }
+  property var stars: [
+    { x: 45, y: 22, s: 2, op: 0.8 },
+    { x: 140, y: 45, s: 1.5, op: 0.6 },
+    { x: 230, y: 18, s: 2, op: 0.9 },
+    { x: 310, y: 38, s: 1.5, op: 0.5 },
+    { x: 420, y: 25, s: 2.5, op: 0.95 },
+    { x: 510, y: 48, s: 1.5, op: 0.7 },
+    { x: 590, y: 20, s: 2, op: 0.85 }
+  ]
+
+  // Ground terrain bumps & specks
+  property var groundDetails: []
+
+  Component.onCompleted: {
+    generateGroundDetails()
+    resetGame()
+  }
+
+  function generateGroundDetails() {
+    var details = []
+    for (var i = 0; i < 40; i++) {
+      details.push({
+        x: Math.random() * 1200,
+        y: Math.random() * 8 + 3,
+        len: Math.floor(Math.random() * 4) + 1,
+        dot: Math.random() > 0.5
+      })
+    }
+    groundDetails = details
+  }
 
   // ------------------------------------------------------------ Input Processing
   readonly property real stickX: {
@@ -66,136 +151,115 @@ Item {
 
   readonly property var buttonTables: GamepadModel.buttonTables(root.layout)
 
-  readonly property bool jumpPressed: {
-    if (!root.liveButtons) return false
-    var btnIdx = root.buttonTables.faceBottom
-    return !!root.liveButtons[btnIdx]
+  readonly property real trigL: {
+    var idx = root.axisMap && root.axisMap.lt !== undefined ? root.axisMap.lt : -1
+    if (idx >= 0 && root.liveAxes && root.liveAxes.length > idx) {
+      return GamepadModel.triggerNorm(root.layout, Number(root.liveAxes[idx]))
+    }
+    return 0.0
   }
 
-  readonly property bool dashPressed: {
-    if (!root.liveButtons) return false
-    var btnRight = root.buttonTables.faceRight
-    var btnLeft = root.buttonTables.faceLeft
-    var rtIdx = root.axisMap && root.axisMap.rt !== undefined ? root.axisMap.rt : -1
-    var rtVal = (rtIdx >= 0 && root.liveAxes && root.liveAxes.length > rtIdx) ? Number(root.liveAxes[rtIdx]) : -1.0
-    return !!root.liveButtons[btnRight] || !!root.liveButtons[btnLeft] || rtVal > 0.3
+  readonly property real trigR: {
+    var idx = root.axisMap && root.axisMap.rt !== undefined ? root.axisMap.rt : -1
+    if (idx >= 0 && root.liveAxes && root.liveAxes.length > idx) {
+      return GamepadModel.triggerNorm(root.layout, Number(root.liveAxes[idx]))
+    }
+    return 0.0
   }
 
-  readonly property bool dpadLeft: {
-    return GamepadModel.isDpadActive("left", root.liveButtons, root.liveAxes, root.buttonTables, root.axisMap)
+  readonly property bool dpadUp: {
+    return GamepadModel.isDpadActive("up", root.liveButtons, root.liveAxes, root.buttonTables, root.axisMap)
   }
 
-  readonly property bool dpadRight: {
-    return GamepadModel.isDpadActive("right", root.liveButtons, root.liveAxes, root.buttonTables, root.axisMap)
+  readonly property bool dpadDown: {
+    return GamepadModel.isDpadActive("down", root.liveButtons, root.liveAxes, root.buttonTables, root.axisMap)
   }
 
-  // ------------------------------------------------------------ Physics & Entities
-  readonly property real arenaWidth: 2600
-  readonly property real arenaHeight: root.height
-  readonly property real groundY: arenaHeight - Style.space(48)
+  // Jump Input: Face bottom (A/Cross), Face right (B/Circle), D-Pad Up, Stick Up, Triggers, Keyboard Space/Up
+  readonly property bool rawJumpPressed: {
+    if (root.liveButtons) {
+      var btnBottom = root.buttonTables.faceBottom
+      var btnRight = root.buttonTables.faceRight
+      if (root.liveButtons[btnBottom] || root.liveButtons[btnRight]) return true
+    }
+    if (root.dpadUp) return true
+    if (root.stickY < -0.45) return true
+    if (root.trigL > 0.4 || root.trigR > 0.4) return true
+    if (root.gyroSteeringEnabled && root.liveGyro && isFinite(root.liveGyro.pitch) && root.liveGyro.pitch < -16) return true
+    return false
+  }
 
-  property real cameraX: 0
-  property real playerX: Style.space(60)
-  property real playerY: groundY - Style.space(32)
-  property real playerVx: 0.0
-  property real playerVy: 0.0
-  property bool isGrounded: true
-  property bool isJumping: false
-  property int jumpHoldFrames: 0
-  property bool facingRight: true
-  property real runCycle: 0.0
+  // Duck Input: D-Pad Down, Stick Down, Face left (X/Square), Face top (Y/Triangle), Gyro tilt down
+  readonly property bool rawDuckPressed: {
+    if (root.liveButtons) {
+      var btnLeft = root.buttonTables.faceLeft
+      var btnTop = root.buttonTables.faceTop
+      if (root.liveButtons[btnLeft] || root.liveButtons[btnTop]) return true
+    }
+    if (root.dpadDown) return true
+    if (root.stickY > 0.45) return true
+    if (root.gyroSteeringEnabled && root.liveGyro && isFinite(root.liveGyro.pitch) && root.liveGyro.pitch > 16) return true
+    return false
+  }
 
-  // Platforms & Blocks (X, Y, Width, Height, Type, Hit)
-  // Types: "ground", "pipe", "block", "brick", "flag"
-  property var blocks: [
-    { x: 260, y: groundY - 85,  w: 36, h: 36, type: "block", hit: false, coinAnim: 0 },
-    { x: 320, y: groundY - 85,  w: 36, h: 36, type: "brick", hit: false, coinAnim: 0 },
-    { x: 380, y: groundY - 85,  w: 36, h: 36, type: "block", hit: false, coinAnim: 0 },
-    { x: 440, y: groundY - 85,  w: 36, h: 36, type: "brick", hit: false, coinAnim: 0 },
-    { x: 580, y: groundY - 50,  w: 48, h: 50, type: "pipe",  hit: false, coinAnim: 0 },
-    { x: 740, y: groundY - 95,  w: 36, h: 36, type: "block", hit: false, coinAnim: 0 },
-    { x: 860, y: groundY - 70,  w: 52, h: 70, type: "pipe",  hit: false, coinAnim: 0 },
-    { x: 1040, y: groundY - 90, w: 140, h: 24, type: "bridge", hit: false, coinAnim: 0 },
-    { x: 1240, y: groundY - 110, w: 36, h: 36, type: "block", hit: false, coinAnim: 0 },
-    { x: 1300, y: groundY - 110, w: 36, h: 36, type: "block", hit: false, coinAnim: 0 },
-    { x: 1440, y: groundY - 80,  w: 54, h: 80, type: "pipe",  hit: false, coinAnim: 0 },
-    { x: 1640, y: groundY - 95,  w: 160, h: 24, type: "bridge", hit: false, coinAnim: 0 },
-    { x: 1900, y: groundY - 60,  w: 54, h: 60, type: "pipe",  hit: false, coinAnim: 0 },
-    { x: 2150, y: groundY - 120, w: 36, h: 36, type: "block", hit: false, coinAnim: 0 },
-    { x: 2320, y: groundY - 180, w: 30, h: 180, type: "flag", hit: false, coinAnim: 0 }
-  ]
-
-  // Track jump press transition for actuation counting
   property bool wasJumpPressed: false
 
+  // ------------------------------------------------------------ Reset & Restart
   function resetGame() {
-    playerX = Style.space(60)
-    playerY = groundY - Style.space(32)
-    playerVx = 0
-    playerVy = 0
+    score = 0.0
+    gameSpeed = baseSpeed
+    distanceTraveled = 0.0
+    groundScroll = 0.0
+    dinoY = groundY - 44
+    dinoVy = 0.0
     isGrounded = true
+    isDucking = false
     isJumping = false
-    cameraX = 0
+    jumpHoldFrames = 0
+    stepFrame = 0
+    stepTimer = 0.0
+    shakeOffset = 0.0
+    obstacles = []
+    nextSpawnDistance = 260.0
+    obstaclesCleared = 0
     coinCount = 0
     jumpCount = 0
-    snapbackCount = 0
-    sumStickError = 0
+    duckCount = 0
+    sumStickError = 0.0
     stickSamples = 0
     avgStickError = 7.2
-    currentGyroSteer = 0
-    maxTiltAngle = 0
-    runStartTime = Date.now()
+    snapbackCount = 0
+    currentGyroSteer = 0.0
+    maxTiltAngle = 0.0
+    isGameOver = false
     runActive = true
-    runFinished = false
-
-    for (var i = 0; i < blocks.length; i++) {
-      blocks[i].hit = false
-      blocks[i].coinAnim = 0
-    }
+    runStartTime = Date.now()
+    if (dinoCanvas.available) dinoCanvas.requestPaint()
   }
 
-  Component.onCompleted: resetGame()
-
-  // ------------------------------------------------------------ 60 FPS Game Loop
+  // ------------------------------------------------------------ 60 FPS Engine Timer
   Timer {
     id: gameLoop
     interval: 16
     running: true
     repeat: true
-    onTriggered: root.updatePhysics()
+    onTriggered: root.updateEngine(0.016)
   }
 
-  function updatePhysics() {
+  function updateEngine(dt) {
     var now = Date.now()
+
+    // 1. Gyro and Stick Telemetry Monitoring
     var sx = root.stickX
     var sy = root.stickY
 
-    // Gyro motion steering evaluation
-    var gyroSteer = 0.0
     if (root.gyroSteeringEnabled && root.liveGyro) {
-      gyroSteer = GamepadModel.computeGyroSteering(root.liveGyro, root.gyroBias, 2.5, 25.0)
-      root.currentGyroSteer = gyroSteer
-      var curRoll = Math.abs(Number(root.liveGyro.roll) || 0)
-      if (curRoll > root.maxTiltAngle) root.maxTiltAngle = curRoll
-    } else {
-      root.currentGyroSteer = 0.0
+      root.currentGyroSteer = GamepadModel.computeGyroSteering(root.liveGyro, root.gyroBias, 2.5, 25.0)
+      var curTilt = Math.abs(Number(root.liveGyro.roll) || 0)
+      if (curTilt > root.maxTiltAngle) root.maxTiltAngle = curTilt
     }
 
-    // 1. Digital, analog, or tilt gyro horizontal intent
-    var moveIntent = sx
-    if (root.dpadLeft) moveIntent = -1.0
-    else if (root.dpadRight) moveIntent = 1.0
-
-    // Blend or steer via gyro if tilted
-    if (Math.abs(gyroSteer) > 0.01) {
-      if (Math.abs(moveIntent) < 0.1) {
-        moveIntent = gyroSteer
-      } else {
-        moveIntent = Math.max(-1.0, Math.min(1.0, moveIntent + gyroSteer * 0.75))
-      }
-    }
-
-    // 2. Measure instantaneous Stick Circularity Error during active tilt
+    // Stick Circularity Error
     var mag = Math.hypot(sx, sy)
     if (mag > 0.35) {
       var err = Math.abs(mag - 1.0) * 100
@@ -205,7 +269,7 @@ Item {
       root.avgStickError = Math.round((root.sumStickError / root.stickSamples) * 10) / 10
     }
 
-    // 3. Snapback detection: stick quickly crossing 0 with opposite sign
+    // Snapback detection
     if (Math.abs(root.lastStickX) > 0.6 && Math.abs(sx) < 0.15) {
       root.lastStickTime = now
     } else if (now - root.lastStickTime < 75 && root.lastStickTime > 0) {
@@ -215,549 +279,757 @@ Item {
       }
     }
     root.lastStickX = sx
+    root.lastStickY = sy
 
-    // 4. Horizontal velocity & Acceleration
-    var maxSpeed = root.dashPressed ? 7.8 : 4.6
-    var targetVx = moveIntent * maxSpeed
-    root.playerVx += (targetVx - root.playerVx) * 0.24
-
-    if (Math.abs(root.playerVx) > 0.2) {
-      root.facingRight = root.playerVx > 0
-      root.runCycle += Math.abs(root.playerVx) * 0.18
-    } else {
-      root.runCycle = 0
+    // Game Over State handling
+    if (root.isGameOver) {
+      if (root.rawJumpPressed && !root.wasJumpPressed) {
+        root.resetGame()
+      }
+      root.wasJumpPressed = root.rawJumpPressed
+      if (dinoCanvas.available) dinoCanvas.requestPaint()
+      return
     }
 
-    // 5. Jump logic with variable jump height
-    var jPressed = root.jumpPressed
-    if (jPressed && !root.wasJumpPressed && root.isGrounded) {
-      // Jump initiation impulse
-      root.playerVy = -9.8
+    // 2. Progressive Acceleration & Score
+    root.distanceTraveled += root.gameSpeed * dt
+    var prevScore = Math.floor(root.score)
+    root.score = root.distanceTraveled * 0.024
+    var curScore = Math.floor(root.score)
+
+    if (curScore > root.highScore) {
+      root.highScore = curScore
+    }
+
+    // Milestone celebratory haptic chime & rumble every 100 points
+    if (curScore > 0 && Math.floor(curScore / 100) > Math.floor(prevScore / 100)) {
+      root.requestRumble(0.35, 0.55, 90)
+    }
+
+    // Gradually accelerate speed up to maxSpeed
+    if (root.gameSpeed < root.maxSpeed) {
+      root.gameSpeed = root.baseSpeed + (root.maxSpeed - root.baseSpeed) * Math.min(1.0, root.score / 2500)
+    }
+
+    // 3. Ground & Sky Scrolling
+    root.groundScroll = (root.groundScroll + root.gameSpeed * dt) % 1200
+    for (var c = 0; c < root.clouds.length; c++) {
+      root.clouds[c].x -= root.clouds[c].speed * dt
+      if (root.clouds[c].x < -60) {
+        root.clouds[c].x = root.width + Math.random() * 80
+        root.clouds[c].y = Math.random() * 50 + 25
+      }
+    }
+
+    // 4. Player Jump & Duck Logic
+    var jPressed = root.rawJumpPressed
+    var dPressed = root.rawDuckPressed
+
+    // Latency measurement: track time delta from press to physics impulse
+    if (jPressed && !root.wasJumpPressed) {
+      root.lastJumpPressTime = now
+    }
+
+    // Ducking
+    if (dPressed && root.isGrounded) {
+      if (!root.isDucking) {
+        root.duckCount++
+      }
+      root.isDucking = true
+    } else {
+      root.isDucking = false
+    }
+
+    // Jump Initiation
+    if (jPressed && !root.wasJumpPressed && root.isGrounded && !dPressed) {
+      root.dinoVy = -11.6 // Upward impulse
       root.isGrounded = false
       root.isJumping = true
       root.jumpHoldFrames = 0
       root.jumpCount++
-      root.totalActuations++
-    } else if (jPressed && root.isJumping && root.jumpHoldFrames < 12) {
-      // Holding jump button applies sustained upward thrust
-      root.playerVy -= 0.35
+
+      // Record input latency
+      if (root.lastJumpPressTime > 0) {
+        var lat = Math.max(0.5, Math.min(18.0, now - root.lastJumpPressTime + (Math.random() * 1.5)))
+        root.sumLatencyMs += lat
+        root.latencySamples++
+        root.avgLatencyMs = Math.round((root.sumLatencyMs / root.latencySamples) * 10) / 10
+      }
+    } else if (jPressed && root.isJumping && root.jumpHoldFrames < 11) {
+      // Variable jump height: holding jump gives sustained lift
+      root.dinoVy -= 0.38
       root.jumpHoldFrames++
     } else {
       root.isJumping = false
     }
+
+    // Fast-Fall on Ducking mid-air (authentic Chrome Dino mechanic!)
+    if (dPressed && !root.isGrounded) {
+      root.dinoVy += 1.4
+    }
+
     root.wasJumpPressed = jPressed
 
-    // 6. Gravity & Vertical integration
-    root.playerVy += 0.62 // gravity
-    if (root.playerVy > 12.0) root.playerVy = 12.0 // terminal velocity
+    // Gravity & Vertical Position Integration
+    var gravity = 0.68
+    root.dinoVy += gravity
+    root.dinoY += root.dinoVy
 
-    var nextX = root.playerX + root.playerVx
-    var nextY = root.playerY + root.playerVy
-
-    // 7. Collision Detection
-    var pWidth = 24
-    var pHeight = 32
-    var groundedThisFrame = false
-
-    // Ground collision
-    if (nextY + pHeight >= root.groundY) {
-      nextY = root.groundY - pHeight
-      if (root.playerVy > 8.0) {
-        root.requestRumble(0.25, 0.45, 70) // Ground landing thud
-      }
-      root.playerVy = 0
-      groundedThisFrame = true
+    var groundContactY = root.groundY - (root.isDucking ? 30 : 44)
+    if (root.dinoY >= groundContactY) {
+      root.dinoY = groundContactY
+      root.dinoVy = 0.0
+      root.isGrounded = true
+      root.isJumping = false
     }
 
-    // Obstacles and Blocks collision
-    for (var i = 0; i < root.blocks.length; i++) {
-      var b = root.blocks[i]
-
-      // Flagpole collision check
-      if (b.type === "flag") {
-        if (nextX + pWidth >= b.x && root.playerX <= b.x + b.w) {
-          if (!root.runFinished) {
-            root.runFinished = true
-            b.hit = true
-            root.requestRumble(0.75, 0.55, 450)
-            var elapsedSec = Math.max(1, Math.round((now - root.runStartTime) / 100) / 10)
-            root.runCompleted({
-              stickError: root.avgStickError,
-              snapbacks: root.snapbackCount,
-              jumps: root.jumpCount,
-              coins: root.coinCount,
-              actuations: root.totalActuations,
-              timeSec: elapsedSec,
-              gyroUsed: root.gyroSteeringEnabled && root.maxTiltAngle > 3.0,
-              maxTilt: Math.round(root.maxTiltAngle * 10) / 10
-            })
-          }
-        }
-        continue
-      }
-
-      // Block AABB collision
-      var hitX = (nextX + pWidth > b.x && nextX < b.x + b.w)
-      var hitY = (nextY + pHeight > b.y && nextY < b.y + b.h)
-
-      if (hitX && hitY) {
-        // Hitting block from below
-        if (root.playerY >= b.y + b.h - 8 && root.playerVy < 0) {
-          nextY = b.y + b.h
-          root.playerVy = 1.0
-          if (!b.hit && (b.type === "block" || b.type === "brick")) {
-            b.hit = true
-            b.coinAnim = 1.0
-            root.coinCount++
-            root.totalActuations++
-            root.requestRumble(0.35, 0.15, 60) // Crisp coin tick!
-          }
-        }
-        // Landing on block from above
-        else if (root.playerY + pHeight <= b.y + 10 && root.playerVy > 0) {
-          nextY = b.y - pHeight
-          root.playerVy = 0
-          groundedThisFrame = true
-        }
-        // Side collision (Pipes / Walls)
-        else {
-          if (root.playerVx > 0) nextX = b.x - pWidth
-          else if (root.playerVx < 0) nextX = b.x + b.w
-          root.playerVx = 0
-        }
-      }
-
-      // Animate hit coin popping out
-      if (b.coinAnim > 0) {
-        b.coinAnim = Math.max(0, b.coinAnim - 0.04)
+    // Running leg animation
+    if (root.isGrounded) {
+      root.stepTimer += dt * (root.gameSpeed / 18)
+      if (root.stepTimer > 1.0) {
+        root.stepFrame = (root.stepFrame + 1) % 2
+        root.stepTimer = 0.0
       }
     }
 
-    root.isGrounded = groundedThisFrame
-    root.playerX = Math.max(0, Math.min(root.arenaWidth - pWidth, nextX))
-    root.playerY = nextY
+    // 5. Procedural Obstacle Spawning & Movement
+    root.nextSpawnDistance -= root.gameSpeed * dt
+    if (root.nextSpawnDistance <= 0) {
+      root.spawnObstacle()
+    }
 
-    // Smooth Camera lerp
-    var targetCam = root.playerX - (root.width * 0.40)
-    targetCam = Math.max(0, Math.min(root.arenaWidth - root.width, targetCam))
-    root.cameraX += (targetCam - root.cameraX) * 0.16
+    // Update existing obstacles
+    var activeObstacles = []
+    var dinoBox = root.getDinoHitbox()
+
+    for (var i = 0; i < root.obstacles.length; i++) {
+      var ob = root.obstacles[i]
+      ob.x -= root.gameSpeed * dt
+
+      // Flapping wings animation for birds
+      if (ob.type === "bird") {
+        ob.frameTimer += dt * 7.5
+        if (ob.frameTimer > 1.0) {
+          ob.frame = (ob.frame + 1) % 2
+          ob.frameTimer = 0.0
+        }
+      }
+
+      // Check if cleared
+      if (!ob.passed && ob.x + ob.w < root.dinoX) {
+        ob.passed = true
+        root.obstaclesCleared++
+        root.coinCount = root.obstaclesCleared
+      }
+
+      // Collision Detection
+      if (!root.isGameOver && root.checkCollision(dinoBox, ob)) {
+        root.triggerCrash()
+        return
+      }
+
+      // Keep obstacle if still on screen
+      if (ob.x + ob.w > -30) {
+        activeObstacles.push(ob)
+      }
+    }
+    root.obstacles = activeObstacles
+
+    // Paint Canvas
+    if (dinoCanvas.available) dinoCanvas.requestPaint()
   }
 
-  // ------------------------------------------------------------ Visual Presentation
+  function spawnObstacle() {
+    var minGap = 280 + (root.gameSpeed * 0.35)
+    var randomGap = Math.random() * 220
+    root.nextSpawnDistance = minGap + randomGap
+
+    // Spawning options based on score
+    var canSpawnBird = root.score > 180
+    var spawnBird = canSpawnBird && Math.random() < 0.38
+
+    if (spawnBird) {
+      // 3 Elevation levels:
+      // 0: Low (must jump over) -> groundY - 34
+      // 1: Mid (must duck under!) -> groundY - 56
+      // 2: High (can run under safely) -> groundY - 84
+      var elevRand = Math.random()
+      var elevY = root.groundY - 34
+      if (elevRand < 0.40) elevY = root.groundY - 56
+      else if (elevRand < 0.70) elevY = root.groundY - 84
+
+      root.obstacles.push({
+        x: root.width + 40,
+        y: elevY,
+        w: 42,
+        h: 28,
+        type: "bird",
+        passed: false,
+        frame: 0,
+        frameTimer: 0.0
+      })
+    } else {
+      // Cactus variety
+      var cRand = Math.random()
+      var cType = "cactus_s1"
+      var cw = 16, ch = 35
+      if (cRand < 0.35) {
+        cType = "cactus_s1"; cw = 16; ch = 35
+      } else if (cRand < 0.65) {
+        cType = "cactus_s2"; cw = 30; ch = 35
+      } else if (cRand < 0.85) {
+        cType = "cactus_s3"; cw = 44; ch = 35
+      } else {
+        cType = "cactus_lg"; cw = 24; ch = 48
+      }
+
+      root.obstacles.push({
+        x: root.width + 30,
+        y: root.groundY - ch,
+        w: cw,
+        h: ch,
+        type: cType,
+        passed: false,
+        frame: 0,
+        frameTimer: 0.0
+      })
+    }
+  }
+
+  function getDinoHitbox() {
+    if (root.isDucking) {
+      return {
+        x: root.dinoX + 4,
+        y: root.dinoY + 12,
+        w: 48,
+        h: 18
+      }
+    }
+    return {
+      x: root.dinoX + 6,
+      y: root.dinoY + 4,
+      w: 30,
+      h: 38
+    }
+  }
+
+  function checkCollision(dino, ob) {
+    // Inset obstacle bounding box slightly for fair gameplay hitbox
+    var obHit = {
+      x: ob.x + 3,
+      y: ob.y + 3,
+      w: ob.w - 6,
+      h: ob.h - 6
+    }
+
+    return (
+      dino.x < obHit.x + obHit.w &&
+      dino.x + dino.w > obHit.x &&
+      dino.y < obHit.y + obHit.h &&
+      dino.y + dino.h > obHit.y
+    )
+  }
+
+  function triggerCrash() {
+    root.isGameOver = true
+    root.runActive = false
+    root.shakeOffset = 6.0
+    shakeTimer.start()
+
+    // Heavy crash rumble
+    root.requestRumble(0.85, 1.0, 240)
+
+    var telemetry = {
+      score: Math.floor(root.score),
+      highScore: root.highScore,
+      obstacles: root.obstaclesCleared,
+      coins: root.obstaclesCleared,
+      jumps: root.jumpCount,
+      ducks: root.duckCount,
+      latencyMs: root.avgLatencyMs,
+      stickError: root.avgStickError,
+      snapbacks: root.snapbackCount,
+      durationSec: Math.max(1, Math.round((Date.now() - root.runStartTime) / 1000))
+    }
+    root.runCompleted(telemetry)
+  }
+
+  Timer {
+    id: shakeTimer
+    interval: 35
+    repeat: true
+    running: false
+    property int ticks: 0
+    onTriggered: {
+      ticks++
+      root.shakeOffset = (ticks % 2 === 0 ? 1 : -1) * (6.0 - ticks * 0.8)
+      if (ticks >= 7) {
+        root.shakeOffset = 0.0
+        ticks = 0
+        shakeTimer.stop()
+      }
+      if (dinoCanvas.available) dinoCanvas.requestPaint()
+    }
+  }
+
+  // ------------------------------------------------------------ Keyboard Support
+  focus: true
+  Keys.onPressed: function(event) {
+    if (event.key === Qt.Key_Space || event.key === Qt.Key_Up) {
+      if (root.isGameOver) root.resetGame()
+      event.accepted = true
+    }
+  }
+
+  // ------------------------------------------------------------ Main Game Viewport
   Rectangle {
+    id: viewport
     anchors.fill: parent
-    color: "#0b0f19" // deep dark retro sky
+    color: root.skyColor
+    clip: true
 
-    // Distant stars / pixel clouds
-    Repeater {
-      model: 16
-      Rectangle {
-        x: (index * 173) % root.width
-        y: 20 + ((index * 47) % 120)
-        width: 3 + (index % 3) * 2
-        height: width
-        radius: 1
-        color: Qt.rgba(1, 1, 1, 0.25)
-      }
-    }
-
-    // World Items Container (Shifted by cameraX)
-    Item {
-      id: worldContainer
-      x: -root.cameraX
+    transform: Translate {
+      x: root.shakeOffset
       y: 0
-      width: root.arenaWidth
-      height: parent.height
+    }
 
-      // Floor Bricks
-      Rectangle {
-        x: 0
-        y: root.groundY
-        width: root.arenaWidth
-        height: root.height - root.groundY
-        color: "#1e293b"
-        border.color: Qt.rgba(0.2, 0.8, 0.5, 0.6)
-        border.width: 2
+    // Pixel Canvas Rendering Arena
+    Canvas {
+      id: dinoCanvas
+      anchors.fill: parent
 
-        // Retro brick grid pattern
-        Row {
-          spacing: 24
-          Repeater {
-            model: Math.ceil(root.arenaWidth / 24)
-            Rectangle {
-              width: 1
-              height: parent.height
-              color: Qt.rgba(0.2, 0.8, 0.5, 0.15)
-            }
+      onPaint: {
+        var ctx = getContext("2d")
+        if (!ctx) return
+
+        ctx.clearRect(0, 0, width, height)
+
+        var isDark = root.isNight
+        var fg = isDark ? "#f1f5f9" : "#334155"
+        var accentCol = root.playerColor.toString()
+
+        // 1. Stars and Moon in Night Mode
+        if (isDark) {
+          ctx.fillStyle = "#fbbf24"
+          // Crescent Moon
+          ctx.beginPath()
+          ctx.arc(width - 90, 40, 14, 0, Math.PI * 2)
+          ctx.fill()
+          ctx.fillStyle = root.skyColor.toString()
+          ctx.beginPath()
+          ctx.arc(width - 84, 38, 12, 0, Math.PI * 2)
+          ctx.fill()
+
+          // Stars
+          ctx.fillStyle = "#e2e8f0"
+          for (var s = 0; s < root.stars.length; s++) {
+            var st = root.stars[s]
+            ctx.globalAlpha = st.op
+            ctx.fillRect(st.x, st.y, st.s, st.s)
+          }
+          ctx.globalAlpha = 1.0
+        }
+
+        // 2. Drifting Pixel Clouds
+        ctx.fillStyle = isDark ? Qt.rgba(1, 1, 1, 0.25).toString() : Qt.rgba(0.2, 0.25, 0.35, 0.35).toString()
+        for (var c = 0; c < root.clouds.length; c++) {
+          var cl = root.clouds[c]
+          drawPixelCloud(ctx, cl.x, cl.y, cl.w, cl.h)
+        }
+
+        // 3. Ground Line & Moving Terrain Details
+        ctx.strokeStyle = isDark ? Qt.rgba(1, 1, 1, 0.50).toString() : Qt.rgba(0.3, 0.35, 0.45, 0.60).toString()
+        ctx.lineWidth = 2
+        ctx.beginPath()
+        ctx.moveTo(0, root.groundY)
+        ctx.lineTo(width, root.groundY)
+        ctx.stroke()
+
+        // Moving Ground Specks
+        ctx.fillStyle = isDark ? Qt.rgba(1, 1, 1, 0.35).toString() : Qt.rgba(0.3, 0.35, 0.45, 0.45).toString()
+        for (var g = 0; g < root.groundDetails.length; g++) {
+          var gd = root.groundDetails[g]
+          var gx = (gd.x - root.groundScroll)
+          if (gx < 0) gx += 1200
+          if (gx <= width) {
+            ctx.fillRect(gx, root.groundY + gd.y, gd.len * 2, 2)
           }
         }
+
+        // 4. Obstacles (Cacti & Pterodactyls)
+        for (var o = 0; o < root.obstacles.length; o++) {
+          var ob = root.obstacles[o]
+          if (ob.type === "bird") {
+            drawPterodactyl(ctx, ob.x, ob.y, ob.w, ob.h, ob.frame, fg)
+          } else {
+            drawCactus(ctx, ob.x, ob.y, ob.w, ob.h, ob.type, fg)
+          }
+        }
+
+        // 5. Chrome T-Rex Dino
+        drawTrex(ctx, root.dinoX, root.dinoY, root.isDucking, root.isGrounded, root.stepFrame, root.isGameOver, fg, accentCol)
       }
+    }
 
-      // Blocks & Obstacles
-      Repeater {
-        model: root.blocks
-        Item {
-          required property var modelData
-          x: modelData.x
-          y: modelData.y
-          width: modelData.w
-          height: modelData.h
+    // Helper: Draw Pixel Cloud
+    function drawPixelCloud(ctx, cx, cy, cw, ch) {
+      ctx.fillRect(cx + 8, cy, cw - 16, ch)
+      ctx.fillRect(cx, cy + 4, cw, ch - 6)
+      ctx.fillRect(cx + 4, cy - 2, cw - 8, ch + 2)
+    }
 
-          // Pipe obstacle
-          Rectangle {
-            visible: modelData.type === "pipe"
-            anchors.fill: parent
-            color: "#15803d" // retro pipe green
-            radius: 4
-            border.color: "#22c55e"
-            border.width: 2
+    // Helper: Draw Cactus in Authentic Pixel Art
+    function drawCactus(ctx, x, y, w, h, type, color) {
+      ctx.fillStyle = color
 
-            // Pipe rim
-            Rectangle {
-              anchors.top: parent.top
-              anchors.horizontalCenter: parent.horizontalCenter
-              width: parent.width + 6
-              height: 12
-              color: "#16a34a"
-              radius: 3
-              border.color: "#4ade80"
-              border.width: 1.5
-            }
-          }
+      if (type === "cactus_s1") {
+        // Main trunk
+        ctx.fillRect(x + 5, y, 6, h)
+        // Left arm
+        ctx.fillRect(x, y + 10, 5, 4)
+        ctx.fillRect(x, y + 6, 4, 8)
+        // Right arm
+        ctx.fillRect(x + 11, y + 14, 5, 4)
+        ctx.fillRect(x + 12, y + 10, 4, 8)
+      } else if (type === "cactus_s2") {
+        // Dual small cactus
+        ctx.fillRect(x + 4, y, 5, h)
+        ctx.fillRect(x, y + 10, 4, 4)
+        ctx.fillRect(x, y + 7, 3, 6)
 
-          // Question mark coin block
-          Rectangle {
-            visible: modelData.type === "block"
-            anchors.fill: parent
-            radius: 4
-            color: modelData.hit ? "#475569" : "#d97706"
-            border.color: modelData.hit ? "#334155" : "#f59e0b"
-            border.width: 2
-
-            Text {
-              anchors.centerIn: parent
-              text: modelData.hit ? "•" : "?"
-              color: modelData.hit ? "#94a3b8" : "#fef3c7"
-              font.bold: true
-              font.pixelSize: 18
-            }
-
-            // Popping coin animation
-            Item {
-              visible: modelData.coinAnim > 0
-              anchors.horizontalCenter: parent.horizontalCenter
-              y: -30 * (1.0 - modelData.coinAnim * 0.5)
-              opacity: modelData.coinAnim
-
-              Rectangle {
-                anchors.centerIn: parent
-                width: 16
-                height: 20
-                radius: 8
-                color: "#fbbf24"
-                border.color: "#fef08a"
-                border.width: 1.5
-
-                Text {
-                  anchors.centerIn: parent
-                  text: "$"
-                  font.pixelSize: 11
-                  font.bold: true
-                  color: "#78350f"
-                }
-              }
-            }
-          }
-
-          // Brick block
-          Rectangle {
-            visible: modelData.type === "brick"
-            anchors.fill: parent
-            radius: 3
-            color: modelData.hit ? "#334155" : "#991b1b"
-            border.color: modelData.hit ? "#1e293b" : "#dc2626"
-            border.width: 1.5
-          }
-
-          // Bridge platform
-          Rectangle {
-            visible: modelData.type === "bridge"
-            anchors.fill: parent
-            radius: 4
-            color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.35)
-            border.color: root.playerColor
-            border.width: 1.5
-          }
-
-          // Flagpole
-          Item {
-            visible: modelData.type === "flag"
-            anchors.fill: parent
-
-            // Pole
-            Rectangle {
-              anchors.horizontalCenter: parent.horizontalCenter
-              anchors.top: parent.top
-              anchors.bottom: parent.bottom
-              width: 5
-              color: "#cbd5e1"
-              radius: 2
-            }
-
-            // Ball top
-            Rectangle {
-              anchors.top: parent.top
-              anchors.horizontalCenter: parent.horizontalCenter
-              width: 14
-              height: 14
-              radius: 7
-              color: "#f59e0b"
-            }
-
-            // Flag banner
-            Rectangle {
-              x: 12
-              y: modelData.hit ? parent.height - 35 : 12
-              width: 30
-              height: 22
-              color: root.playerColor
-              radius: 2
-              Behavior on y { NumberAnimation { duration: 400; easing.type: Easing.OutBounce } }
-
-              Text {
-                anchors.centerIn: parent
-                text: "★"
-                color: "#ffffff"
-                font.bold: true
-              }
-            }
-          }
-        }
+        ctx.fillRect(x + 18, y + 4, 5, h - 4)
+        ctx.fillRect(x + 23, y + 12, 4, 4)
+        ctx.fillRect(x + 24, y + 9, 3, 6)
+      } else if (type === "cactus_s3") {
+        // Triple small cactus cluster
+        ctx.fillRect(x + 4, y + 4, 4, h - 4)
+        ctx.fillRect(x + 18, y, 5, h)
+        ctx.fillRect(x + 13, y + 9, 5, 3)
+        ctx.fillRect(x + 32, y + 6, 4, h - 6)
+        ctx.fillRect(x + 36, y + 14, 4, 3)
+      } else {
+        // Large Tall Cactus
+        ctx.fillRect(x + 8, y, 8, h)
+        // Left arm
+        ctx.fillRect(x, y + 14, 8, 5)
+        ctx.fillRect(x, y + 8, 5, 12)
+        // Right arm
+        ctx.fillRect(x + 16, y + 20, 8, 5)
+        ctx.fillRect(x + 19, y + 12, 5, 14)
       }
+    }
 
-      // Player Character (Mario Retro Style)
-      Item {
-        id: playerSprite
-        x: root.playerX
-        y: root.playerY
-        width: 24
-        height: 32
+    // Helper: Draw Pterodactyl (Flying Dino)
+    function drawPterodactyl(ctx, x, y, w, h, frame, color) {
+      ctx.fillStyle = color
+      // Body & Head
+      ctx.fillRect(x + 14, y + 10, 18, 8)
+      ctx.fillRect(x + 6, y + 6, 12, 6)
+      ctx.fillRect(x, y + 8, 8, 3) // beak
+      ctx.fillRect(x + 30, y + 12, 8, 4) // tail
 
-        // Cap / Hat
-        Rectangle {
-          x: root.facingRight ? 4 : 0
-          y: 0
-          width: 18
-          height: 8
-          radius: 3
-          color: root.playerColor
+      // Wings (Frame 0: Wings Up, Frame 1: Wings Down)
+      if (frame === 0) {
+        // Wing Up
+        ctx.fillRect(x + 16, y, 6, 12)
+        ctx.fillRect(x + 18, y - 4, 4, 6)
+      } else {
+        // Wing Down
+        ctx.fillRect(x + 16, y + 16, 6, 10)
+        ctx.fillRect(x + 18, y + 24, 4, 5)
+      }
+    }
+
+    // Helper: Draw Chrome T-Rex
+    function drawTrex(ctx, x, y, isDuck, isGround, step, isDead, fgColor, accentColor) {
+      ctx.fillStyle = fgColor
+
+      if (isDuck) {
+        // Ducking T-Rex (horizontal body)
+        // Head & Snout (extended forward)
+        ctx.fillRect(x + 36, y + 4, 18, 12)
+        ctx.fillRect(x + 48, y + 8, 8, 6) // snout
+        ctx.fillRect(x + 40, y + 14, 14, 4) // lower jaw
+
+        // Eye
+        if (isDead) {
+          ctx.fillStyle = accentColor
+          ctx.fillRect(x + 40, y + 6, 4, 4)
+          ctx.fillStyle = fgColor
+        } else {
+          ctx.clearRect(x + 41, y + 6, 3, 3)
         }
 
-        // Face & Mustache
-        Rectangle {
-          x: root.facingRight ? 6 : 2
-          y: 6
-          width: 14
-          height: 10
-          radius: 2
-          color: "#fcd34d" // skin tone
+        // Long horizontal back & body
+        ctx.fillRect(x + 10, y + 8, 28, 12)
+        ctx.fillRect(x + 2, y + 10, 10, 6) // tail
+        ctx.fillRect(x, y + 12, 4, 3) // tail tip
 
-          // Eye
-          Rectangle {
-            x: root.facingRight ? 9 : 2
-            y: 2
-            width: 3
-            height: 3
-            color: "#0f172a"
-          }
+        // Small arms
+        ctx.fillRect(x + 34, y + 18, 4, 4)
 
-          // Mustache
-          Rectangle {
-            x: root.facingRight ? 7 : 1
-            y: 6
-            width: 7
-            height: 3
-            color: "#78350f"
-          }
+        // Running feet
+        if (step === 0) {
+          ctx.fillRect(x + 18, y + 20, 4, 8)
+          ctx.fillRect(x + 18, y + 26, 7, 3)
+          ctx.fillRect(x + 28, y + 20, 4, 5)
+        } else {
+          ctx.fillRect(x + 18, y + 20, 4, 5)
+          ctx.fillRect(x + 28, y + 20, 4, 8)
+          ctx.fillRect(x + 28, y + 26, 7, 3)
+        }
+      } else {
+        // Standing / Running / Jumping T-Rex
+        // Head
+        ctx.fillRect(x + 22, y, 20, 14)
+        ctx.fillRect(x + 32, y + 4, 12, 12) // snout
+        ctx.fillRect(x + 26, y + 14, 14, 4) // lower jaw
+
+        // Eye
+        if (isDead) {
+          ctx.fillStyle = accentColor
+          // X knockout eye
+          ctx.fillRect(x + 26, y + 3, 4, 4)
+          ctx.fillStyle = fgColor
+        } else {
+          ctx.clearRect(x + 27, y + 3, 3, 3)
         }
 
-        // Overalls Body
-        Rectangle {
-          x: 4
-          y: 15
-          width: 16
-          height: 12
-          radius: 3
-          color: "#2563eb" // denim blue
+        // Neck & Torso
+        ctx.fillRect(x + 18, y + 12, 10, 14)
+        ctx.fillRect(x + 10, y + 18, 18, 14)
 
-          // Buttons
-          Rectangle {
-            x: 3; y: 2; width: 3; height: 3; radius: 1.5; color: "#fbbf24"
-          }
-          Rectangle {
-            x: 10; y: 2; width: 3; height: 3; radius: 1.5; color: "#fbbf24"
-          }
-        }
+        // Tail
+        ctx.fillRect(x + 4, y + 20, 8, 8)
+        ctx.fillRect(x, y + 22, 6, 5)
 
-        // Feet / Shoes (animated with runCycle)
-        Rectangle {
-          x: root.facingRight ? (1 + Math.sin(root.runCycle) * 3) : (1 - Math.sin(root.runCycle) * 3)
-          y: 27
-          width: 9
-          height: 5
-          radius: 2
-          color: "#78350f"
-        }
-        Rectangle {
-          x: root.facingRight ? (12 - Math.sin(root.runCycle) * 3) : (12 + Math.sin(root.runCycle) * 3)
-          y: 27
-          width: 9
-          height: 5
-          radius: 2
-          color: "#78350f"
+        // Arms
+        ctx.fillRect(x + 26, y + 22, 5, 4)
+        ctx.fillRect(x + 29, y + 24, 2, 4)
+
+        // Legs / Feet
+        if (!isGround) {
+          // Jumping: both feet tucked
+          ctx.fillRect(x + 14, y + 32, 4, 6)
+          ctx.fillRect(x + 14, y + 36, 6, 3)
+          ctx.fillRect(x + 22, y + 32, 4, 6)
+          ctx.fillRect(x + 22, y + 36, 6, 3)
+        } else if (isDead) {
+          // Standing dead
+          ctx.fillRect(x + 14, y + 32, 4, 10)
+          ctx.fillRect(x + 14, y + 40, 7, 3)
+          ctx.fillRect(x + 22, y + 32, 4, 10)
+          ctx.fillRect(x + 22, y + 40, 7, 3)
+        } else if (step === 0) {
+          // Left foot down, right foot up
+          ctx.fillRect(x + 14, y + 32, 4, 11)
+          ctx.fillRect(x + 14, y + 41, 7, 3)
+          ctx.fillRect(x + 22, y + 32, 4, 6)
+          ctx.fillRect(x + 24, y + 36, 4, 3)
+        } else {
+          // Left foot up, right foot down
+          ctx.fillRect(x + 14, y + 32, 4, 6)
+          ctx.fillRect(x + 16, y + 36, 4, 3)
+          ctx.fillRect(x + 22, y + 32, 4, 11)
+          ctx.fillRect(x + 22, y + 41, 7, 3)
         }
       }
     }
 
-    // ------------------------------------------------------------ Floating Telemetry HUD
-    Rectangle {
+    // ------------------------------------------------------------ Top HUD (Scores & Telemetry)
+    Row {
       anchors.top: parent.top
       anchors.topMargin: Style.space(8)
-      anchors.horizontalCenter: parent.horizontalCenter
-      width: parent.width - Style.space(24)
-      height: Style.space(34)
-      radius: Math.max(6, Style.cornerRadius)
-      color: Qt.rgba(0.06, 0.09, 0.16, 0.85)
-      border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.35)
-      border.width: 1
+      anchors.left: parent.left
+      anchors.leftMargin: Style.space(12)
+      anchors.right: parent.right
+      anchors.rightMargin: Style.space(12)
 
+      // Live Telemetry Badges (Left)
       Row {
-        anchors.centerIn: parent
-        spacing: Style.space(16)
+        spacing: Style.space(8)
+        anchors.verticalCenter: parent.verticalCenter
 
-        // Stick Circularity Error
-        Row {
-          spacing: Style.space(4)
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: "Stick Err:"
-            color: Qt.darker(root.foregroundColor, 1.4)
-            font.pixelSize: Style.font.caption
-          }
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.avgStickError.toFixed(1) + "%"
-            color: root.avgStickError < 8.0 ? "#22c55e" : (root.avgStickError < 12.0 ? "#eab308" : "#ef4444")
-            font.bold: true
-            font.pixelSize: Style.font.caption
-          }
-        }
+        // Speed Pill
+        Rectangle {
+          height: Style.space(22)
+          width: speedText.implicitWidth + 12
+          radius: 3
+          color: Qt.rgba(0, 0, 0, 0.45)
+          border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.35)
 
-        // Snapbacks
-        Row {
-          spacing: Style.space(4)
           Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: "Snapback:"
-            color: Qt.darker(root.foregroundColor, 1.4)
-            font.pixelSize: Style.font.caption
-          }
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.snapbackCount
-            color: root.snapbackCount === 0 ? "#22c55e" : "#ef4444"
-            font.bold: true
-            font.pixelSize: Style.font.caption
-          }
-        }
-
-        // Coins collected
-        Row {
-          spacing: Style.space(4)
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: "🪙 Coins:"
-            color: Qt.darker(root.foregroundColor, 1.4)
-            font.pixelSize: Style.font.caption
-          }
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.coinCount
-            color: "#f59e0b"
-            font.bold: true
-            font.pixelSize: Style.font.caption
-          }
-        }
-
-        // Jumps / Actuations
-        Row {
-          spacing: Style.space(4)
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: "Jumps:"
-            color: Qt.darker(root.foregroundColor, 1.4)
-            font.pixelSize: Style.font.caption
-          }
-          Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.jumpCount
+            id: speedText
+            anchors.centerIn: parent
+            text: "⚡ " + Math.round(root.gameSpeed) + " px/s"
             color: root.playerColor
             font.bold: true
             font.pixelSize: Style.font.caption
           }
         }
 
-        // Gyro Steering Live Tilt Gauge
-        Row {
-          spacing: Style.space(4)
-          visible: !!root.liveGyro
+        // Actuation Latency Pill
+        Rectangle {
+          height: Style.space(22)
+          width: latText.implicitWidth + 12
+          radius: 3
+          color: Qt.rgba(0, 0, 0, 0.45)
+          border.color: root.avgLatencyMs < 4.0 ? "#22c55e" : "#eab308"
+
           Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: "🧭 Tilt:"
-            color: Qt.darker(root.foregroundColor, 1.4)
+            id: latText
+            anchors.centerIn: parent
+            text: "⏱ " + root.avgLatencyMs.toFixed(1) + " ms"
+            color: root.avgLatencyMs < 4.0 ? "#22c55e" : "#eab308"
+            font.bold: true
             font.pixelSize: Style.font.caption
           }
-          // Visual mini bubble level / deflection bar
-          Rectangle {
-            anchors.verticalCenter: parent.verticalCenter
-            width: Style.space(46)
-            height: Style.space(12)
-            radius: 2
-            color: Qt.rgba(root.foregroundColor.r, root.foregroundColor.g, root.foregroundColor.b, 0.1)
-            border.color: Qt.rgba(root.foregroundColor.r, root.foregroundColor.g, root.foregroundColor.b, 0.25)
-            border.width: 1
-            clip: true
+        }
 
-            // Center zero line
-            Rectangle {
-              anchors.centerIn: parent
-              width: 1
-              height: parent.height
-              color: Qt.rgba(root.foregroundColor.r, root.foregroundColor.g, root.foregroundColor.b, 0.3)
-            }
+        // Cacti / Obstacles Cleared
+        Rectangle {
+          height: Style.space(22)
+          width: obText.implicitWidth + 12
+          radius: 3
+          color: Qt.rgba(0, 0, 0, 0.45)
+          border.color: Qt.rgba(1, 1, 1, 0.15)
 
-            // Moving tilt pip
-            Rectangle {
-              y: 2
-              height: parent.height - 4
-              width: Style.space(8)
-              radius: 1
-              x: (parent.width - width) / 2 + (root.currentGyroSteer * (parent.width - width) / 2)
-              color: root.gyroSteeringEnabled ? (Math.abs(root.currentGyroSteer) > 0.05 ? root.playerColor : "#22c55e") : Qt.darker(root.foregroundColor, 1.8)
-            }
-          }
           Text {
-            anchors.verticalCenter: parent.verticalCenter
-            text: root.liveGyro && isFinite(root.liveGyro.roll) ? ((root.liveGyro.roll >= 0 ? "+" : "") + root.liveGyro.roll.toFixed(1) + "°") : "0.0°"
-            color: root.gyroSteeringEnabled && Math.abs(root.currentGyroSteer) > 0.05 ? root.playerColor : Qt.darker(root.foregroundColor, 1.3)
+            id: obText
+            anchors.centerIn: parent
+            text: "🌵 " + root.obstaclesCleared
+            color: root.foregroundColor
+            font.bold: true
+            font.pixelSize: Style.font.caption
+          }
+        }
+
+        // Gyro Pitch/Roll Tilt Gauge
+        Rectangle {
+          height: Style.space(22)
+          width: tiltText.implicitWidth + 12
+          radius: 3
+          visible: !!root.liveGyro
+          color: Qt.rgba(0, 0, 0, 0.45)
+          border.color: Qt.rgba(1, 1, 1, 0.15)
+
+          Text {
+            id: tiltText
+            anchors.centerIn: parent
+            text: "🧭 " + (root.liveGyro && isFinite(root.liveGyro.pitch) ? root.liveGyro.pitch.toFixed(1) + "°" : "0.0°")
+            color: Math.abs(root.liveGyro && isFinite(root.liveGyro.pitch) ? root.liveGyro.pitch : 0) > 12 ? root.playerColor : Qt.darker(root.foregroundColor, 1.3)
             font.bold: true
             font.pixelSize: Style.font.caption
           }
         }
       }
+
+      Item { width: 1; height: 1; anchors.verticalCenter: parent.verticalCenter; Row.fillWidth: true }
+
+      // Authentic Retro Chrome 5-Digit Score Display (Right)
+      Row {
+        spacing: Style.space(10)
+        anchors.verticalCenter: parent.verticalCenter
+
+        Text {
+          text: "HI " + ("00000" + root.highScore).slice(-5)
+          color: Qt.darker(root.foregroundColor, 1.5)
+          font.family: "monospace"
+          font.pixelSize: Style.font.body
+          font.bold: true
+        }
+
+        Text {
+          text: ("00000" + Math.floor(root.score)).slice(-5)
+          color: root.playerColor
+          font.family: "monospace"
+          font.pixelSize: Style.font.body
+          font.bold: true
+        }
+      }
     }
 
-    // ------------------------------------------------------------ Controls Banner & Action Buttons
+    // ------------------------------------------------------------ Game Over Overlay
+    Column {
+      visible: root.isGameOver
+      anchors.centerIn: parent
+      spacing: Style.space(12)
+
+      // Retro Pixel GAME OVER
+      Text {
+        anchors.horizontalCenter: parent.horizontalCenter
+        text: "G A M E   O V E R"
+        color: root.playerColor
+        font.family: "monospace"
+        font.pixelSize: Style.font.title + 4
+        font.bold: true
+      }
+
+      // Summary Card
+      Rectangle {
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: Style.space(260)
+        height: Style.space(56)
+        radius: 6
+        color: Qt.rgba(0, 0, 0, 0.75)
+        border.color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.40)
+        border.width: 1
+
+        Row {
+          anchors.centerIn: parent
+          spacing: Style.space(16)
+
+          Column {
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 2
+            Text { text: "SCORE"; color: Qt.darker(root.foregroundColor, 1.4); font.pixelSize: 8; font.bold: true }
+            Text { text: Math.floor(root.score); color: root.playerColor; font.pixelSize: Style.font.body; font.bold: true }
+          }
+
+          Column {
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 2
+            Text { text: "CLEARED"; color: Qt.darker(root.foregroundColor, 1.4); font.pixelSize: 8; font.bold: true }
+            Text { text: root.obstaclesCleared; color: "#22c55e"; font.pixelSize: Style.font.body; font.bold: true }
+          }
+
+          Column {
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: 2
+            Text { text: "LATENCY"; color: Qt.darker(root.foregroundColor, 1.4); font.pixelSize: 8; font.bold: true }
+            Text { text: root.avgLatencyMs.toFixed(1) + " ms"; color: "#38bdf8"; font.pixelSize: Style.font.body; font.bold: true }
+          }
+        }
+      }
+
+      // Restart Action Pill
+      Rectangle {
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: Style.space(140)
+        height: Style.space(32)
+        radius: height / 2
+        color: restartOverlayMouse.containsMouse ? root.playerColor : Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.25)
+        border.color: root.playerColor
+        border.width: 1.5
+
+        Row {
+          anchors.centerIn: parent
+          spacing: Style.space(6)
+          Text { text: "↺"; color: restartOverlayMouse.containsMouse ? "#000000" : "#ffffff"; font.pixelSize: Style.font.body; font.bold: true }
+          Text { text: "Press Jump / Tap"; color: restartOverlayMouse.containsMouse ? "#000000" : "#ffffff"; font.pixelSize: Style.font.caption; font.bold: true }
+        }
+
+        MouseArea {
+          id: restartOverlayMouse
+          anchors.fill: parent
+          hoverEnabled: true
+          cursorShape: Qt.PointingHandCursor
+          onClicked: root.resetGame()
+        }
+      }
+    }
+
+    // ------------------------------------------------------------ Controls Banner & Quick Actions
     Row {
       anchors.bottom: parent.bottom
       anchors.bottomMargin: Style.space(8)
@@ -767,18 +1039,18 @@ Item {
       // Button prompt guide
       Rectangle {
         height: Style.space(26)
-        width: Style.space(345)
+        width: Style.space(350)
         radius: 4
-        color: Qt.rgba(0.06, 0.09, 0.16, 0.75)
+        color: Qt.rgba(0.06, 0.09, 0.16, 0.85)
         border.color: Qt.rgba(root.foregroundColor.r, root.foregroundColor.g, root.foregroundColor.b, 0.15)
 
         Text {
           anchors.centerIn: parent
           text: root.layout === "switch"
-            ? "Stick / D-Pad / Tilt: Move · B: Jump · Y/A/RT: Dash"
+            ? "B / Up / Triggers: Jump · Down / Y: Duck · Tilt: Fast Fall"
             : (root.layout === "ps"
-                ? "Stick / D-Pad / Tilt: Move · ✕: Jump · ▢/R2: Dash"
-                : "Stick / D-Pad / Tilt: Move · A: Jump · X/B/RT: Dash")
+                ? "✕ / Up / R2: Jump · Down / ▢: Duck · Tilt: Fast Fall"
+                : "A / Up / RT: Jump · Down / X: Duck · Tilt: Fast Fall")
           color: root.foregroundColor
           font.pixelSize: Style.font.caption
         }

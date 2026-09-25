@@ -648,17 +648,19 @@ Panel {
 
   function triggerNorm(side) {
     var layout = root.sel ? root.sel.layout : "xbox"
+    var tables = GamepadModel.buttonTables(layout, root.sel ? root.sel.profile : null)
+    var btnPressed = side === "l"
+      ? !!(root.liveButtons && tables.triggerL >= 0 && root.liveButtons[tables.triggerL])
+      : !!(root.liveButtons && tables.triggerR >= 0 && root.liveButtons[tables.triggerR])
+    if (btnPressed) return 1.0
+
     var axes = root.liveAxes
+    if (!axes || axes.length === 0) return 0.0
     var axisNames = root.sel ? root.sel.axisNames : []
     var axisMap = GamepadModel.axesMap(layout, axes ? axes.length : 0, axisNames)
-    var tables = GamepadModel.buttonTables(layout, root.sel ? root.sel.profile : null)
     var idx = side === "l" ? axisMap.lt : axisMap.rt
-    var btnPressed = side === "l"
-      ? !!(root.liveButtons && root.liveButtons[tables.triggerL])
-      : !!(root.liveButtons && root.liveButtons[tables.triggerR])
-    var fallback = btnPressed ? 1 : 0
-    var raw = (idx !== -1 && axes && idx < axes.length && isFinite(Number(axes[idx]))) ? Number(axes[idx]) : fallback
-    return GamepadModel.triggerNorm(layout, raw)
+    if (idx === -1 || idx >= axes.length || !isFinite(Number(axes[idx]))) return 0.0
+    return GamepadModel.triggerNorm(layout, Number(axes[idx]))
   }
 
   // ------------------------------------------------------------ lifecycle
@@ -826,9 +828,50 @@ Panel {
             }
           }
 
+          // Standby Wireless Dongle Callout Card
+          Rectangle {
+            visible: Boolean(root.svc && root.svc.standbyDongle)
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width - Style.space(24)
+            height: Style.space(64)
+            radius: Style.cornerRadius
+            color: Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.12)
+            border.color: Qt.rgba(Color.accent.r, Color.accent.g, Color.accent.b, 0.40)
+            border.width: 1
+
+            Row {
+              anchors.centerIn: parent
+              spacing: Style.space(12)
+
+              Text {
+                text: "📡"
+                font.pixelSize: Style.font.title
+                anchors.verticalCenter: parent.verticalCenter
+              }
+
+              Column {
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: Style.space(3)
+
+                Text {
+                  text: (root.svc && root.svc.standbyDongle) ? (root.svc.standbyDongle.name + " Connected") : "Wireless Adapter Connected"
+                  color: Color.accent
+                  font.bold: true
+                  font.pixelSize: Style.font.body
+                }
+
+                Text {
+                  text: "Turn ON your controller (press Home / Power) to link wirelessly"
+                  color: root.barForeground
+                  font.pixelSize: Style.font.caption
+                }
+              }
+            }
+          }
+
           Text {
             anchors.horizontalCenter: parent.horizontalCenter
-            text: "No Gamepads Detected"
+            text: (root.svc && root.svc.standbyDongle) ? "Wireless Receiver Ready" : "No Gamepads Detected"
             color: root.barForeground
             font.family: root.bar ? root.bar.fontFamily : Style.font.family
             font.pixelSize: Style.font.subtitle
@@ -839,7 +882,9 @@ Panel {
             width: parent.width - Style.space(40)
             anchors.horizontalCenter: parent.horizontalCenter
             horizontalAlignment: Text.AlignHCenter
-            text: "Plug in an Xbox, PlayStation, Switch Pro, or generic controller via USB cable, Bluetooth, or wireless adapter. Up to 4 players supported with real-time diagnostics, circularity radar, haptics, and 6-DOF gyro."
+            text: (root.svc && root.svc.standbyDongle)
+              ? ("A 2.4G wireless USB receiver (" + root.svc.standbyDongle.name + ") is detected. Turn ON your controller or press the Home button to link wirelessly.")
+              : "Plug in an Xbox, PlayStation, Switch Pro, or generic controller via USB cable, Bluetooth, or wireless adapter. Up to 4 players supported with real-time diagnostics, circularity radar, haptics, and 6-DOF gyro."
             color: Qt.darker(root.barForeground, 1.4)
             font.family: root.bar ? root.bar.fontFamily : Style.font.family
             font.pixelSize: Style.font.bodySmall
@@ -1239,6 +1284,118 @@ Panel {
                     }
                     onTriggerMoved: function(side, val) {
                       root.handleVirtualTrigger(side, val)
+                    }
+                  }
+
+                  // Dual Shoulder Trigger & Bumper Telemetry HUD
+                  Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: Math.min(parent.width - Style.space(16), Style.space(310))
+                    height: Style.space(36)
+                    radius: Style.cornerRadius
+                    color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.04)
+                    border.color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.10)
+                    border.width: 1
+
+                    Row {
+                      anchors.centerIn: parent
+                      spacing: Style.space(10)
+
+                      // Left Trigger (LT / L2 / ZL)
+                      Row {
+                        spacing: Style.space(6)
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        Rectangle {
+                          width: Style.space(22); height: Style.space(18); radius: 3
+                          color: (root.liveButtons && !!root.liveButtons[root.sel && root.sel.buttonTables ? root.sel.buttonTables.bumperL : 4]) ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08)
+                          border.color: (root.liveButtons && !!root.liveButtons[root.sel && root.sel.buttonTables ? root.sel.buttonTables.bumperL : 4]) ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.20)
+                          border.width: 1
+                          Text {
+                            anchors.centerIn: parent
+                            text: root.sel && root.sel.layout === "ps" ? "L1" : (root.sel && root.sel.layout === "switch" ? "L" : "LB")
+                            color: (root.liveButtons && !!root.liveButtons[root.sel && root.sel.buttonTables ? root.sel.buttonTables.bumperL : 4]) ? "#FFFFFF" : root.barForeground
+                            font.pixelSize: 8; font.bold: true
+                          }
+                        }
+
+                        Column {
+                          anchors.verticalCenter: parent.verticalCenter
+                          spacing: 2
+                          Row {
+                            spacing: 4
+                            Text {
+                              text: root.sel && root.sel.layout === "ps" ? "L2" : (root.sel && root.sel.layout === "switch" ? "ZL" : "LT")
+                              color: root.barForeground; font.pixelSize: 8; font.bold: true
+                            }
+                            Text {
+                              text: Math.round(root.triggerNorm("l") * 100) + "%"
+                              color: root.triggerNorm("l") > 0.03 ? root.playerColor : Qt.darker(root.barForeground, 1.4)
+                              font.pixelSize: 8; font.bold: true
+                            }
+                          }
+                          Rectangle {
+                            width: Style.space(78); height: 5; radius: 2.5
+                            color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                            Rectangle {
+                              height: parent.height; width: parent.width * Math.max(0, Math.min(1, root.triggerNorm("l")))
+                              radius: 2.5; color: root.playerColor
+                            }
+                          }
+                        }
+                      }
+
+                      // Divider
+                      Rectangle {
+                        width: 1; height: Style.space(20); anchors.verticalCenter: parent.verticalCenter
+                        color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.15)
+                      }
+
+                      // Right Trigger (RT / R2 / ZR)
+                      Row {
+                        spacing: Style.space(6)
+                        anchors.verticalCenter: parent.verticalCenter
+
+                        Column {
+                          anchors.verticalCenter: parent.verticalCenter
+                          spacing: 2
+                          Row {
+                            spacing: 4
+                            anchors.right: parent.right
+                            Text {
+                              text: Math.round(root.triggerNorm("r") * 100) + "%"
+                              color: root.triggerNorm("r") > 0.03 ? root.playerColor : Qt.darker(root.barForeground, 1.4)
+                              font.pixelSize: 8; font.bold: true
+                            }
+                            Text {
+                              text: root.sel && root.sel.layout === "ps" ? "R2" : (root.sel && root.sel.layout === "switch" ? "ZR" : "RT")
+                              color: root.barForeground; font.pixelSize: 8; font.bold: true
+                            }
+                          }
+                          Rectangle {
+                            width: Style.space(78); height: 5; radius: 2.5
+                            color: Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.12)
+                            Rectangle {
+                              height: parent.height; width: parent.width * Math.max(0, Math.min(1, root.triggerNorm("r")))
+                              radius: 2.5; color: root.playerColor
+                              anchors.right: parent.right
+                            }
+                          }
+                        }
+
+                        Rectangle {
+                          width: Style.space(22); height: Style.space(18); radius: 3
+                          color: (root.liveButtons && !!root.liveButtons[root.sel && root.sel.buttonTables ? root.sel.buttonTables.bumperR : 5]) ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.08)
+                          border.color: (root.liveButtons && !!root.liveButtons[root.sel && root.sel.buttonTables ? root.sel.buttonTables.bumperR : 5]) ? root.playerColor : Qt.rgba(root.barForeground.r, root.barForeground.g, root.barForeground.b, 0.20)
+                          border.width: 1
+                          Text {
+                            anchors.centerIn: parent
+                            text: root.sel && root.sel.layout === "ps" ? "R1" : (root.sel && root.sel.layout === "switch" ? "R" : "RB")
+                            color: (root.liveButtons && !!root.liveButtons[root.sel && root.sel.buttonTables ? root.sel.buttonTables.bumperR : 5]) ? "#FFFFFF" : root.barForeground
+                            font.pixelSize: 8; font.bold: true
+                          }
+                        }
+                      }
                     }
                   }
 
@@ -3642,14 +3799,14 @@ Panel {
                   spacing: Style.space(8)
 
                   PanelSectionHeader {
-                    text: "JoyLab: Retro Mario Performance Arena"
+                    text: "JoyLab: Chrome Dino Infinite Runner Benchmark"
                     foreground: root.barForeground
                     font.family: root.bar ? root.bar.fontFamily : Style.font.family
                   }
 
                   Text {
                     width: parent.width
-                    text: "Interactive 60 FPS platformer benchmark. Jump, run, and collect coins using physical gamepad inputs to evaluate stick circularity, jump actuation latency, and spring snapback in real time."
+                    text: "Authentic Chrome T-Rex infinite scrolling runner benchmark. Jump over cacti, duck under flying pterodactyls, and test input latency, analog trigger actuation, and gyro steering under real-time 60 FPS conditions."
                     color: Qt.darker(root.barForeground, 1.4)
                     font.pixelSize: Style.font.caption
                     wrapMode: Text.WordWrap
@@ -3672,7 +3829,7 @@ Panel {
                     }
                     onRunCompleted: function(telemetry) {
                       root.latestJoyLabStats = telemetry
-                      if (root.svc) root.svc.actionResult("JoyLab Run Complete: " + telemetry.stickError.toFixed(1) + "% error · " + telemetry.coins + " coins collected")
+                      if (root.svc) root.svc.actionResult("JoyLab Dino Run Complete: " + telemetry.score + " pts · " + (telemetry.latencyMs || 0).toFixed(1) + "ms latency")
                     }
                   }
 
@@ -3682,7 +3839,7 @@ Panel {
 
                     Button {
                       width: (parent.width - Style.space(8)) / 2
-                      text: "↺ Restart Arena"
+                      text: "↺ Restart Dino Runner"
                       foreground: root.barForeground
                       accent: root.playerColor
                       onClicked: joyLabInstance.resetGame()

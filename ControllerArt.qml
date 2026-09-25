@@ -207,9 +207,9 @@ Item {
     if (!axes || axes.length === 0) {
       return 0.0
     }
-    var fallback = (isXbox || layout === "generic") ? -1 : 0
+    var fallback = (isXbox || effectiveLayout === "generic") ? -1 : 0
     var raw = axisValue(side === "l" ? axisMap.lt : axisMap.rt, fallback)
-    return GamepadModel.triggerNorm(layout, raw)
+    return GamepadModel.triggerNorm(effectiveLayout, raw)
   }
 
   function stickX(side) {
@@ -1445,7 +1445,7 @@ Item {
       id: trigBlade
       x: su.isLeft ? 6 : 4
       // Sinks downward as trigger is pulled
-      y: 1 + su.fillAmount * 4.5
+      y: 1 + su.fillAmount * 6.5
       width: parent.width - 10
       height: 20
       radius: 5
@@ -1523,6 +1523,24 @@ Item {
         color: su.fillAmount > 0.05 ? Qt.rgba(1, 1, 1, 0.60) : Qt.rgba(1, 1, 1, 0.20)
       }
 
+      // Live Analog Travel Depth Fill in Trigger Well Cavity
+      Rectangle {
+        anchors.fill: parent
+        anchors.margins: 1.5
+        radius: 4
+        clip: true
+        color: "transparent"
+
+        Rectangle {
+          anchors.bottom: parent.bottom
+          anchors.left: parent.left
+          anchors.right: parent.right
+          height: parent.height * su.fillAmount
+          color: Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.45)
+          radius: 3
+        }
+      }
+
       // Precision Glowing Travel Fill Line along top edge
       Rectangle {
         x: 2; y: 1
@@ -1536,7 +1554,7 @@ Item {
 
       Image {
         id: trigCapImg
-        visible: su.trigArtSource !== "" && status === Image.Ready
+        visible: su.fillAmount <= 0.05 && su.trigArtSource !== "" && status === Image.Ready
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
         anchors.topMargin: 1
@@ -1553,17 +1571,43 @@ Item {
         }
       }
 
-      // Trigger Label (Tucked cleanly at the top of the trigger blade)
+      // Trigger Label & Live Analog Value Readout
       Text {
-        visible: root.showLabels && (!trigCapImg.visible || trigCapImg.status !== Image.Ready)
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.top: parent.top
-        anchors.topMargin: 1
-        text: su.trigLabel
-        color: su.fillAmount > 0.40 ? Color.popups.background : root.glyphColor
+        visible: root.showLabels && (!trigCapImg.visible || su.fillAmount > 0.05)
+        anchors.centerIn: parent
+        text: su.fillAmount > 0.02
+          ? (su.trigLabel + " " + Math.round(su.fillAmount * 100) + "%")
+          : su.trigLabel
+        color: su.fillAmount > 0.35 ? Color.popups.background : root.glyphColor
         font.pixelSize: 8
         font.bold: true
         font.family: Style.font.family
+      }
+
+      // Floating Live Percentage Pill Badge above Trigger Blade
+      Rectangle {
+        id: trigAnalogBadge
+        visible: su.fillAmount > 0.02 || trigMouse.containsMouse
+        anchors.bottom: parent.top
+        anchors.bottomMargin: 3
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: Math.max(28, trigAnalogText.implicitWidth + 8)
+        height: 14
+        radius: 7
+        color: Qt.rgba(0.04, 0.06, 0.12, 0.92)
+        border.color: root.playerColor
+        border.width: 1.2
+        z: 10
+
+        Text {
+          id: trigAnalogText
+          anchors.centerIn: parent
+          text: Math.round(su.fillAmount * 100) + "%"
+          color: root.playerColor
+          font.pixelSize: 8
+          font.bold: true
+          font.family: Style.font.family
+        }
       }
     }
 
@@ -1572,7 +1616,7 @@ Item {
     Rectangle {
       id: bumperPlate
       x: 0
-      y: su.bumpOn ? 14 : 12
+      y: su.bumpOn ? 15.5 : 12
       width: parent.width
       height: 19
       radius: 6
@@ -1585,7 +1629,7 @@ Item {
         ? root.playerColor
         : (bumpMouse.containsMouse ? Qt.rgba(root.playerColor.r, root.playerColor.g, root.playerColor.b, 0.65) : Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.40))
       border.width: su.bumpOn ? 1.5 : 1
-      scale: su.bumpOn ? 0.97 : (bumpMouse.containsMouse ? 1.02 : 1.0)
+      scale: su.bumpOn ? 0.94 : (bumpMouse.containsMouse ? 1.02 : 1.0)
 
       Behavior on y { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
       Behavior on color { ColorAnimation { duration: 25 } }
@@ -1939,11 +1983,11 @@ Item {
     Item {
       id: stickCap
       x: 26 - 10 + st.corrected.x * 18
-      // Physical microswitch click depression: sinks 1.5px into socket on click
-      y: 26 - 10 + st.corrected.y * 18 + (st.on ? 1.5 : 0)
+      // Physical microswitch click depression: sinks 2.5px into socket on click
+      y: 26 - 10 + st.corrected.y * 18 + (st.on ? 2.5 : 0)
       width: 20
       height: 20
-      scale: st.on ? 0.94 : (stickMouse.containsMouse && !st.isDragging ? 1.05 : 1.0)
+      scale: st.on ? 0.90 : (stickMouse.containsMouse && !st.isDragging ? 1.05 : 1.0)
 
       Behavior on x { enabled: !st.isDragging; NumberAnimation { duration: 15; easing.type: Easing.OutQuad } }
       Behavior on y { enabled: !st.isDragging; NumberAnimation { duration: 15; easing.type: Easing.OutQuad } }
@@ -2167,7 +2211,7 @@ Item {
       anchors.centerIn: parent
       width: 44
       height: 44
-      y: dp.isAny ? 5.5 : 4.0
+      y: dp.isAny ? 6.5 : 4.0
 
       Behavior on y { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
 
@@ -2176,21 +2220,21 @@ Item {
         Rotation {
           origin.x: 22; origin.y: 22
           axis { x: 1; y: 0; z: 0 }
-          angle: -dp.tiltY * 8.5
-          Behavior on angle { NumberAnimation { duration: 40; easing.type: Easing.OutQuad } }
+          angle: -dp.tiltY * 12.0
+          Behavior on angle { NumberAnimation { duration: 35; easing.type: Easing.OutQuad } }
         },
         Rotation {
           origin.x: 22; origin.y: 22
           axis { x: 0; y: 1; z: 0 }
-          angle: dp.tiltX * 8.5
-          Behavior on angle { NumberAnimation { duration: 40; easing.type: Easing.OutQuad } }
+          angle: dp.tiltX * 12.0
+          Behavior on angle { NumberAnimation { duration: 35; easing.type: Easing.OutQuad } }
         }
       ]
 
       // Drop shadow cast by the elevated tilting dish onto the crucible floor
       Rectangle {
-        x: 1 + dp.tiltX * 2.5
-        y: 2.5 + dp.tiltY * 2.5
+        x: 1 + dp.tiltX * 3.5
+        y: 2.5 + dp.tiltY * 3.5
         width: 44; height: 44; radius: 22
         color: Qt.rgba(0, 0, 0, 0.65)
         z: -1
@@ -2207,8 +2251,8 @@ Item {
 
         // Dynamic Specular Light Shift (Crescent highlight glints towards active tilt)
         Rectangle {
-          x: 6 - dp.tiltX * 3.5
-          y: 3 - dp.tiltY * 3.5
+          x: 6 - dp.tiltX * 4.0
+          y: 3 - dp.tiltY * 4.0
           width: 32; height: 10; radius: 5
           color: Qt.rgba(1, 1, 1, dp.isAny ? 0.40 : 0.22)
           Behavior on x { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
@@ -2239,50 +2283,121 @@ Item {
           z: -1
         }
 
-        // 4 Raised Directional Cardinal Chevrons
-        // Up Chevron
-        Text {
-          x: 17; y: 3
-          text: "▲"
-          color: dp.up ? dp.accent : (dishMouseUp.containsMouse ? Qt.lighter(root.dimGlyph, 1.3) : root.dimGlyph)
-          font.pixelSize: 8
-          font.bold: true
-          scale: dp.up ? 1.25 : (dishMouseUp.containsMouse ? 1.15 : 1.0)
+        // 4 Tactile Sculpted Directional Petal Pads & Chevrons (Up, Down, Left, Right)
+        // Up Directional Petal
+        Rectangle {
+          id: dishPetalUp
+          x: 13
+          y: dp.up ? 4.5 : 2
+          width: 18
+          height: 14
+          radius: 3
+          color: dp.up
+            ? Qt.rgba(dp.accent.r, dp.accent.g, dp.accent.b, 0.85)
+            : (dishMouseUp.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.25))
+          border.color: dp.up ? dp.accent : Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.45)
+          border.width: dp.up ? 1.5 : 0.8
+          scale: dp.up ? 0.86 : (dishMouseUp.containsMouse ? 1.05 : 1.0)
           Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+          Behavior on y { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
           Behavior on color { ColorAnimation { duration: 25 } }
+
+          Text {
+            anchors.centerIn: parent
+            text: "▲"
+            color: dp.up ? "#FFFFFF" : (dishMouseUp.containsMouse ? Qt.lighter(root.dimGlyph, 1.3) : root.dimGlyph)
+            font.pixelSize: 10
+            font.bold: true
+            scale: dp.up ? 1.25 : 1.0
+            Behavior on scale { NumberAnimation { duration: 25 } }
+          }
         }
-        // Down Chevron
-        Text {
-          x: 17; y: 31
-          text: "▼"
-          color: dp.down ? dp.accent : (dishMouseDown.containsMouse ? Qt.lighter(root.dimGlyph, 1.3) : root.dimGlyph)
-          font.pixelSize: 8
-          font.bold: true
-          scale: dp.down ? 1.25 : (dishMouseDown.containsMouse ? 1.15 : 1.0)
+
+        // Down Directional Petal
+        Rectangle {
+          id: dishPetalDown
+          x: 13
+          y: dp.down ? 25.5 : 28
+          width: 18
+          height: 14
+          radius: 3
+          color: dp.down
+            ? Qt.rgba(dp.accent.r, dp.accent.g, dp.accent.b, 0.85)
+            : (dishMouseDown.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.25))
+          border.color: dp.down ? dp.accent : Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.45)
+          border.width: dp.down ? 1.5 : 0.8
+          scale: dp.down ? 0.86 : (dishMouseDown.containsMouse ? 1.05 : 1.0)
           Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+          Behavior on y { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
           Behavior on color { ColorAnimation { duration: 25 } }
+
+          Text {
+            anchors.centerIn: parent
+            text: "▼"
+            color: dp.down ? "#FFFFFF" : (dishMouseDown.containsMouse ? Qt.lighter(root.dimGlyph, 1.3) : root.dimGlyph)
+            font.pixelSize: 10
+            font.bold: true
+            scale: dp.down ? 1.25 : 1.0
+            Behavior on scale { NumberAnimation { duration: 25 } }
+          }
         }
-        // Left Chevron
-        Text {
-          x: 4; y: 17
-          text: "◀"
-          color: dp.dpadLeft ? dp.accent : (dishMouseLeft.containsMouse ? Qt.lighter(root.dimGlyph, 1.3) : root.dimGlyph)
-          font.pixelSize: 8
-          font.bold: true
-          scale: dp.dpadLeft ? 1.25 : (dishMouseLeft.containsMouse ? 1.15 : 1.0)
+
+        // Left Directional Petal
+        Rectangle {
+          id: dishPetalLeft
+          x: dp.dpadLeft ? 4.5 : 2
+          y: 13
+          width: 14
+          height: 18
+          radius: 3
+          color: dp.dpadLeft
+            ? Qt.rgba(dp.accent.r, dp.accent.g, dp.accent.b, 0.85)
+            : (dishMouseLeft.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.25))
+          border.color: dp.dpadLeft ? dp.accent : Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.45)
+          border.width: dp.dpadLeft ? 1.5 : 0.8
+          scale: dp.dpadLeft ? 0.86 : (dishMouseLeft.containsMouse ? 1.05 : 1.0)
           Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+          Behavior on x { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
           Behavior on color { ColorAnimation { duration: 25 } }
+
+          Text {
+            anchors.centerIn: parent
+            text: "◀"
+            color: dp.dpadLeft ? "#FFFFFF" : (dishMouseLeft.containsMouse ? Qt.lighter(root.dimGlyph, 1.3) : root.dimGlyph)
+            font.pixelSize: 10
+            font.bold: true
+            scale: dp.dpadLeft ? 1.25 : 1.0
+            Behavior on scale { NumberAnimation { duration: 25 } }
+          }
         }
-        // Right Chevron
-        Text {
-          x: 32; y: 17
-          text: "▶"
-          color: dp.dpadRight ? dp.accent : (dishMouseRight.containsMouse ? Qt.lighter(root.dimGlyph, 1.3) : root.dimGlyph)
-          font.pixelSize: 8
-          font.bold: true
-          scale: dp.dpadRight ? 1.25 : (dishMouseRight.containsMouse ? 1.15 : 1.0)
+
+        // Right Directional Petal
+        Rectangle {
+          id: dishPetalRight
+          x: dp.dpadRight ? 25.5 : 28
+          y: 13
+          width: 14
+          height: 18
+          radius: 3
+          color: dp.dpadRight
+            ? Qt.rgba(dp.accent.r, dp.accent.g, dp.accent.b, 0.85)
+            : (dishMouseRight.containsMouse ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(0, 0, 0, 0.25))
+          border.color: dp.dpadRight ? dp.accent : Qt.rgba(root.bodyBorder.r, root.bodyBorder.g, root.bodyBorder.b, 0.45)
+          border.width: dp.dpadRight ? 1.5 : 0.8
+          scale: dp.dpadRight ? 0.86 : (dishMouseRight.containsMouse ? 1.05 : 1.0)
           Behavior on scale { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
+          Behavior on x { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
           Behavior on color { ColorAnimation { duration: 25 } }
+
+          Text {
+            anchors.centerIn: parent
+            text: "▶"
+            color: dp.dpadRight ? "#FFFFFF" : (dishMouseRight.containsMouse ? Qt.lighter(root.dimGlyph, 1.3) : root.dimGlyph)
+            font.pixelSize: 10
+            font.bold: true
+            scale: dp.dpadRight ? 1.25 : 1.0
+            Behavior on scale { NumberAnimation { duration: 25 } }
+          }
         }
 
         // Deep Center Concave Thumb Bowl (The Faceted Pivot Dish)
@@ -2290,8 +2405,8 @@ Item {
           anchors.centerIn: parent
           width: 18; height: 18; radius: 9
           color: Qt.rgba(0, 0, 0, 0.45)
-          border.color: Qt.rgba(0, 0, 0, 0.70)
-          border.width: 1
+          border.color: dp.isAny ? Qt.rgba(dp.accent.r, dp.accent.g, dp.accent.b, 0.80) : Qt.rgba(0, 0, 0, 0.70)
+          border.width: dp.isAny ? 1.5 : 1.0
 
           // Inverted bowl shadow (top is shadowed in a concave dish)
           Rectangle {
@@ -2309,11 +2424,14 @@ Item {
             color: Qt.rgba(1, 1, 1, 0.20)
           }
 
-          // Center Machined Pivot Pin
+          // Center Machined Pivot Pin with Dynamic Glow
           Rectangle {
             anchors.centerIn: parent
-            width: 5; height: 5; radius: 2.5
+            width: dp.isAny ? 6 : 5
+            height: dp.isAny ? 6 : 5
+            radius: width / 2
             color: dp.isAny ? dp.accent : Qt.rgba(root.dimGlyph.r, root.dimGlyph.g, root.dimGlyph.b, 0.50)
+            Behavior on color { ColorAnimation { duration: 25 } }
           }
         }
       }
@@ -2442,14 +2560,14 @@ Item {
         Rotation {
           origin.x: 26; origin.y: 26
           axis { x: 1; y: 0; z: 0 }
-          angle: -dp.tiltY * 7.5
-          Behavior on angle { NumberAnimation { duration: 40; easing.type: Easing.OutQuad } }
+          angle: -dp.tiltY * 10.5
+          Behavior on angle { NumberAnimation { duration: 35; easing.type: Easing.OutQuad } }
         },
         Rotation {
           origin.x: 26; origin.y: 26
           axis { x: 0; y: 1; z: 0 }
-          angle: dp.tiltX * 7.5
-          Behavior on angle { NumberAnimation { duration: 40; easing.type: Easing.OutQuad } }
+          angle: dp.tiltX * 10.5
+          Behavior on angle { NumberAnimation { duration: 35; easing.type: Easing.OutQuad } }
         }
       ]
 
@@ -2526,15 +2644,15 @@ Item {
     width: 16
     height: 16
     radius: 3
-    // Tactile rocker switch tilt: depresses 1.5px toward center when clicked
-    x: dir === "left" ? (on ? 5.5 : 4) : dir === "right" ? (on ? 30.5 : 32) : 18
-    y: dir === "up" ? (on ? 5.5 : 4) : dir === "down" ? (on ? 30.5 : 32) : 18
+    // Tactile rocker switch tilt: depresses 2.5px toward center when clicked
+    x: dir === "left" ? (on ? 6.5 : 4) : dir === "right" ? (on ? 29.5 : 32) : 18
+    y: dir === "up" ? (on ? 6.5 : 4) : dir === "down" ? (on ? 29.5 : 32) : 18
 
     rotation: 0
     color: on ? dpadArmItem.accent : (dir === "up" ? Qt.rgba(1, 1, 1, 0.08) : dir === "down" ? Qt.rgba(0, 0, 0, 0.20) : "transparent")
     border.color: on ? dpadArmItem.accent : (dpadMouse.containsMouse ? Qt.rgba(dpadArmItem.accent.r, dpadArmItem.accent.g, dpadArmItem.accent.b, 0.50) : "transparent")
     border.width: on ? 2 : (dpadMouse.containsMouse ? 1 : 0)
-    scale: on ? 0.94 : (dpadMouse.containsMouse ? 1.08 : 1.0)
+    scale: on ? 0.88 : (dpadMouse.containsMouse ? 1.08 : 1.0)
 
     Behavior on y { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
     Behavior on x { NumberAnimation { duration: 25; easing.type: Easing.OutQuad } }
@@ -2612,25 +2730,29 @@ Item {
 
     // Embossed Tactile Chevron Shadow
     Text {
-      visible: root.showLabels
+      visible: true
       anchors.centerIn: parent
       anchors.verticalCenterOffset: 1
       text: dpadArmItem.dir === "up" ? "▲" : dpadArmItem.dir === "down" ? "▼" : dpadArmItem.dir === "left" ? "◀" : "▶"
       color: Qt.rgba(0, 0, 0, 0.60)
-      font.pixelSize: 8
+      font.pixelSize: 10
       font.bold: true
       font.family: Style.font.family
+      scale: dpadArmItem.on ? 1.2 : 1.0
+      Behavior on scale { NumberAnimation { duration: 30 } }
     }
 
     // Directional chevron indicator
     Text {
-      visible: root.showLabels
+      visible: true
       anchors.centerIn: parent
       text: dpadArmItem.dir === "up" ? "▲" : dpadArmItem.dir === "down" ? "▼" : dpadArmItem.dir === "left" ? "◀" : "▶"
-      color: dpadArmItem.on ? Color.popups.background : root.glyphColor
-      font.pixelSize: 8
+      color: dpadArmItem.on ? "#FFFFFF" : root.glyphColor
+      font.pixelSize: 10
       font.bold: true
       font.family: Style.font.family
+      scale: dpadArmItem.on ? 1.2 : 1.0
+      Behavior on scale { NumberAnimation { duration: 30 } }
     }
   }
 
